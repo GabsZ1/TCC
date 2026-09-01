@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: salonhub-postgres
+    environment:
+      POSTGRES_DB: salonhub_db
+      POSTGRES_USER: salonhub_user
+      POSTGRES_PASSWORD: salonhub_pass
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
