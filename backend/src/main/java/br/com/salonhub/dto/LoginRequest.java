@@ -1,10 +1,11 @@
 package br.com.salonhub.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
 public record LoginRequest(
         @NotBlank @Email String email,
-        @NotBlank String senha
+        @JsonProperty("senha") @NotBlank String password
 ) {
 }

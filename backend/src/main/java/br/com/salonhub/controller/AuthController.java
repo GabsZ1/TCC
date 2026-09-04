@@ -1,10 +1,10 @@
 package br.com.salonhub.controller;
 
-import br.com.salonhub.dto.CadastroInicialRequest;
-import br.com.salonhub.dto.CadastroInicialResponse;
+import br.com.salonhub.dto.InitialRegistrationRequest;
+import br.com.salonhub.dto.InitialRegistrationResponse;
 import br.com.salonhub.dto.LoginRequest;
 import br.com.salonhub.dto.LoginResponse;
-import br.com.salonhub.dto.UsuarioAutenticadoResponse;
+import br.com.salonhub.dto.AuthenticatedUserResponse;
 import br.com.salonhub.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -40,8 +40,8 @@ public class AuthController {
     @ApiResponse(responseCode = "400", description = "Dados inválidos")
     @ApiResponse(responseCode = "409", description = "CNPJ ou e-mail já cadastrado")
     @SecurityRequirements
-    public CadastroInicialResponse cadastrar(@Valid @RequestBody CadastroInicialRequest request) {
-        return authService.cadastrar(request);
+    public InitialRegistrationResponse register(@Valid @RequestBody InitialRegistrationRequest request) {
+        return authService.register(request);
     }
 
     @PostMapping("/login")
@@ -50,14 +50,14 @@ public class AuthController {
     @ApiResponse(responseCode = "401", description = "Credenciais inválidas")
     @SecurityRequirements
     public LoginResponse login(@Valid @RequestBody LoginRequest request) {
-        return authService.login(request);
+        return authService.authenticate(request);
     }
 
     @GetMapping("/me")
     @Operation(summary = "Consultar sessão", description = "Retorna o usuário autenticado e seu estabelecimento.")
     @ApiResponse(responseCode = "200", description = "Usuário autenticado")
     @ApiResponse(responseCode = "401", description = "Token ausente, inválido ou usuário inativo")
-    public UsuarioAutenticadoResponse me(@AuthenticationPrincipal Jwt jwt) {
-        return authService.me(Long.valueOf(jwt.getSubject()));
+    public AuthenticatedUserResponse getCurrentUser(@AuthenticationPrincipal Jwt jwt) {
+        return authService.getCurrentUser(Long.valueOf(jwt.getSubject()));
     }
 }

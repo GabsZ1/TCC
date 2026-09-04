@@ -16,19 +16,19 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.OffsetDateTime;
 @Entity
-@Table(name = "estabelecimentos")
+@Table(name = "establishments")
 @Getter
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class Estabelecimento {
+public class Establishment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false, length = 150)
-    private String nome;
+    private String name;
 
     @Column(nullable = false, unique = true, length = 14)
     private String cnpj;
@@ -37,18 +37,18 @@ public class Estabelecimento {
     private String email;
 
     @Column(length = 20)
-    private String telefone;
+    private String phone;
 
     @Column(nullable = false)
     @Builder.Default
-    private boolean ativo = true;
+    private boolean active = true;
 
     @CreationTimestamp
-    @Column(name = "criado_em", nullable = false, updatable = false)
-    private OffsetDateTime criadoEm;
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private OffsetDateTime createdAt;
 
     @UpdateTimestamp
-    @Column(name = "atualizado_em", nullable = false)
-    private OffsetDateTime atualizadoEm;
+    @Column(name = "updated_at", nullable = false)
+    private OffsetDateTime updatedAt;
 
 }

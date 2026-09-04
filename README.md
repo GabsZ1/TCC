@@ -163,6 +163,14 @@ Authorization: Bearer SEU_TOKEN
 
 O JWT contém os identificadores do usuário e do estabelecimento, o perfil e o e-mail. A rota `/me` também consulta o banco para confirmar que o usuário continua ativo.
 
+### Autorização e isolamento entre estabelecimentos
+
+- O estabelecimento das operações administrativas é obtido a partir do usuário identificado pelo JWT.
+- Os endpoints de funcionários e serviços não recebem `estabelecimentoId` do cliente.
+- Apenas usuários `ADMIN` podem consultar ou gerenciar funcionários e serviços.
+- Usuários `PROFISSIONAL` podem autenticar e consultar a própria sessão em `/api/auth/me`, mas não possuem acesso às operações administrativas.
+- Funcionários e serviços são consultados junto com o identificador do estabelecimento autenticado, impedindo acesso entre estabelecimentos.
+
 Configurações do JWT:
 
 - `JWT_SECRET`: chave com pelo menos 256 bits codificada em Base64. A chave padrão existe somente para desenvolvimento.
