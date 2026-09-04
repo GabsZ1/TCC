@@ -1,16 +1,15 @@
 package br.com.salonhub.dto;
 
 import br.com.salonhub.entity.SalonService;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import java.math.BigDecimal;
 
 public record SalonServiceResponse(
         Long id,
-        @JsonProperty("nome") String name,
-        @JsonProperty("descricao") String description,
-        @JsonProperty("preco") BigDecimal price,
-        @JsonProperty("comissaoPorcentagem") BigDecimal commissionPercentage,
-        @JsonProperty("ativo") boolean active
+        String name,
+        String description,
+        BigDecimal price,
+        BigDecimal commissionPercentage,
+        boolean active
 ) {
     public static SalonServiceResponse fromEntity(SalonService service) {
         return new SalonServiceResponse(

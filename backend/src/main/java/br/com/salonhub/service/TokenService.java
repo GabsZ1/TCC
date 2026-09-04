@@ -31,9 +31,9 @@ public class TokenService {
                 .issuedAt(issuedAt)
                 .expiresAt(expiresAt)
                 .subject(user.getId().toString())
-                .claim("usuarioId", user.getId())
-                .claim("estabelecimentoId", user.getEstablishment().getId())
-                .claim("perfil", user.getRole().getExternalValue())
+                .claim("userId", user.getId())
+                .claim("establishmentId", user.getEstablishment().getId())
+                .claim("role", user.getRole().name())
                 .claim("email", user.getEmail())
                 .build();
 

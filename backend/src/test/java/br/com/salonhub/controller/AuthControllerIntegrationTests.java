@@ -29,29 +29,29 @@ class AuthControllerIntegrationTests {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "nomeResponsavel": "Administrador Teste",
-                                  "emailResponsavel": "auth.integration@salonhub.test",
-                                  "senha": "senha123",
-                                  "nomeEstabelecimento": "Salão Integração",
+                                  "ownerName": "Administrador Teste",
+                                  "ownerEmail": "auth.integration@salonhub.test",
+                                  "password": "senha123",
+                                  "establishmentName": "Salão Integração",
                                   "cnpj": "11222333000181",
-                                  "emailEstabelecimento": "contato@salonhub.test",
-                                  "telefoneEstabelecimento": "44999999999"
+                                  "establishmentEmail": "contato@salonhub.test",
+                                  "establishmentPhone": "44999999999"
                                 }
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.usuarioId").isNumber())
-                .andExpect(jsonPath("$.estabelecimentoId").isNumber());
+                .andExpect(jsonPath("$.userId").isNumber())
+                .andExpect(jsonPath("$.establishmentId").isNumber());
 
         MvcResult login = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
                                   "email": "auth.integration@salonhub.test",
-                                  "senha": "senha123"
+                                  "password": "senha123"
                                 }
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.tipo").value("Bearer"))
+                .andExpect(jsonPath("$.type").value("Bearer"))
                 .andExpect(jsonPath("$.token").isNotEmpty())
                 .andReturn();
 
@@ -61,7 +61,7 @@ class AuthControllerIntegrationTests {
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value("auth.integration@salonhub.test"))
-                .andExpect(jsonPath("$.perfil").value("ADMIN"))
-                .andExpect(jsonPath("$.nomeEstabelecimento").value("Salão Integração"));
+                .andExpect(jsonPath("$.role").value("ADMIN"))
+                .andExpect(jsonPath("$.establishmentName").value("Salão Integração"));
     }
 }

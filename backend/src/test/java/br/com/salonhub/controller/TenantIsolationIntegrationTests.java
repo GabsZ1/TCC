@@ -73,7 +73,7 @@ class TenantIsolationIntegrationTests {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "nome": "Alteração indevida",
+                                  "name": "Alteração indevida",
                                   "email": "changed@salonhub.test"
                                 }
                                 """))
@@ -115,10 +115,10 @@ class TenantIsolationIntegrationTests {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "nomeResponsavel": "Administrador",
-                                  "emailResponsavel": "%s",
-                                  "senha": "senha123",
-                                  "nomeEstabelecimento": "%s",
+                                  "ownerName": "Administrador",
+                                  "ownerEmail": "%s",
+                                  "password": "senha123",
+                                  "establishmentName": "%s",
                                   "cnpj": "%s"
                                 }
                                 """.formatted(email, establishmentName, cnpj)))
@@ -133,7 +133,7 @@ class TenantIsolationIntegrationTests {
                         .content("""
                                 {
                                   "email": "%s",
-                                  "senha": "senha123"
+                                  "password": "senha123"
                                 }
                                 """.formatted(email)))
                 .andExpect(status().isOk())
@@ -145,9 +145,9 @@ class TenantIsolationIntegrationTests {
     private String employeePayload(String name, String email) {
         return """
                 {
-                  "nome": "%s",
+                  "name": "%s",
                   "email": "%s",
-                  "senha": "senha123"
+                  "password": "senha123"
                 }
                 """.formatted(name, email);
     }
@@ -155,10 +155,10 @@ class TenantIsolationIntegrationTests {
     private String servicePayload(String name) {
         return """
                 {
-                  "nome": "%s",
-                  "descricao": "Descrição",
-                  "preco": 50.00,
-                  "comissaoPorcentagem": 10.00
+                  "name": "%s",
+                  "description": "Descrição",
+                  "price": 50.00,
+                  "commissionPercentage": 10.00
                 }
                 """.formatted(name);
     }

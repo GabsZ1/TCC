@@ -1,7 +1,5 @@
 package br.com.salonhub.entity;
 
-import com.fasterxml.jackson.annotation.JsonValue;
-
 public enum UserRole {
     ADMIN("ADMIN"),
     PROFESSIONAL("PROFISSIONAL");
@@ -12,7 +10,6 @@ public enum UserRole {
         this.externalValue = externalValue;
     }
 
-    @JsonValue
     public String getExternalValue() {
         return externalValue;
     }
