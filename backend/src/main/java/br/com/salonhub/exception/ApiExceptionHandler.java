@@ -47,7 +47,7 @@ public class ApiExceptionHandler {
     public ResponseEntity<ApiError> handleValidation(MethodArgumentNotValidException exception) {
         Map<String, String> fields = new LinkedHashMap<>();
         exception.getBindingResult().getFieldErrors().forEach(
-                error -> fields.putIfAbsent(toExternalFieldName(error.getField()), error.getDefaultMessage())
+                error -> fields.putIfAbsent(error.getField(), error.getDefaultMessage())
         );
 
         return ResponseEntity.badRequest().body(
@@ -55,19 +55,4 @@ public class ApiExceptionHandler {
         );
     }
 
-    private String toExternalFieldName(String fieldName) {
-        return switch (fieldName) {
-            case "ownerName" -> "nomeResponsavel";
-            case "ownerEmail" -> "emailResponsavel";
-            case "password" -> "senha";
-            case "establishmentName" -> "nomeEstabelecimento";
-            case "establishmentEmail" -> "emailEstabelecimento";
-            case "establishmentPhone" -> "telefoneEstabelecimento";
-            case "name" -> "nome";
-            case "description" -> "descricao";
-            case "price" -> "preco";
-            case "commissionPercentage" -> "comissaoPorcentagem";
-            default -> fieldName;
-        };
-    }
 }

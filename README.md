@@ -68,13 +68,13 @@ Exemplo de requisição:
 
 ```json
 {
-  "nomeResponsavel": "João da Silva",
-  "emailResponsavel": "joao@email.com",
-  "senha": "senha123",
-  "nomeEstabelecimento": "Barbearia do João",
+  "ownerName": "João da Silva",
+  "ownerEmail": "joao@email.com",
+  "password": "senha123",
+  "establishmentName": "Barbearia do João",
   "cnpj": "12.345.678/0001-90",
-  "emailEstabelecimento": "contato@barbearia.com",
-  "telefoneEstabelecimento": "(44) 99999-9999"
+  "establishmentEmail": "contato@barbearia.com",
+  "establishmentPhone": "(44) 99999-9999"
 }
 ```
 
@@ -144,7 +144,7 @@ Content-Type: application/json
 ```json
 {
   "email": "joao@email.com",
-  "senha": "senha123"
+  "password": "senha123"
 }
 ```
 
