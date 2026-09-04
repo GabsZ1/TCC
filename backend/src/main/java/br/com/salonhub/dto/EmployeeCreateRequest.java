@@ -1,12 +1,13 @@
 package br.com.salonhub.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-public record FuncionarioCreateRequest(
+public record EmployeeCreateRequest(
         @NotBlank(message = "O nome é obrigatório")
-        String nome,
+        @JsonProperty("nome") String name,
 
         @NotBlank(message = "O e-mail é obrigatório")
         @Email(message = "E-mail em formato inválido")
@@ -14,5 +15,5 @@ public record FuncionarioCreateRequest(
 
         @NotBlank(message = "A senha provisória é obrigatória")
         @Size(min = 8, message = "A senha deve ter no mínimo 8 caracteres")
-        String senha
+        @JsonProperty("senha") String password
 ) {}

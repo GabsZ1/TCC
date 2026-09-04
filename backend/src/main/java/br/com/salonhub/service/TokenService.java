@@ -1,6 +1,6 @@
 package br.com.salonhub.service;
 
-import br.com.salonhub.entity.Usuario;
+import br.com.salonhub.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
@@ -22,26 +22,26 @@ public class TokenService {
     @Value("${app.jwt.expiration-minutes}")
     private long expirationMinutes;
 
-    public TokenGerado gerar(Usuario usuario) {
-        Instant agora = Instant.now();
-        Instant expiracao = agora.plus(expirationMinutes, ChronoUnit.MINUTES);
+    public GeneratedToken generate(User user) {
+        Instant issuedAt = Instant.now();
+        Instant expiresAt = issuedAt.plus(expirationMinutes, ChronoUnit.MINUTES);
 
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuer("salonhub")
-                .issuedAt(agora)
-                .expiresAt(expiracao)
-                .subject(usuario.getId().toString())
-                .claim("usuarioId", usuario.getId())
-                .claim("estabelecimentoId", usuario.getEstabelecimento().getId())
-                .claim("perfil", usuario.getPerfil().name())
-                .claim("email", usuario.getEmail())
+                .issuedAt(issuedAt)
+                .expiresAt(expiresAt)
+                .subject(user.getId().toString())
+                .claim("usuarioId", user.getId())
+                .claim("estabelecimentoId", user.getEstablishment().getId())
+                .claim("perfil", user.getRole().getExternalValue())
+                .claim("email", user.getEmail())
                 .build();
 
         JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
-        String valor = jwtEncoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
-        return new TokenGerado(valor, expiracao);
+        String value = jwtEncoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
+        return new GeneratedToken(value, expiresAt);
     }
 
-    public record TokenGerado(String valor, Instant expiraEm) {
+    public record GeneratedToken(String value, Instant expiresAt) {
     }
 }

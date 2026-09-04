@@ -8,44 +8,43 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.OffsetDateTime;
 
 @Entity
-@Table(name = "usuarios")
+@Table(name = "users")
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class Usuario {
+public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "estabelecimento_id", nullable = false)
-    private Estabelecimento estabelecimento;
+    @JoinColumn(name = "establishment_id", nullable = false)
+    private Establishment establishment;
 
     @Column(nullable = false, length = 150)
-    private String nome;
+    private String name;
 
     @Column(nullable = false, unique = true, length = 150)
     private String email;
 
     @Column(nullable = false, length = 255)
-    private String senha;
+    private String password;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private PerfilUsuario perfil;
+    private UserRole role;
 
     @Column(nullable = false)
     @Builder.Default
-    private boolean ativo = true;
+    private boolean active = true;
 
     @CreationTimestamp
-    @Column(name = "criado_em", nullable = false, updatable = false)
-    private OffsetDateTime criadoEm;
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private OffsetDateTime createdAt;
 
     @UpdateTimestamp
-    @Column(name = "atualizado_em", nullable = false)
-    private OffsetDateTime atualizadoEm;
+    @Column(name = "updated_at", nullable = false)
+    private OffsetDateTime updatedAt;
 }
