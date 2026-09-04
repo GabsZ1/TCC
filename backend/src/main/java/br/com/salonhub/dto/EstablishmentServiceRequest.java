@@ -3,7 +3,7 @@ package br.com.salonhub.dto;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 
-public record SalonServiceRequest(
+public record EstablishmentServiceRequest(
         @NotBlank(message = "O nome do serviço é obrigatório")
         String name,
 

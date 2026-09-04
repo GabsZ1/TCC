@@ -1,7 +1,7 @@
 package br.com.salonhub.controller;
 
-import br.com.salonhub.dto.SalonServiceRequest;
-import br.com.salonhub.dto.SalonServiceResponse;
+import br.com.salonhub.dto.EstablishmentServiceRequest;
+import br.com.salonhub.dto.EstablishmentServiceResponse;
 import br.com.salonhub.service.ServiceCatalogService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -23,23 +23,23 @@ public class SalonServiceController {
     }
 
     @PostMapping
-    public ResponseEntity<SalonServiceResponse> create(
+    public ResponseEntity<EstablishmentServiceResponse> create(
             @AuthenticationPrincipal Jwt jwt,
-            @Valid @RequestBody SalonServiceRequest request) {
+            @Valid @RequestBody EstablishmentServiceRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(serviceCatalogService.create(currentUserId(jwt), request));
     }
 
     @GetMapping
-    public ResponseEntity<List<SalonServiceResponse>> findAll(@AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<List<EstablishmentServiceResponse>> findAll(@AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok(serviceCatalogService.findAll(currentUserId(jwt)));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<SalonServiceResponse> update(
+    public ResponseEntity<EstablishmentServiceResponse> update(
             @PathVariable Long id,
             @AuthenticationPrincipal Jwt jwt,
-            @Valid @RequestBody SalonServiceRequest request) {
+            @Valid @RequestBody EstablishmentServiceRequest request) {
         return ResponseEntity.ok(serviceCatalogService.update(currentUserId(jwt), id, request));
     }
 

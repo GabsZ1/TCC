@@ -1,9 +1,9 @@
 package br.com.salonhub.dto;
 
-import br.com.salonhub.entity.SalonService;
+import br.com.salonhub.entity.EstablishmentService;
 import java.math.BigDecimal;
 
-public record SalonServiceResponse(
+public record EstablishmentServiceResponse(
         Long id,
         String name,
         String description,
@@ -11,8 +11,8 @@ public record SalonServiceResponse(
         BigDecimal commissionPercentage,
         boolean active
 ) {
-    public static SalonServiceResponse fromEntity(SalonService service) {
-        return new SalonServiceResponse(
+    public static EstablishmentServiceResponse fromEntity(EstablishmentService service) {
+        return new EstablishmentServiceResponse(
                 service.getId(),
                 service.getName(),
                 service.getDescription(),
