@@ -6,36 +6,36 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "servicos")
+@Table(name = "salon_services")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Servico {
+public class SalonService {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "estabelecimento_id", nullable = false)
-    private Estabelecimento estabelecimento;
+    @JoinColumn(name = "establishment_id", nullable = false)
+    private Establishment establishment;
 
     @Column(nullable = false, length = 100)
-    private String nome;
+    private String name;
 
-    private String descricao;
+    private String description;
 
     @Column(nullable = false, precision = 10, scale = 2)
-    private BigDecimal preco;
+    private BigDecimal price;
 
-    @Column(name = "comissao_porcentagem", nullable = false, precision = 5, scale = 2)
-    private BigDecimal comissaoPorcentagem;
+    @Column(name = "commission_percentage", nullable = false, precision = 5, scale = 2)
+    private BigDecimal commissionPercentage;
 
     @Column(nullable = false)
     @Builder.Default
-    private Boolean ativo = true;
+    private boolean active = true;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

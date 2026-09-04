@@ -1,17 +1,17 @@
 package br.com.salonhub.service;
 
-import br.com.salonhub.dto.CadastroInicialRequest;
-import br.com.salonhub.dto.CadastroInicialResponse;
+import br.com.salonhub.dto.InitialRegistrationRequest;
+import br.com.salonhub.dto.InitialRegistrationResponse;
 import br.com.salonhub.dto.LoginRequest;
 import br.com.salonhub.dto.LoginResponse;
-import br.com.salonhub.dto.UsuarioAutenticadoResponse;
-import br.com.salonhub.entity.Estabelecimento;
-import br.com.salonhub.entity.PerfilUsuario;
-import br.com.salonhub.entity.Usuario;
-import br.com.salonhub.exception.ConflitoException;
-import br.com.salonhub.exception.NaoAutorizadoException;
-import br.com.salonhub.repository.EstabelecimentoRepository;
-import br.com.salonhub.repository.UsuarioRepository;
+import br.com.salonhub.dto.AuthenticatedUserResponse;
+import br.com.salonhub.entity.Establishment;
+import br.com.salonhub.entity.User;
+import br.com.salonhub.entity.UserRole;
+import br.com.salonhub.exception.ConflictException;
+import br.com.salonhub.exception.UnauthorizedException;
+import br.com.salonhub.repository.EstablishmentRepository;
+import br.com.salonhub.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -23,84 +23,84 @@ import java.util.Locale;
 @RequiredArgsConstructor
 public class AuthService {
 
-    private final EstabelecimentoRepository estabelecimentoRepository;
-    private final UsuarioRepository usuarioRepository;
+    private final EstablishmentRepository establishmentRepository;
+    private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
 
     @Transactional
-    public CadastroInicialResponse cadastrar(CadastroInicialRequest request) {
-        String cnpj = somenteDigitos(request.cnpj());
-        String emailResponsavel = request.emailResponsavel().trim().toLowerCase(Locale.ROOT);
+    public InitialRegistrationResponse register(InitialRegistrationRequest request) {
+        String cnpj = digitsOnly(request.cnpj());
+        String ownerEmail = request.ownerEmail().trim().toLowerCase(Locale.ROOT);
 
-        if (estabelecimentoRepository.existsByCnpj(cnpj)) {
-            throw new ConflitoException("CNPJ já cadastrado");
+        if (establishmentRepository.existsByCnpj(cnpj)) {
+            throw new ConflictException("CNPJ já cadastrado");
         }
-        if (usuarioRepository.existsByEmailIgnoreCase(emailResponsavel)) {
-            throw new ConflitoException("E-mail já cadastrado");
+        if (userRepository.existsByEmailIgnoreCase(ownerEmail)) {
+            throw new ConflictException("E-mail já cadastrado");
         }
 
-        Estabelecimento estabelecimento = estabelecimentoRepository.save(
-                Estabelecimento.builder()
-                        .nome(request.nomeEstabelecimento().trim())
+        Establishment establishment = establishmentRepository.save(
+                Establishment.builder()
+                        .name(request.establishmentName().trim())
                         .cnpj(cnpj)
-                        .email(normalizarTextoOpcional(request.emailEstabelecimento()))
-                        .telefone(normalizarTextoOpcional(request.telefoneEstabelecimento()))
+                        .email(normalizeOptionalText(request.establishmentEmail()))
+                        .phone(normalizeOptionalText(request.establishmentPhone()))
                         .build()
         );
 
-        Usuario administrador = usuarioRepository.save(
-                Usuario.builder()
-                        .estabelecimento(estabelecimento)
-                        .nome(request.nomeResponsavel().trim())
-                        .email(emailResponsavel)
-                        .senha(passwordEncoder.encode(request.senha()))
-                        .perfil(PerfilUsuario.ADMIN)
+        User administrator = userRepository.save(
+                User.builder()
+                        .establishment(establishment)
+                        .name(request.ownerName().trim())
+                        .email(ownerEmail)
+                        .password(passwordEncoder.encode(request.password()))
+                        .role(UserRole.ADMIN)
                         .build()
         );
 
-        return new CadastroInicialResponse(
-                estabelecimento.getId(),
-                estabelecimento.getNome(),
-                administrador.getId(),
-                administrador.getNome(),
-                administrador.getEmail()
+        return new InitialRegistrationResponse(
+                establishment.getId(),
+                establishment.getName(),
+                administrator.getId(),
+                administrator.getName(),
+                administrator.getEmail()
         );
     }
 
     @Transactional(readOnly = true)
-    public LoginResponse login(LoginRequest request) {
+    public LoginResponse authenticate(LoginRequest request) {
         String email = request.email().trim().toLowerCase(Locale.ROOT);
-        Usuario usuario = usuarioRepository.findByEmailIgnoreCase(email)
-                .filter(Usuario::isAtivo)
-                .orElseThrow(() -> new NaoAutorizadoException("E-mail ou senha inválidos"));
+        User user = userRepository.findByEmailIgnoreCase(email)
+                .filter(User::isActive)
+                .orElseThrow(() -> new UnauthorizedException("E-mail ou senha inválidos"));
 
-        if (!passwordEncoder.matches(request.senha(), usuario.getSenha())) {
-            throw new NaoAutorizadoException("E-mail ou senha inválidos");
+        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+            throw new UnauthorizedException("E-mail ou senha inválidos");
         }
 
-        TokenService.TokenGerado token = tokenService.gerar(usuario);
+        TokenService.GeneratedToken token = tokenService.generate(user);
         return new LoginResponse(
-                token.valor(),
+                token.value(),
                 "Bearer",
-                token.expiraEm(),
-                UsuarioAutenticadoResponse.de(usuario)
+                token.expiresAt(),
+                AuthenticatedUserResponse.fromEntity(user)
         );
     }
 
     @Transactional(readOnly = true)
-    public UsuarioAutenticadoResponse me(Long usuarioId) {
-        Usuario usuario = usuarioRepository.findById(usuarioId)
-                .filter(Usuario::isAtivo)
-                .orElseThrow(() -> new NaoAutorizadoException("Usuário inválido ou inativo"));
-        return UsuarioAutenticadoResponse.de(usuario);
+    public AuthenticatedUserResponse getCurrentUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .filter(User::isActive)
+                .orElseThrow(() -> new UnauthorizedException("Usuário inválido ou inativo"));
+        return AuthenticatedUserResponse.fromEntity(user);
     }
 
-    private String somenteDigitos(String valor) {
-        return valor.replaceAll("\\D", "");
+    private String digitsOnly(String value) {
+        return value.replaceAll("\\D", "");
     }
 
-    private String normalizarTextoOpcional(String valor) {
-        return valor == null || valor.isBlank() ? null : valor.trim();
+    private String normalizeOptionalText(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 }

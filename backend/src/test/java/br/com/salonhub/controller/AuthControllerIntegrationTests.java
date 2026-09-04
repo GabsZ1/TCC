@@ -24,7 +24,7 @@ class AuthControllerIntegrationTests {
     private MockMvc mockMvc;
 
     @Test
-    void deveCadastrarFazerLoginEConsultarUsuarioAutenticado() throws Exception {
+    void shouldRegisterLoginAndGetAuthenticatedUser() throws Exception {
         mockMvc.perform(post("/api/auth/cadastro")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
