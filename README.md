@@ -14,7 +14,13 @@ Plataforma web SaaS para gerenciamento de salões de beleza, barbearias e estabe
 - PostgreSQL 16
 - Docker Compose
 - Springdoc OpenAPI / Swagger UI
-- React no frontend, ainda não iniciado
+- React 19 + TypeScript no frontend
+- Vite
+- Tailwind CSS 4
+- React Router
+- TanStack Query
+- React Hook Form + Zod
+- Axios
 
 ## O que já existe
 
@@ -122,6 +128,15 @@ As configurações podem ser substituídas pelas variáveis:
 - `DB_USERNAME`
 - `DB_PASSWORD`
 
+Por fim, dentro de `frontend`, instale as dependências e execute a aplicação:
+
+```bash
+npm install
+npm run dev
+```
+
+A aplicação sobe em `http://localhost:5173`. Em desenvolvimento, chamadas para `/api/*` são encaminhadas automaticamente para `http://localhost:8080` pelo proxy configurado no Vite, então não é necessário configurar CORS nem variáveis de ambiente para rodar localmente.
+
 ## Swagger e OpenAPI
 
 Com o backend executando:
@@ -198,3 +213,52 @@ br.com.salonhub
 - `repository`: interfaces de acesso aos dados.
 - `security`: configuração de autenticação e autorização.
 - `service`: regras de negócio e controle transacional.
+
+## Frontend
+
+Aplicação React responsável pela interface administrativa (login, dashboard, funcionários, serviços, atendimentos e comissões), consumindo a API REST do backend.
+
+### Tecnologias
+
+- React 19 + TypeScript
+- Vite
+- Tailwind CSS 4
+- React Router: rotas e proteção por autenticação/perfil
+- TanStack Query: cache e sincronização de dados do servidor
+- React Hook Form + Zod: formulários e validação
+- Axios: cliente HTTP, com interceptor de token e logout automático em `401`
+
+### Organização atual do frontend
+
+```text
+frontend/src
+├── components
+│   ├── layout        # AppLayout (sidebar, shell autenticado)
+│   ├── ui             # componentes de UI reutilizáveis
+│   └── feedback        # toasts, loaders, estados vazios/erro
+├── contexts
+│   └── AuthContext.tsx # usuário logado, login/logout, expiração por inatividade
+├── features             # organizado por domínio de negócio
+│   ├── auth               # login, primeiro acesso, recuperar/alterar senha
+│   ├── dashboard           # indicadores administrativos
+│   ├── employees            # cadastro e listagem de funcionários
+│   ├── services              # cadastro de serviços
+│   ├── appointments            # registro e consulta de atendimentos
+│   ├── commissions               # relatório de comissões
+│   └── establishments              # cadastro de estabelecimentos
+├── hooks               # hooks compartilhados (ex: useAuth)
+├── lib
+│   └── api.ts         # instância do axios e armazenamento do token
+├── routes
+│   └── ProtectedRoute.tsx # guarda de rota por autenticação e por perfil
+└── types
+    └── auth.ts        # tipos de usuário e perfis (UserRole)
+```
+
+Cada feature reúne suas próprias `pages`, `components`, `services` (chamadas à API) e `types`, mantendo o código organizado por domínio.
+
+### Autenticação no frontend
+
+O `AuthContext` mantém o usuário autenticado em memória, chamando `POST /api/auth/login` e `GET /api/auth/me` do backend. O token JWT recebido é salvo no `localStorage` e enviado automaticamente no cabeçalho `Authorization` de toda requisição pelo interceptor do Axios. Uma resposta `401` limpa o token e redireciona para `/login`; a sessão também expira automaticamente após 30 minutos de inatividade do usuário.
+
+O acesso às rotas é restrito por perfil (`ADMIN` ou `PROFESSIONAL`) por meio do componente `ProtectedRoute`, refletindo as mesmas regras de autorização já aplicadas no backend.
