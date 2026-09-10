@@ -52,7 +52,14 @@ Migration `V2__create_usuarios.sql`:
 - Senha armazenada como hash BCrypt.
 - Situação ativa ou inativa.
 
-Clientes ainda não fazem parte do sistema. Futuramente serão armazenados em uma tabela própria e, no MVP, não terão login.
+Clientes possuem conta própria, com e-mail único e autenticação JWT. Diferentemente de administradores e profissionais, a conta do cliente não fica vinculada a um único estabelecimento.
+
+Migration `V5__add_mvp_scheduling.sql`:
+
+- Duração obrigatória dos serviços.
+- Horário geral de funcionamento do estabelecimento, inicialmente das 09:00 às 18:00.
+- Perfil de cliente e vínculo opcional entre usuário e estabelecimento.
+- Agendamentos com cliente, profissional, serviço, início, término e situação.
 
 ### Primeiro fluxo implementado
 
@@ -176,7 +183,24 @@ GET /api/auth/me
 Authorization: Bearer SEU_TOKEN
 ```
 
-O JWT contém os identificadores do usuário e do estabelecimento, o perfil e o e-mail. A rota `/me` também consulta o banco para confirmar que o usuário continua ativo.
+O JWT contém o identificador do usuário, o perfil, o e-mail e, quando aplicável, o identificador do estabelecimento. A rota `/me` também consulta o banco para confirmar que o usuário continua ativo.
+
+Cadastro de cliente:
+
+```http
+POST /api/auth/clientes
+Content-Type: application/json
+```
+
+```json
+{
+  "name": "Maria da Silva",
+  "email": "maria@email.com",
+  "password": "senha123"
+}
+```
+
+O JWT de um cliente não possui `establishmentId`, pois ele pode realizar agendamentos em diferentes estabelecimentos.
 
 ### Autorização e isolamento entre estabelecimentos
 
@@ -184,7 +208,32 @@ O JWT contém os identificadores do usuário e do estabelecimento, o perfil e o 
 - Os endpoints de funcionários e serviços não recebem `estabelecimentoId` do cliente.
 - Apenas usuários `ADMIN` podem consultar ou gerenciar funcionários e serviços.
 - Usuários `PROFISSIONAL` podem autenticar e consultar a própria sessão em `/api/auth/me`, mas não possuem acesso às operações administrativas.
+- Usuários `CLIENT` podem consultar catálogos, verificar disponibilidade, criar agendamentos e listar seus próprios agendamentos.
 - Funcionários e serviços são consultados junto com o identificador do estabelecimento autenticado, impedindo acesso entre estabelecimentos.
+
+## Fluxo de agendamento do MVP
+
+O estabelecimento é identificado na URL. Os serviços e profissionais retornados pelo catálogo pertencem ao estabelecimento e estão ativos.
+
+```http
+GET /api/estabelecimentos/{establishmentId}/catalogo/servicos
+GET /api/estabelecimentos/{establishmentId}/catalogo/funcionarios
+GET /api/estabelecimentos/{establishmentId}/agendamentos/disponibilidade?serviceId=1&professionalId=2&date=2026-09-15
+POST /api/estabelecimentos/{establishmentId}/agendamentos
+GET /api/agendamentos/me
+```
+
+Exemplo de criação:
+
+```json
+{
+  "serviceId": 1,
+  "professionalId": 2,
+  "startsAt": "2026-09-15T14:00:00"
+}
+```
+
+A duração do serviço define automaticamente o término. A API valida o horário geral do estabelecimento, a atividade do serviço e do profissional e conflitos com agendamentos confirmados. A criação bloqueia temporariamente o registro do profissional e revalida a disponibilidade, reduzindo o risco de reservas concorrentes no mesmo período.
 
 Configurações do JWT:
 

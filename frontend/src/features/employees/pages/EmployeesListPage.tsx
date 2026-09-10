@@ -112,8 +112,8 @@ export function EmployeesListPage() {
         </button>
       </div>
 
-      <div className="mt-6 overflow-hidden rounded-2xl border border-brand-100 bg-white shadow-sm">
-        <table className="w-full text-left text-sm">
+      <div className="mt-6 overflow-x-auto rounded-2xl border border-brand-100 bg-white shadow-sm">
+        <table className="w-full min-w-[44rem] text-left text-sm">
           <thead className="bg-sand-100 text-brand-700">
             <tr>
               <th className="px-4 py-3 font-medium">Nome</th>

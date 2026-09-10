@@ -158,7 +158,8 @@ class TenantIsolationIntegrationTests {
                   "name": "%s",
                   "description": "Descrição",
                   "price": 50.00,
-                  "commissionPercentage": 10.00
+                  "commissionPercentage": 10.00,
+                  "durationMinutes": 60
                 }
                 """.formatted(name);
     }

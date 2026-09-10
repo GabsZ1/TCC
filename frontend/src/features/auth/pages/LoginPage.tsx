@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import axios from 'axios'
 
@@ -25,8 +25,9 @@ export function LoginPage() {
     setIsSubmitting(true)
 
     try {
-      await login({ email, password })
-      const redirectTo = (location.state as { from?: Location })?.from?.pathname ?? '/'
+      const user = await login({ email, password })
+      const redirectTo = (location.state as { from?: Location })?.from?.pathname
+        ?? (user.role === 'CLIENT' ? '/agendamentos' : '/')
       navigate(redirectTo, { replace: true })
     } catch (err) {
       const message = axios.isAxiosError(err)
@@ -39,15 +40,21 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-sand-50 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-sand-50 px-4 py-10">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-sm rounded-2xl border border-brand-100 bg-white p-8 shadow-sm"
+        className="w-full max-w-sm rounded-3xl border border-brand-100 bg-white p-8 shadow-sm"
       >
         <h1 className="font-[var(--font-display)] text-2xl text-brand-900">
           Entrar no SalonHub
         </h1>
         <p className="mt-1 text-sm text-brand-600">Acesse com seu e-mail e senha.</p>
+
+        {(location.state as { message?: string } | null)?.message && (
+          <p className="mt-4 rounded-xl bg-sage-50 px-3 py-2 text-sm text-sage-600">
+            {(location.state as { message: string }).message}
+          </p>
+        )}
 
         <label className="mt-6 block text-sm font-medium text-brand-800" htmlFor="email">
           E-mail
@@ -87,6 +94,14 @@ export function LoginPage() {
         >
           {isSubmitting ? 'Entrando...' : 'Entrar'}
         </button>
+
+        <div className="mt-6 border-t border-brand-100 pt-5 text-center text-sm text-brand-600">
+          <p>Novo por aqui?</p>
+          <div className="mt-2 flex justify-center gap-4">
+            <Link className="font-semibold text-brand-700 hover:underline" to="/cadastro-cliente">Sou cliente</Link>
+            <Link className="font-semibold text-brand-700 hover:underline" to="/cadastro">Tenho um estabelecimento</Link>
+          </div>
+        </div>
       </form>
     </div>
   )

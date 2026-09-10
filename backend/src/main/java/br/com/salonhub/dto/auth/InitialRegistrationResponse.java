@@ -1,4 +1,4 @@
-package br.com.salonhub.dto;
+package br.com.salonhub.dto.auth;
 
 public record InitialRegistrationResponse(
         Long establishmentId,

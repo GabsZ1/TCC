@@ -1,4 +1,4 @@
-package br.com.salonhub.dto;
+package br.com.salonhub.dto.common;
 
 import java.time.OffsetDateTime;
 import java.util.Map;

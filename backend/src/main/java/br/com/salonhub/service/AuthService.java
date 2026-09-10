@@ -1,10 +1,11 @@
 package br.com.salonhub.service;
 
-import br.com.salonhub.dto.InitialRegistrationRequest;
-import br.com.salonhub.dto.InitialRegistrationResponse;
-import br.com.salonhub.dto.LoginRequest;
-import br.com.salonhub.dto.LoginResponse;
-import br.com.salonhub.dto.AuthenticatedUserResponse;
+import br.com.salonhub.dto.auth.InitialRegistrationRequest;
+import br.com.salonhub.dto.auth.InitialRegistrationResponse;
+import br.com.salonhub.dto.auth.LoginRequest;
+import br.com.salonhub.dto.auth.LoginResponse;
+import br.com.salonhub.dto.auth.AuthenticatedUserResponse;
+import br.com.salonhub.dto.auth.ClientRegistrationRequest;
 import br.com.salonhub.entity.Establishment;
 import br.com.salonhub.entity.User;
 import br.com.salonhub.entity.UserRole;
@@ -66,6 +67,26 @@ public class AuthService {
                 administrator.getName(),
                 administrator.getEmail()
         );
+    }
+
+    @Transactional
+    public AuthenticatedUserResponse registerClient(ClientRegistrationRequest request) {
+        String email = request.email().trim().toLowerCase(Locale.ROOT);
+        if (userRepository.existsByEmailIgnoreCase(email)) {
+            throw new ConflictException("E-mail já cadastrado");
+        }
+
+        User client = userRepository.save(
+                User.builder()
+                        .name(request.name().trim())
+                        .email(email)
+                        .password(passwordEncoder.encode(request.password()))
+                        .role(UserRole.CLIENT)
+                        .active(true)
+                        .build()
+        );
+
+        return AuthenticatedUserResponse.fromEntity(client);
     }
 
     @Transactional(readOnly = true)

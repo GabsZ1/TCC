@@ -1,38 +1,41 @@
 import { NavLink, Outlet } from 'react-router-dom'
+import { CalendarDays, House, Scissors, UsersRound } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
-
-const NAV_ITEMS = [
-  { to: '/', label: 'Dashboard' },
-  { to: '/funcionarios', label: 'Funcionários' },
-  { to: '/servicos', label: 'Serviços' },
-  { to: '/atendimentos', label: 'Atendimentos' },
-]
 
 export function AppLayout() {
   const { user, logout } = useAuth()
+  const navItems = user?.role === 'ADMIN'
+    ? [
+        { to: '/', label: 'Início', icon: House },
+        { to: '/funcionarios', label: 'Funcionários', icon: UsersRound },
+        { to: '/servicos', label: 'Serviços', icon: Scissors },
+      ]
+    : user?.role === 'CLIENT'
+      ? [{ to: '/agendamentos', label: 'Agendamentos', icon: CalendarDays }]
+      : [{ to: '/', label: 'Início', icon: House }]
 
   return (
-    <div className="flex min-h-screen bg-sand-50">
-      <aside className="flex w-60 shrink-0 flex-col border-r border-brand-100 bg-white">
+    <div className="min-h-screen bg-sand-50 md:flex">
+      <aside className="hidden w-64 shrink-0 flex-col border-r border-brand-100 bg-white md:flex">
         <div className="border-b border-brand-100 px-5 py-5">
           <span className="font-[var(--font-display)] text-lg text-brand-900">SalonHub</span>
         </div>
 
         <nav className="flex-1 space-y-1 px-3 py-4">
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               end={item.to === '/'}
               className={({ isActive }) =>
-                `block rounded-lg px-3 py-2 text-sm font-medium transition ${
+                `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
                   isActive
                     ? 'bg-brand-100 text-brand-800'
                     : 'text-brand-600 hover:bg-sand-100 hover:text-brand-800'
                 }`
               }
             >
-              {item.label}
+              <item.icon size={18} /> {item.label}
             </NavLink>
           ))}
         </nav>
@@ -48,9 +51,15 @@ export function AppLayout() {
         </div>
       </aside>
 
-      <main className="flex-1">
-        <Outlet />
-      </main>
+      <div className="min-w-0 flex-1">
+        <header className="border-b border-brand-100 bg-white px-4 py-3 md:hidden">
+          <div className="flex items-center justify-between"><span className="font-[var(--font-display)] text-lg text-brand-900">SalonHub</span><button onClick={logout} className="text-sm font-medium text-brand-600">Sair</button></div>
+          <nav className="mt-3 flex gap-2 overflow-x-auto">
+            {navItems.map((item) => <NavLink key={item.to} to={item.to} end={item.to === '/'} className={({ isActive }) => `whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium ${isActive ? 'bg-brand-100 text-brand-800' : 'text-brand-600'}`}>{item.label}</NavLink>)}
+          </nav>
+        </header>
+        <main><Outlet /></main>
+      </div>
     </div>
   )
 }

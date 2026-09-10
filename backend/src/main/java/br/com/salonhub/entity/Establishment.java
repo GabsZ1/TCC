@@ -15,6 +15,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.OffsetDateTime;
+import java.time.LocalTime;
 @Entity
 @Table(name = "establishments")
 @Getter
@@ -42,6 +43,14 @@ public class Establishment {
     @Column(nullable = false)
     @Builder.Default
     private boolean active = true;
+
+    @Column(name = "opening_time", nullable = false)
+    @Builder.Default
+    private LocalTime openingTime = LocalTime.of(9, 0);
+
+    @Column(name = "closing_time", nullable = false)
+    @Builder.Default
+    private LocalTime closingTime = LocalTime.of(18, 0);
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

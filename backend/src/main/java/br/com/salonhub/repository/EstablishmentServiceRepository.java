@@ -13,4 +13,6 @@ public interface EstablishmentServiceRepository extends JpaRepository<Establishm
     List<EstablishmentService> findByEstablishmentIdAndActiveTrue(Long establishmentId);
 
     Optional<EstablishmentService> findByIdAndEstablishmentId(Long id, Long establishmentId);
+
+    Optional<EstablishmentService> findByIdAndEstablishmentIdAndActiveTrue(Long id, Long establishmentId);
 }

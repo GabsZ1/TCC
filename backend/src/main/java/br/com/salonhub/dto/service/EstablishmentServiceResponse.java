@@ -1,4 +1,4 @@
-package br.com.salonhub.dto;
+package br.com.salonhub.dto.service;
 
 import br.com.salonhub.entity.EstablishmentService;
 import java.math.BigDecimal;
@@ -9,6 +9,7 @@ public record EstablishmentServiceResponse(
         String description,
         BigDecimal price,
         BigDecimal commissionPercentage,
+        Integer durationMinutes,
         boolean active
 ) {
     public static EstablishmentServiceResponse fromEntity(EstablishmentService service) {
@@ -18,6 +19,7 @@ public record EstablishmentServiceResponse(
                 service.getDescription(),
                 service.getPrice(),
                 service.getCommissionPercentage(),
+                service.getDurationMinutes(),
                 service.isActive()
         );
     }

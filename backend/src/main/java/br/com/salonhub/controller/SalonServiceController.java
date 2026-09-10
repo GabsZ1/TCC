@@ -1,7 +1,7 @@
 package br.com.salonhub.controller;
 
-import br.com.salonhub.dto.EstablishmentServiceRequest;
-import br.com.salonhub.dto.EstablishmentServiceResponse;
+import br.com.salonhub.dto.service.EstablishmentServiceRequest;
+import br.com.salonhub.dto.service.EstablishmentServiceResponse;
 import br.com.salonhub.service.ServiceCatalogService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;

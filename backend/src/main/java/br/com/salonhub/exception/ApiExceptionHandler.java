@@ -1,6 +1,6 @@
 package br.com.salonhub.exception;
 
-import br.com.salonhub.dto.ApiError;
+import br.com.salonhub.dto.common.ApiError;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -19,6 +19,13 @@ public class ApiExceptionHandler {
     public ResponseEntity<ApiError> handleConflict(ConflictException exception) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(
                 new ApiError(409, exception.getMessage(), Map.of(), OffsetDateTime.now())
+        );
+    }
+
+    @ExceptionHandler(InvalidRequestException.class)
+    public ResponseEntity<ApiError> handleInvalidRequest(InvalidRequestException exception) {
+        return ResponseEntity.badRequest().body(
+                new ApiError(400, exception.getMessage(), Map.of(), OffsetDateTime.now())
         );
     }
 

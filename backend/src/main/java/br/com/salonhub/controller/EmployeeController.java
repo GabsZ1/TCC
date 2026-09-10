@@ -1,8 +1,8 @@
 package br.com.salonhub.controller;
 
-import br.com.salonhub.dto.AuthenticatedUserResponse;
-import br.com.salonhub.dto.EmployeeCreateRequest;
-import br.com.salonhub.dto.EmployeeUpdateRequest;
+import br.com.salonhub.dto.auth.AuthenticatedUserResponse;
+import br.com.salonhub.dto.employee.EmployeeCreateRequest;
+import br.com.salonhub.dto.employee.EmployeeUpdateRequest;
 import br.com.salonhub.service.EmployeeService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;

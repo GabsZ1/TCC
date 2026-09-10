@@ -1,7 +1,7 @@
 package br.com.salonhub.service;
 
-import br.com.salonhub.dto.EstablishmentServiceRequest;
-import br.com.salonhub.dto.EstablishmentServiceResponse;
+import br.com.salonhub.dto.service.EstablishmentServiceRequest;
+import br.com.salonhub.dto.service.EstablishmentServiceResponse;
 import br.com.salonhub.entity.EstablishmentService;
 import br.com.salonhub.entity.User;
 import br.com.salonhub.exception.ResourceNotFoundException;
@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.math.BigDecimal;
 
 @Service
 public class ServiceCatalogService {
@@ -30,10 +31,11 @@ public class ServiceCatalogService {
 
         EstablishmentService service = EstablishmentService.builder()
                 .establishment(administrator.getEstablishment())
-                .name(request.name())
-                .description(request.description())
+                .name(request.name().trim())
+                .description(normalizeOptionalText(request.description()))
                 .price(request.price())
-                .commissionPercentage(request.commissionPercentage())
+                .commissionPercentage(defaultCommission(request.commissionPercentage()))
+                .durationMinutes(request.durationMinutes())
                 .active(true)
                 .build();
 
@@ -55,10 +57,11 @@ public class ServiceCatalogService {
         User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
         EstablishmentService service = findService(id, administrator.getEstablishment().getId());
 
-        service.setName(request.name());
-        service.setDescription(request.description());
+        service.setName(request.name().trim());
+        service.setDescription(normalizeOptionalText(request.description()));
         service.setPrice(request.price());
-        service.setCommissionPercentage(request.commissionPercentage());
+        service.setCommissionPercentage(defaultCommission(request.commissionPercentage()));
+        service.setDurationMinutes(request.durationMinutes());
 
         return EstablishmentServiceResponse.fromEntity(establishmentServiceRepository.save(service));
     }
@@ -75,5 +78,13 @@ public class ServiceCatalogService {
     private EstablishmentService findService(Long serviceId, Long establishmentId) {
         return establishmentServiceRepository.findByIdAndEstablishmentId(serviceId, establishmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Serviço não encontrado."));
+    }
+
+    private BigDecimal defaultCommission(BigDecimal commissionPercentage) {
+        return commissionPercentage == null ? BigDecimal.ZERO : commissionPercentage;
+    }
+
+    private String normalizeOptionalText(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 }
