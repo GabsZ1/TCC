@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Modal } from '@/components/ui/Modal'
 
 interface ConfirmDialogProps {
@@ -7,6 +8,14 @@ interface ConfirmDialogProps {
   isLoading?: boolean
   onConfirm: () => void
   onCancel: () => void
+  /**
+   * Quando definido, o botão de confirmação só é liberado depois que o texto
+   * digitado no campo bater exatamente com esse valor (ex.: o nome do
+   * funcionário). Usado para ações destrutivas e potencialmente
+   * irreversíveis, como exige a RNF.01.01 (dupla confirmação).
+   */
+  confirmationText?: string
+  confirmationLabel?: string
 }
 
 export function ConfirmDialog({
@@ -16,10 +25,33 @@ export function ConfirmDialog({
   isLoading = false,
   onConfirm,
   onCancel,
+  confirmationText,
+  confirmationLabel,
 }: ConfirmDialogProps) {
+  const [typedValue, setTypedValue] = useState('')
+  const requiresTypedConfirmation = Boolean(confirmationText)
+  const isConfirmDisabled =
+    isLoading || (requiresTypedConfirmation && typedValue.trim() !== confirmationText)
+
   return (
     <Modal title={title} onClose={onCancel}>
       <p className="text-sm text-brand-700">{message}</p>
+
+      {requiresTypedConfirmation && (
+        <div className="mt-4">
+          <label className="text-sm font-medium text-brand-800">
+            {confirmationLabel ?? `Digite "${confirmationText}" para confirmar`}
+          </label>
+          <input
+            type="text"
+            value={typedValue}
+            onChange={(event) => setTypedValue(event.target.value)}
+            autoFocus
+            className="mt-2 w-full rounded-lg border border-brand-200 px-3 py-2 text-sm text-brand-900 focus:border-brand-500 focus:outline-none"
+            placeholder={confirmationText}
+          />
+        </div>
+      )}
 
       <div className="mt-6 flex justify-end gap-3">
         <button
@@ -32,7 +64,7 @@ export function ConfirmDialog({
         <button
           type="button"
           onClick={onConfirm}
-          disabled={isLoading}
+          disabled={isConfirmDisabled}
           className="rounded-lg bg-danger-600 px-4 py-2 text-sm font-medium text-white hover:bg-danger-500 disabled:opacity-60"
         >
           {isLoading ? 'Aguarde...' : confirmLabel}

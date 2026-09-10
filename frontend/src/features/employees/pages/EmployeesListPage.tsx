@@ -24,7 +24,12 @@ export function EmployeesListPage() {
 
   const [modalState, setModalState] = useState<ModalState>(null)
   const [formError, setFormError] = useState<string | null>(null)
+  // Etapa 1: aviso inicial. Etapa 2 (employeeToPermanentlyConfirm): confirmação
+  // reforçada, exigida pela RNF.01.01 antes de qualquer remoção — o back-end
+  // decide se o funcionário será removido de vez ou apenas desativado, então
+  // pedimos essa confirmação extra sempre que não há como saber de antemão.
   const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null)
+  const [employeeToPermanentlyConfirm, setEmployeeToPermanentlyConfirm] = useState<Employee | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [removalMessage, setRemovalMessage] = useState<string | null>(null)
 
@@ -68,7 +73,7 @@ export function EmployeesListPage() {
     mutationFn: removeEmployee,
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: EMPLOYEES_QUERY_KEY })
-      setEmployeeToDelete(null)
+      setEmployeeToPermanentlyConfirm(null)
       setRemovalMessage(result.message)
     },
     onError: (err) =>
@@ -93,11 +98,26 @@ export function EmployeesListPage() {
     }
   }
 
-  function handleConfirmDelete() {
+  // Primeira confirmação: aviso geral. Ao aceitar, avançamos para a segunda
+  // etapa em vez de remover na hora.
+  function handleFirstConfirmDelete() {
     if (!employeeToDelete) return
+    setEmployeeToPermanentlyConfirm(employeeToDelete)
+    setEmployeeToDelete(null)
+  }
+
+  // Segunda confirmação: só dispara a remoção de fato depois que o
+  // administrador digita o nome exato do funcionário.
+  function handleFinalConfirmDelete() {
+    if (!employeeToPermanentlyConfirm) return
     setDeleteError(null)
     setRemovalMessage(null)
-    removeMutation.mutate(employeeToDelete.id)
+    removeMutation.mutate(employeeToPermanentlyConfirm.id)
+  }
+
+  function cancelRemoval() {
+    setEmployeeToDelete(null)
+    setEmployeeToPermanentlyConfirm(null)
   }
 
   const isSavingForm = createMutation.isPending || updateMutation.isPending
@@ -224,11 +244,23 @@ export function EmployeesListPage() {
       {employeeToDelete && (
         <ConfirmDialog
           title="Remover funcionário"
-          message={`Tem certeza que deseja remover "${employeeToDelete.name}"? Se ele tiver atendimentos vinculados, o sistema vai apenas desativá-lo em vez de remover — o histórico é sempre preservado.`}
-          confirmLabel="Remover"
+          message={`Tem certeza que deseja remover "${employeeToDelete.name}"? Se ele tiver atendimentos vinculados, o sistema vai apenas desativá-lo em vez de remover — o histórico é sempre preservado. Caso contrário, a remoção é definitiva.`}
+          confirmLabel="Continuar"
+          onConfirm={handleFirstConfirmDelete}
+          onCancel={cancelRemoval}
+        />
+      )}
+
+      {employeeToPermanentlyConfirm && (
+        <ConfirmDialog
+          title="Confirmar remoção definitiva"
+          message={`Atenção: esta ação pode ser irreversível. Se "${employeeToPermanentlyConfirm.name}" não tiver nenhum atendimento vinculado, o cadastro será apagado permanentemente do sistema e não poderá ser recuperado. Para confirmar, digite o nome completo do funcionário abaixo.`}
+          confirmLabel="Remover definitivamente"
+          confirmationText={employeeToPermanentlyConfirm.name}
+          confirmationLabel="Digite o nome exato do funcionário para confirmar"
           isLoading={removeMutation.isPending}
-          onConfirm={handleConfirmDelete}
-          onCancel={() => setEmployeeToDelete(null)}
+          onConfirm={handleFinalConfirmDelete}
+          onCancel={cancelRemoval}
         />
       )}
 
