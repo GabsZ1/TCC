@@ -45,6 +45,11 @@ public class AppointmentController {
         return appointmentService.findMine(currentUserId(jwt));
     }
 
+    @GetMapping("/agendamentos/profissional/me")
+    public List<AppointmentResponse> findMineAsProfessional(@AuthenticationPrincipal Jwt jwt) {
+        return appointmentService.findMineAsProfessional(currentUserId(jwt));
+    }
+
     @GetMapping("/estabelecimentos/{establishmentId}/agendamentos/disponibilidade")
     public AvailabilityResponse findAvailability(
             @AuthenticationPrincipal Jwt jwt,

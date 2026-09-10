@@ -6,6 +6,7 @@ export function DashboardPage() {
   const { user } = useAuth()
 
   if (user?.role === 'CLIENT') return <Navigate to="/agendamentos" replace />
+  if (user?.role === 'PROFESSIONAL') return <Navigate to="/minha-agenda" replace />
 
   return (
     <div className="p-5 sm:p-7 lg:p-9">

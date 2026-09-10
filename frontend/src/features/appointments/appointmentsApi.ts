@@ -27,6 +27,8 @@ export interface Appointment {
   serviceName: string
   professionalId: number
   professionalName: string
+  clientId: number
+  clientName: string
   startsAt: string
   endsAt: string
   status: 'CONFIRMED' | 'CANCELLED'
@@ -50,4 +52,8 @@ export function createAppointment(establishmentId: number, serviceId: number, pr
 
 export function fetchMyAppointments() {
   return api.get<Appointment[]>('/agendamentos/me').then((response) => response.data)
+}
+
+export function fetchMyAppointmentsAsProfessional() {
+  return api.get<Appointment[]>('/agendamentos/profissional/me').then((response) => response.data)
 }

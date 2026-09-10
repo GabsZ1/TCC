@@ -10,6 +10,7 @@ import { ClientRegistrationPage } from '@/features/auth/pages/ClientRegistration
 import { ServicesPage } from '@/features/services/ServicesPage'
 import { AppointmentsPage } from '@/features/appointments/AppointmentsPage'
 import { BookingPage } from '@/features/appointments/BookingPage'
+import { ProfessionalAgendaPage } from '@/features/appointments/ProfessionalAgendaPage'
 
 function App() {
   return (
@@ -33,6 +34,10 @@ function App() {
           <Route element={<ProtectedRoute allowedRoles={['CLIENT']} />}>
             <Route path="/agendamentos" element={<AppointmentsPage />} />
             <Route path="/estabelecimentos/:establishmentId/agendar" element={<BookingPage />} />
+          </Route>
+
+          <Route element={<ProtectedRoute allowedRoles={['PROFESSIONAL']} />}>
+            <Route path="/minha-agenda" element={<ProfessionalAgendaPage />} />
           </Route>
         </Route>
       </Route>

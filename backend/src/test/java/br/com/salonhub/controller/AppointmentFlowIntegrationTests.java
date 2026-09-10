@@ -143,6 +143,19 @@ class AppointmentFlowIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].serviceName").value("Corte MVP"));
+
+        String professionalToken = login("professional.appointment@salonhub.test");
+
+        mockMvc.perform(get("/api/agendamentos/profissional/me")
+                        .header("Authorization", bearer(professionalToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].serviceName").value("Corte MVP"))
+                .andExpect(jsonPath("$[0].clientName").value("Cliente MVP"));
+
+        mockMvc.perform(get("/api/agendamentos/profissional/me")
+                        .header("Authorization", bearer(clientToken)))
+                .andExpect(status().isForbidden());
     }
 
     @Test

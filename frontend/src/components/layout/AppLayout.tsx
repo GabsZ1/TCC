@@ -12,7 +12,9 @@ export function AppLayout() {
       ]
     : user?.role === 'CLIENT'
       ? [{ to: '/agendamentos', label: 'Agendamentos', icon: CalendarDays }]
-      : [{ to: '/', label: 'Início', icon: House }]
+      : user?.role === 'PROFESSIONAL'
+        ? [{ to: '/minha-agenda', label: 'Minha agenda', icon: CalendarDays }]
+        : [{ to: '/', label: 'Início', icon: House }]
 
   return (
     <div className="min-h-screen bg-sand-50 md:flex">

@@ -13,6 +13,8 @@ public record AppointmentResponse(
         String serviceName,
         Long professionalId,
         String professionalName,
+        Long clientId,
+        String clientName,
         LocalDateTime startsAt,
         LocalDateTime endsAt,
         AppointmentStatus status
@@ -26,6 +28,8 @@ public record AppointmentResponse(
                 appointment.getService().getName(),
                 appointment.getProfessional().getId(),
                 appointment.getProfessional().getName(),
+                appointment.getClient().getId(),
+                appointment.getClient().getName(),
                 appointment.getStartsAt(),
                 appointment.getEndsAt(),
                 appointment.getStatus()

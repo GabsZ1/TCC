@@ -42,4 +42,17 @@ public class TenantAuthorizationService {
 
         return user;
     }
+
+    @Transactional(readOnly = true)
+    public User requireProfessional(Long userId) {
+        User user = userRepository.findById(userId)
+                .filter(User::isActive)
+                .orElseThrow(() -> new UnauthorizedException("Usuário inválido ou inativo"));
+
+        if (user.getRole() != UserRole.PROFESSIONAL) {
+            throw new AccessDeniedException("Acesso permitido apenas para profissionais");
+        }
+
+        return user;
+    }
 }

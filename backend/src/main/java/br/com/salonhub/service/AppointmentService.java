@@ -103,6 +103,15 @@ public class AppointmentService {
     }
 
     @Transactional(readOnly = true)
+    public List<AppointmentResponse> findMineAsProfessional(Long professionalId) {
+        User professional = tenantAuthorizationService.requireProfessional(professionalId);
+        return appointmentRepository.findByProfessionalIdOrderByStartsAtDesc(professional.getId())
+                .stream()
+                .map(AppointmentResponse::fromEntity)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public AvailabilityResponse findAvailability(
             Long clientId,
             Long establishmentId,
