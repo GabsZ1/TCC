@@ -9,7 +9,8 @@ public record AuthenticatedUserResponse(
         String email,
         UserRole role,
         Long establishmentId,
-        String establishmentName
+        String establishmentName,
+        boolean active
 ) {
     public static AuthenticatedUserResponse fromEntity(User user) {
         Long establishmentId = user.getEstablishment() == null ? null : user.getEstablishment().getId();
@@ -20,7 +21,8 @@ public record AuthenticatedUserResponse(
                 user.getEmail(),
                 user.getRole(),
                 establishmentId,
-                establishmentName
+                establishmentName,
+                user.isActive()
         );
     }
 }

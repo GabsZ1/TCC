@@ -16,6 +16,8 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             LocalDateTime requestedStart
     );
 
+    boolean existsByProfessionalId(Long professionalId);
+
     List<Appointment> findByClientIdOrderByStartsAtDesc(Long clientId);
 
     List<Appointment> findByProfessionalIdOrderByStartsAtDesc(Long professionalId);

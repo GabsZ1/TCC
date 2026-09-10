@@ -2,11 +2,13 @@ package br.com.salonhub.service;
 
 import br.com.salonhub.dto.auth.AuthenticatedUserResponse;
 import br.com.salonhub.dto.employee.EmployeeCreateRequest;
+import br.com.salonhub.dto.employee.EmployeeRemovalResponse;
 import br.com.salonhub.dto.employee.EmployeeUpdateRequest;
 import br.com.salonhub.entity.User;
 import br.com.salonhub.entity.UserRole;
 import br.com.salonhub.exception.ConflictException;
 import br.com.salonhub.exception.ResourceNotFoundException;
+import br.com.salonhub.repository.AppointmentRepository;
 import br.com.salonhub.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -20,14 +22,17 @@ import java.util.Optional;
 public class EmployeeService {
 
     private final UserRepository userRepository;
+    private final AppointmentRepository appointmentRepository;
     private final PasswordEncoder passwordEncoder;
     private final TenantAuthorizationService tenantAuthorizationService;
 
     public EmployeeService(
             UserRepository userRepository,
+            AppointmentRepository appointmentRepository,
             PasswordEncoder passwordEncoder,
             TenantAuthorizationService tenantAuthorizationService) {
         this.userRepository = userRepository;
+        this.appointmentRepository = appointmentRepository;
         this.passwordEncoder = passwordEncoder;
         this.tenantAuthorizationService = tenantAuthorizationService;
     }
@@ -72,7 +77,9 @@ public class EmployeeService {
     public List<AuthenticatedUserResponse> findAll(Long administratorId) {
         User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
 
-        return userRepository.findByEstablishmentIdAndRoleAndActiveTrue(
+        // Funcionários desativados continuam na listagem (com status inativo) —
+        // eles só somem de fato quando removidos permanentemente (RN 2.4.2 / CT03).
+        return userRepository.findByEstablishmentIdAndRole(
                         administrator.getEstablishment().getId(),
                         UserRole.PROFESSIONAL)
                 .stream()
@@ -97,12 +104,30 @@ public class EmployeeService {
     }
 
     @Transactional
-    public void deactivate(Long administratorId, Long employeeId) {
+    public EmployeeRemovalResponse remove(Long administratorId, Long employeeId) {
         User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
         User employee = findEmployee(employeeId, administrator.getEstablishment().getId());
 
+        boolean hasAppointments = appointmentRepository.existsByProfessionalId(employee.getId());
+
+        // RN 2.3.2: só é possível remover de verdade um funcionário sem atendimentos
+        // vinculados; caso contrário, a remoção é convertida em inativação (CT04).
+        if (!hasAppointments) {
+            userRepository.delete(employee);
+            return new EmployeeRemovalResponse(true, "O funcionário foi removido com sucesso.");
+        }
+
+        if (!employee.isActive()) {
+            // CT05: funcionário já está desativado, nenhuma alteração é realizada.
+            throw new ConflictException("O funcionário já está desativado.");
+        }
+
         employee.setActive(false);
         userRepository.save(employee);
+        return new EmployeeRemovalResponse(
+                false,
+                "O funcionário não pode ser removido pois possui atendimentos vinculados. Ele foi desativado."
+        );
     }
 
     private User findEmployee(Long employeeId, Long establishmentId) {

@@ -14,6 +14,11 @@ export interface EmployeeUpdateInput {
   email: string
 }
 
+export interface EmployeeRemovalResult {
+  removedPermanently: boolean
+  message: string
+}
+
 export function fetchEmployees() {
   return api.get<Employee[]>('/funcionarios').then((res) => res.data)
 }
@@ -26,6 +31,11 @@ export function updateEmployee(id: number, input: EmployeeUpdateInput) {
   return api.put<Employee>(`/funcionarios/${id}`, input).then((res) => res.data)
 }
 
-export function deactivateEmployee(id: number) {
-  return api.delete<void>(`/funcionarios/${id}`).then((res) => res.data)
+/**
+ * Remove um funcionário. Se ele não tiver atendimentos vinculados, é
+ * removido permanentemente; caso contrário, o back-end apenas o desativa
+ * (RN 2.3.2 do TCC) — o resultado informa qual das duas coisas aconteceu.
+ */
+export function removeEmployee(id: number) {
+  return api.delete<EmployeeRemovalResult>(`/funcionarios/${id}`).then((res) => res.data)
 }

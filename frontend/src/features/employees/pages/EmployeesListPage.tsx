@@ -5,8 +5,8 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { getApiErrorMessage } from '@/lib/apiError'
 import {
   createEmployee,
-  deactivateEmployee,
   fetchEmployees,
+  removeEmployee,
   updateEmployee,
   type Employee,
 } from '@/features/employees/services/employeesApi'
@@ -26,6 +26,7 @@ export function EmployeesListPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [removalMessage, setRemovalMessage] = useState<string | null>(null)
 
   const {
     data: employees,
@@ -37,7 +38,7 @@ export function EmployeesListPage() {
     queryFn: fetchEmployees,
   })
 
-  // RN: lista sempre ordenada alfabeticamente por nome.
+  // RN: lista sempre ordenada alfabeticamente por nome (ativos e inativos aparecem juntos).
   const sortedEmployees = useMemo(
     () => [...(employees ?? [])].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')),
     [employees],
@@ -63,11 +64,12 @@ export function EmployeesListPage() {
       setFormError(getApiErrorMessage(err, 'Não foi possível atualizar o funcionário.')),
   })
 
-  const deactivateMutation = useMutation({
-    mutationFn: deactivateEmployee,
-    onSuccess: () => {
+  const removeMutation = useMutation({
+    mutationFn: removeEmployee,
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: EMPLOYEES_QUERY_KEY })
       setEmployeeToDelete(null)
+      setRemovalMessage(result.message)
     },
     onError: (err) =>
       setDeleteError(getApiErrorMessage(err, 'Não foi possível remover o funcionário.')),
@@ -94,7 +96,8 @@ export function EmployeesListPage() {
   function handleConfirmDelete() {
     if (!employeeToDelete) return
     setDeleteError(null)
-    deactivateMutation.mutate(employeeToDelete.id)
+    setRemovalMessage(null)
+    removeMutation.mutate(employeeToDelete.id)
   }
 
   const isSavingForm = createMutation.isPending || updateMutation.isPending
@@ -104,13 +107,22 @@ export function EmployeesListPage() {
       <div className="flex items-center justify-between">
         <h1 className="font-[var(--font-display)] text-2xl text-brand-900">Funcionários</h1>
         <button
-          onClick={() => setModalState({ mode: 'create' })}
+          onClick={() => {
+            setRemovalMessage(null)
+            setModalState({ mode: 'create' })
+          }}
           className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
         >
           <Plus size={16} />
           Novo funcionário
         </button>
       </div>
+
+      {removalMessage && (
+        <p role="status" className="mt-4 rounded-xl bg-sage-50 px-3 py-2 text-sm text-sage-600">
+          {removalMessage}
+        </p>
+      )}
 
       <div className="mt-6 overflow-x-auto rounded-2xl border border-brand-100 bg-white shadow-sm">
         <table className="w-full min-w-[44rem] text-left text-sm">
@@ -154,31 +166,43 @@ export function EmployeesListPage() {
                   <td className="px-4 py-3 text-brand-900">{employee.name}</td>
                   <td className="px-4 py-3 text-brand-700">{employee.email}</td>
                   <td className="px-4 py-3">
-                    <span className="inline-flex items-center rounded-full bg-sage-50 px-2.5 py-1 text-xs font-medium text-sage-600">
-                      Ativo
-                    </span>
+                    {employee.active ? (
+                      <span className="inline-flex items-center rounded-full bg-sage-50 px-2.5 py-1 text-xs font-medium text-sage-600">
+                        Ativo
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center rounded-full bg-brand-100 px-2.5 py-1 text-xs font-medium text-brand-600">
+                        Inativo
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-3">
                       <button
-                        onClick={() => setModalState({ mode: 'edit', employee })}
+                        onClick={() => {
+                          setRemovalMessage(null)
+                          setModalState({ mode: 'edit', employee })
+                        }}
                         className="flex items-center gap-1 text-brand-600 hover:text-brand-800"
                         aria-label={`Editar ${employee.name}`}
                       >
                         <Pencil size={16} />
                         Editar
                       </button>
-                      <button
-                        onClick={() => {
-                          setDeleteError(null)
-                          setEmployeeToDelete(employee)
-                        }}
-                        className="flex items-center gap-1 text-danger-600 hover:text-danger-500"
-                        aria-label={`Remover ${employee.name}`}
-                      >
-                        <Trash2 size={16} />
-                        Remover
-                      </button>
+                      {employee.active && (
+                        <button
+                          onClick={() => {
+                            setDeleteError(null)
+                            setRemovalMessage(null)
+                            setEmployeeToDelete(employee)
+                          }}
+                          className="flex items-center gap-1 text-danger-600 hover:text-danger-500"
+                          aria-label={`Remover ${employee.name}`}
+                        >
+                          <Trash2 size={16} />
+                          Remover
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -200,9 +224,9 @@ export function EmployeesListPage() {
       {employeeToDelete && (
         <ConfirmDialog
           title="Remover funcionário"
-          message={`Tem certeza que deseja remover "${employeeToDelete.name}"? Essa ação inativa o acesso do funcionário ao sistema.`}
+          message={`Tem certeza que deseja remover "${employeeToDelete.name}"? Se ele tiver atendimentos vinculados, o sistema vai apenas desativá-lo em vez de remover — o histórico é sempre preservado.`}
           confirmLabel="Remover"
-          isLoading={deactivateMutation.isPending}
+          isLoading={removeMutation.isPending}
           onConfirm={handleConfirmDelete}
           onCancel={() => setEmployeeToDelete(null)}
         />

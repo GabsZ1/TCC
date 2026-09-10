@@ -7,6 +7,7 @@ export interface AuthenticatedUser {
   role: UserRole
   establishmentId: number | null
   establishmentName: string | null
+  active: boolean
 }
 
 export interface LoginCredentials {

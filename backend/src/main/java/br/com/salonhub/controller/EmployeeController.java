@@ -2,6 +2,7 @@ package br.com.salonhub.controller;
 
 import br.com.salonhub.dto.auth.AuthenticatedUserResponse;
 import br.com.salonhub.dto.employee.EmployeeCreateRequest;
+import br.com.salonhub.dto.employee.EmployeeRemovalResponse;
 import br.com.salonhub.dto.employee.EmployeeUpdateRequest;
 import br.com.salonhub.service.EmployeeService;
 import jakarta.validation.Valid;
@@ -45,9 +46,8 @@ public class EmployeeController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deactivate(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
-        employeeService.deactivate(currentUserId(jwt), id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<EmployeeRemovalResponse> remove(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(employeeService.remove(currentUserId(jwt), id));
     }
 
     private Long currentUserId(Jwt jwt) {
