@@ -1,8 +1,8 @@
 package br.com.salonhub.service;
 
-import br.com.salonhub.dto.AuthenticatedUserResponse;
-import br.com.salonhub.dto.EmployeeCreateRequest;
-import br.com.salonhub.dto.EmployeeUpdateRequest;
+import br.com.salonhub.dto.auth.AuthenticatedUserResponse;
+import br.com.salonhub.dto.employee.EmployeeCreateRequest;
+import br.com.salonhub.dto.employee.EmployeeUpdateRequest;
 import br.com.salonhub.entity.User;
 import br.com.salonhub.entity.UserRole;
 import br.com.salonhub.exception.ConflictException;
@@ -35,13 +35,14 @@ public class EmployeeService {
     public AuthenticatedUserResponse create(Long administratorId, EmployeeCreateRequest request) {
         User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
 
-        if (userRepository.existsByEmailIgnoreCase(request.email())) {
+        String email = request.email().trim().toLowerCase(Locale.ROOT);
+        if (userRepository.existsByEmailIgnoreCase(email)) {
             throw new ConflictException("E-mail já cadastrado no sistema.");
         }
 
         User employee = User.builder()
-                .name(request.name())
-                .email(request.email().toLowerCase(Locale.ROOT))
+                .name(request.name().trim())
+                .email(email)
                 .password(passwordEncoder.encode(request.password()))
                 .role(UserRole.PROFESSIONAL)
                 .establishment(administrator.getEstablishment())
@@ -68,8 +69,13 @@ public class EmployeeService {
         User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
         User employee = findEmployee(employeeId, administrator.getEstablishment().getId());
 
-        employee.setName(request.name());
-        employee.setEmail(request.email().toLowerCase(Locale.ROOT));
+        String email = request.email().trim().toLowerCase(Locale.ROOT);
+        if (userRepository.existsByEmailIgnoreCaseAndIdNot(email, employeeId)) {
+            throw new ConflictException("E-mail já cadastrado no sistema.");
+        }
+
+        employee.setName(request.name().trim());
+        employee.setEmail(email);
 
         return AuthenticatedUserResponse.fromEntity(userRepository.save(employee));
     }

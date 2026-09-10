@@ -1,10 +1,11 @@
 package br.com.salonhub.controller;
 
-import br.com.salonhub.dto.InitialRegistrationRequest;
-import br.com.salonhub.dto.InitialRegistrationResponse;
-import br.com.salonhub.dto.LoginRequest;
-import br.com.salonhub.dto.LoginResponse;
-import br.com.salonhub.dto.AuthenticatedUserResponse;
+import br.com.salonhub.dto.auth.InitialRegistrationRequest;
+import br.com.salonhub.dto.auth.InitialRegistrationResponse;
+import br.com.salonhub.dto.auth.LoginRequest;
+import br.com.salonhub.dto.auth.LoginResponse;
+import br.com.salonhub.dto.auth.AuthenticatedUserResponse;
+import br.com.salonhub.dto.auth.ClientRegistrationRequest;
 import br.com.salonhub.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -42,6 +43,17 @@ public class AuthController {
     @SecurityRequirements
     public InitialRegistrationResponse register(@Valid @RequestBody InitialRegistrationRequest request) {
         return authService.register(request);
+    }
+
+    @PostMapping("/clientes")
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Cadastrar cliente", description = "Cria uma conta de cliente independente de estabelecimento.")
+    @ApiResponse(responseCode = "201", description = "Cliente cadastrado")
+    @ApiResponse(responseCode = "400", description = "Dados inválidos")
+    @ApiResponse(responseCode = "409", description = "E-mail já cadastrado")
+    @SecurityRequirements
+    public AuthenticatedUserResponse registerClient(@Valid @RequestBody ClientRegistrationRequest request) {
+        return authService.registerClient(request);
     }
 
     @PostMapping("/login")

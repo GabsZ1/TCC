@@ -26,16 +26,20 @@ public class TokenService {
         Instant issuedAt = Instant.now();
         Instant expiresAt = issuedAt.plus(expirationMinutes, ChronoUnit.MINUTES);
 
-        JwtClaimsSet claims = JwtClaimsSet.builder()
+        JwtClaimsSet.Builder claimsBuilder = JwtClaimsSet.builder()
                 .issuer("salonhub")
                 .issuedAt(issuedAt)
                 .expiresAt(expiresAt)
                 .subject(user.getId().toString())
                 .claim("userId", user.getId())
-                .claim("establishmentId", user.getEstablishment().getId())
                 .claim("role", user.getRole().name())
-                .claim("email", user.getEmail())
-                .build();
+                .claim("email", user.getEmail());
+
+        if (user.getEstablishment() != null) {
+            claimsBuilder.claim("establishmentId", user.getEstablishment().getId());
+        }
+
+        JwtClaimsSet claims = claimsBuilder.build();
 
         JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
         String value = jwtEncoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();

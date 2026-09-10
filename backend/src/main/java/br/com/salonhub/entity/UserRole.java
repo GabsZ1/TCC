@@ -2,7 +2,8 @@ package br.com.salonhub.entity;
 
 public enum UserRole {
     ADMIN("ADMIN"),
-    PROFESSIONAL("PROFISSIONAL");
+    PROFESSIONAL("PROFISSIONAL"),
+    CLIENT("CLIENTE");
 
     private final String externalValue;
 

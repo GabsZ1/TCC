@@ -38,3 +38,35 @@ body {
   background-color: var(--color-sand-50);
   color: var(--color-brand-900);
 }
+
+button,
+a,
+input {
+  transition-duration: 150ms;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: default;
+}
+
+@layer components {
+  .page-title {
+    @apply font-[var(--font-display)] text-3xl text-brand-900;
+  }
+
+  .page-subtitle {
+    @apply mt-2 text-base text-brand-600;
+  }
+
+  .primary-button {
+    @apply inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700;
+  }
+
+  .icon-button {
+    @apply rounded-lg p-2 text-brand-600 hover:bg-brand-50 hover:text-brand-800;
+  }
+}

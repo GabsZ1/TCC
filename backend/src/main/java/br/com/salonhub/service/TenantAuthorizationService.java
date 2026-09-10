@@ -29,4 +29,17 @@ public class TenantAuthorizationService {
 
         return user;
     }
+
+    @Transactional(readOnly = true)
+    public User requireClient(Long userId) {
+        User user = userRepository.findById(userId)
+                .filter(User::isActive)
+                .orElseThrow(() -> new UnauthorizedException("Usuário inválido ou inativo"));
+
+        if (user.getRole() != UserRole.CLIENT) {
+            throw new AccessDeniedException("Acesso permitido apenas para clientes");
+        }
+
+        return user;
+    }
 }

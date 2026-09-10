@@ -33,6 +33,9 @@ public class EstablishmentService {
     @Column(name = "commission_percentage", nullable = false, precision = 5, scale = 2)
     private BigDecimal commissionPercentage;
 
+    @Column(name = "duration_minutes", nullable = false)
+    private Integer durationMinutes;
+
     @Column(nullable = false)
     @Builder.Default
     private boolean active = true;

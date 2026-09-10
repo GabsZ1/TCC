@@ -1,23 +1,14 @@
-import { createContext, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { api, clearStoredToken, getStoredToken, setStoredToken } from '@/lib/api'
 import type { AuthenticatedUser, LoginCredentials, LoginResponse } from '@/types/auth'
-
-interface AuthContextValue {
-  user: AuthenticatedUser | null
-  isAuthenticated: boolean
-  isLoading: boolean
-  login: (credentials: LoginCredentials) => Promise<void>
-  logout: () => void
-}
-
-export const AuthContext = createContext<AuthContextValue | undefined>(undefined)
+import { AuthContext } from '@/contexts/authStore'
 
 // RNF.05.01 (User Story Logout): expira a sessão após 30 min de inatividade.
 const INACTIVITY_LIMIT_MS = 30 * 60 * 1000
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthenticatedUser | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(() => !!getStoredToken())
 
   const logout = useCallback(() => {
     clearStoredToken()
@@ -28,15 +19,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data } = await api.post<LoginResponse>('/auth/login', credentials)
     setStoredToken(data.token)
     setUser(data.user)
+    return data.user
   }, [])
 
   // Carrega o usuário autenticado a partir do token salvo, se houver.
   useEffect(() => {
     const token = getStoredToken()
-    if (!token) {
-      setIsLoading(false)
-      return
-    }
+    if (!token) return
 
     api
       .get<AuthenticatedUser>('/auth/me')

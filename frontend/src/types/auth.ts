@@ -1,12 +1,12 @@
-export type UserRole = 'ADMIN' | 'PROFESSIONAL'
+export type UserRole = 'ADMIN' | 'PROFESSIONAL' | 'CLIENT'
 
 export interface AuthenticatedUser {
   id: number
   name: string
   email: string
   role: UserRole
-  establishmentId: number
-  establishmentName: string
+  establishmentId: number | null
+  establishmentName: string | null
 }
 
 export interface LoginCredentials {

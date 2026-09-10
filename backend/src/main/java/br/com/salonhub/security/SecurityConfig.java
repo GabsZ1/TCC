@@ -20,6 +20,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/api/auth/cadastro",
+                                "/api/auth/clientes",
                                 "/api/auth/login",
                                 "/v3/api-docs/**",
                                 "/swagger-ui.html",
