@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
 
@@ -16,9 +17,19 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             LocalDateTime requestedStart
     );
 
+    boolean existsByProfessionalIdAndStatusAndIdNotAndStartsAtLessThanAndEndsAtGreaterThan(
+            Long professionalId,
+            AppointmentStatus status,
+            Long appointmentId,
+            LocalDateTime requestedEnd,
+            LocalDateTime requestedStart
+    );
+
     boolean existsByProfessionalId(Long professionalId);
 
     List<Appointment> findByClientIdOrderByStartsAtDesc(Long clientId);
+
+    Optional<Appointment> findByIdAndClientId(Long id, Long clientId);
 
     List<Appointment> findByProfessionalIdOrderByStartsAtDesc(Long professionalId);
 

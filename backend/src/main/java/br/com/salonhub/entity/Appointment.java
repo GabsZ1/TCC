@@ -68,4 +68,15 @@ public class Appointment {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
+
+    public void cancel() {
+        this.status = AppointmentStatus.CANCELLED;
+    }
+
+    public void update(EstablishmentService service, User professional, LocalDateTime startsAt, LocalDateTime endsAt) {
+        this.service = service;
+        this.professional = professional;
+        this.startsAt = startsAt;
+        this.endsAt = endsAt;
+    }
 }

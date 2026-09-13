@@ -60,4 +60,14 @@ public class Establishment {
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
+    public void updateRegistration(String name, String email, String phone) {
+        this.name = name;
+        this.email = email;
+        this.phone = phone;
+    }
+
+    public void deactivate() {
+        this.active = false;
+    }
+
 }
