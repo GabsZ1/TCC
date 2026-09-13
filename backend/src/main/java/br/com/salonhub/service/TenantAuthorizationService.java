@@ -19,12 +19,24 @@ public class TenantAuthorizationService {
 
     @Transactional(readOnly = true)
     public User requireAdministrator(Long userId) {
+        User user = requireAdministratorIdentity(userId);
+        if (!user.getEstablishment().isActive()) {
+            throw new AccessDeniedException("O estabelecimento está inativo. As operações administrativas estão bloqueadas.");
+        }
+        return user;
+    }
+
+    @Transactional(readOnly = true)
+    public User requireAdministratorIdentity(Long userId) {
         User user = userRepository.findById(userId)
                 .filter(User::isActive)
                 .orElseThrow(() -> new UnauthorizedException("Usuário inválido ou inativo"));
 
         if (user.getRole() != UserRole.ADMIN) {
             throw new AccessDeniedException("Acesso permitido apenas para administradores");
+        }
+        if (user.getEstablishment() == null) {
+            throw new AccessDeniedException("O administrador não possui estabelecimento vinculado.");
         }
 
         return user;

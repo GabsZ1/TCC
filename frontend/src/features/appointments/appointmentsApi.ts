@@ -42,8 +42,8 @@ export function fetchCatalogProfessionals(establishmentId: number) {
   return api.get<CatalogProfessional[]>(`/estabelecimentos/${establishmentId}/catalogo/funcionarios`).then((response) => response.data)
 }
 
-export function fetchAvailability(establishmentId: number, serviceId: number, professionalId: number, date: string) {
-  return api.get<Availability>(`/estabelecimentos/${establishmentId}/agendamentos/disponibilidade`, { params: { serviceId, professionalId, date } }).then((response) => response.data)
+export function fetchAvailability(establishmentId: number, serviceId: number, professionalId: number, date: string, appointmentId?: number) {
+  return api.get<Availability>(`/estabelecimentos/${establishmentId}/agendamentos/disponibilidade`, { params: { serviceId, professionalId, date, appointmentId } }).then((response) => response.data)
 }
 
 export function createAppointment(establishmentId: number, serviceId: number, professionalId: number, startsAt: string) {
@@ -52,6 +52,14 @@ export function createAppointment(establishmentId: number, serviceId: number, pr
 
 export function fetchMyAppointments() {
   return api.get<Appointment[]>('/agendamentos/me').then((response) => response.data)
+}
+
+export function cancelAppointment(appointmentId: number) {
+  return api.patch<Appointment>(`/agendamentos/${appointmentId}/cancelamento`).then((response) => response.data)
+}
+
+export function updateAppointment(appointmentId: number, serviceId: number, professionalId: number, startsAt: string) {
+  return api.put<Appointment>(`/agendamentos/${appointmentId}`, { serviceId, professionalId, startsAt }).then((response) => response.data)
 }
 
 export function fetchMyAppointmentsAsProfessional() {

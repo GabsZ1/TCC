@@ -11,6 +11,7 @@ import { ServicesPage } from '@/features/services/ServicesPage'
 import { AppointmentsPage } from '@/features/appointments/AppointmentsPage'
 import { BookingPage } from '@/features/appointments/BookingPage'
 import { ProfessionalAgendaPage } from '@/features/appointments/ProfessionalAgendaPage'
+import { EstablishmentPage } from '@/features/establishment/EstablishmentPage'
 
 function App() {
   return (
@@ -29,6 +30,7 @@ function App() {
           <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
             <Route path="/funcionarios" element={<EmployeesListPage />} />
             <Route path="/servicos" element={<ServicesPage />} />
+            <Route path="/estabelecimento" element={<EstablishmentPage />} />
           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={['CLIENT']} />}>

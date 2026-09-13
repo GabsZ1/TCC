@@ -93,6 +93,49 @@ public class AppointmentService {
         return AppointmentResponse.fromEntity(appointmentRepository.save(appointment));
     }
 
+    @Transactional
+    public AppointmentResponse update(Long clientId, Long appointmentId, AppointmentCreateRequest request) {
+        User client = tenantAuthorizationService.requireClient(clientId);
+        Appointment appointment = appointmentRepository.findByIdAndClientId(appointmentId, client.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Agendamento não encontrado."));
+
+        if (appointment.getStatus() != AppointmentStatus.CONFIRMED || !appointment.getStartsAt().isAfter(LocalDateTime.now())) {
+            throw new ConflictException("Apenas agendamentos futuros e confirmados podem ser editados.");
+        }
+
+        Long establishmentId = appointment.getEstablishment().getId();
+        Establishment establishment = establishmentRepository.findById(establishmentId)
+                .filter(Establishment::isActive)
+                .orElseThrow(() -> new ResourceNotFoundException("Estabelecimento não encontrado."));
+        EstablishmentService service = serviceRepository
+                .findByIdAndEstablishmentIdAndActiveTrue(request.serviceId(), establishmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Serviço não encontrado."));
+        User professional = userRepository.findByIdForUpdate(request.professionalId())
+                .filter(User::isActive)
+                .filter(user -> user.getRole() == UserRole.PROFESSIONAL)
+                .filter(user -> user.getEstablishment() != null)
+                .filter(user -> user.getEstablishment().getId().equals(establishmentId))
+                .orElseThrow(() -> new ResourceNotFoundException("Funcionário não encontrado."));
+
+        LocalDateTime startsAt = request.startsAt();
+        LocalDateTime endsAt = startsAt.plusMinutes(service.getDurationMinutes());
+        validateBusinessHours(establishment, startsAt, endsAt);
+
+        boolean conflict = appointmentRepository
+                .existsByProfessionalIdAndStatusAndIdNotAndStartsAtLessThanAndEndsAtGreaterThan(
+                        professional.getId(),
+                        AppointmentStatus.CONFIRMED,
+                        appointment.getId(),
+                        endsAt,
+                        startsAt
+                );
+        if (conflict) {
+            throw new ConflictException("O funcionário já possui um agendamento nesse período.");
+        }
+
+        appointment.update(service, professional, startsAt, endsAt);
+        return AppointmentResponse.fromEntity(appointmentRepository.save(appointment));
+    }
     @Transactional(readOnly = true)
     public List<AppointmentResponse> findMine(Long clientId) {
         User client = tenantAuthorizationService.requireClient(clientId);
@@ -100,6 +143,20 @@ public class AppointmentService {
                 .stream()
                 .map(AppointmentResponse::fromEntity)
                 .toList();
+    }
+
+    @Transactional
+    public AppointmentResponse cancel(Long clientId, Long appointmentId) {
+        User client = tenantAuthorizationService.requireClient(clientId);
+        Appointment appointment = appointmentRepository.findByIdAndClientId(appointmentId, client.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Agendamento não encontrado."));
+
+        if (appointment.getStatus() != AppointmentStatus.CONFIRMED) {
+            throw new ConflictException("O agendamento não pode ser cancelado.");
+        }
+
+        appointment.cancel();
+        return AppointmentResponse.fromEntity(appointmentRepository.save(appointment));
     }
 
     @Transactional(readOnly = true)
@@ -117,8 +174,13 @@ public class AppointmentService {
             Long establishmentId,
             Long serviceId,
             Long professionalId,
-            LocalDate date) {
-        tenantAuthorizationService.requireClient(clientId);
+            LocalDate date,
+            Long appointmentId) {
+        User client = tenantAuthorizationService.requireClient(clientId);
+        if (appointmentId != null) {
+            appointmentRepository.findByIdAndClientId(appointmentId, client.getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Agendamento não encontrado."));
+        }
         if (date.isBefore(LocalDate.now())) {
             throw new InvalidRequestException("A data da consulta não pode estar no passado.");
         }
@@ -151,8 +213,9 @@ public class AppointmentService {
             LocalDateTime slotStart = candidate;
             LocalDateTime candidateEnd = slotStart.plusMinutes(service.getDurationMinutes());
             boolean inFuture = slotStart.isAfter(now);
-            boolean overlaps = appointments.stream().anyMatch(appointment ->
-                    appointment.getStartsAt().isBefore(candidateEnd)
+            boolean overlaps = appointments.stream()
+                    .filter(appointment -> appointmentId == null || !appointment.getId().equals(appointmentId))
+                    .anyMatch(appointment -> appointment.getStartsAt().isBefore(candidateEnd)
                             && appointment.getEndsAt().isAfter(slotStart));
             if (inFuture && !overlaps) {
                 availableTimes.add(slotStart.toLocalTime());

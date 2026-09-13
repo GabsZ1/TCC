@@ -10,7 +10,9 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -45,6 +47,21 @@ public class AppointmentController {
         return appointmentService.findMine(currentUserId(jwt));
     }
 
+    @PutMapping("/agendamentos/{appointmentId}")
+    public AppointmentResponse update(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long appointmentId,
+            @Valid @RequestBody AppointmentCreateRequest request) {
+        return appointmentService.update(currentUserId(jwt), appointmentId, request);
+    }
+
+    @PatchMapping("/agendamentos/{appointmentId}/cancelamento")
+    public AppointmentResponse cancel(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long appointmentId) {
+        return appointmentService.cancel(currentUserId(jwt), appointmentId);
+    }
+
     @GetMapping("/agendamentos/profissional/me")
     public List<AppointmentResponse> findMineAsProfessional(@AuthenticationPrincipal Jwt jwt) {
         return appointmentService.findMineAsProfessional(currentUserId(jwt));
@@ -56,9 +73,10 @@ public class AppointmentController {
             @PathVariable Long establishmentId,
             @RequestParam Long serviceId,
             @RequestParam Long professionalId,
+            @RequestParam(required = false) Long appointmentId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         return appointmentService.findAvailability(
-                currentUserId(jwt), establishmentId, serviceId, professionalId, date);
+                currentUserId(jwt), establishmentId, serviceId, professionalId, date, appointmentId);
     }
 
     private Long currentUserId(Jwt jwt) {
