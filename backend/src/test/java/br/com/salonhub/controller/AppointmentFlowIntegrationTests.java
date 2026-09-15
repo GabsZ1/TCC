@@ -46,7 +46,7 @@ class AppointmentFlowIntegrationTests {
                                   "ownerEmail": "admin.appointment@salonhub.test",
                                   "password": "senha123",
                                   "establishmentName": "Salão MVP",
-                                  "cnpj": "66777888000199"
+                                  "cnpj": "66777888000181"
                                 }
                                 """))
                 .andExpect(status().isCreated())
@@ -289,7 +289,7 @@ class AppointmentFlowIntegrationTests {
                                   "ownerEmail": "admin.forbidden.appointment@salonhub.test",
                                   "password": "senha123",
                                   "establishmentName": "Salão Restrito",
-                                  "cnpj": "99888777000166"
+                                  "cnpj": "99888777000100"
                                 }
                                 """))
                 .andExpect(status().isCreated())

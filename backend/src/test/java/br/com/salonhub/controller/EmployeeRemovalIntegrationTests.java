@@ -43,9 +43,9 @@ class EmployeeRemovalIntegrationTests {
     void shouldReactivateOnlyAnEmployeeFromTheAdministratorsEstablishment() throws Exception {
         String firstAdminEmail = "admin.reactivation.first@salonhub.test";
         String firstAdminToken = registerAndLogin(
-                firstAdminEmail, "30303030000191", "Salão Reativação Um");
+                firstAdminEmail, "30303030000138", "Salão Reativação Um");
         String secondAdminToken = registerAndLogin(
-                "admin.reactivation.second@salonhub.test", "40404040000191", "Salão Reativação Dois");
+                "admin.reactivation.second@salonhub.test", "40404040000113", "Salão Reativação Dois");
 
         User firstAdmin = userRepository.findByEmailIgnoreCase(firstAdminEmail).orElseThrow();
         User inactiveEmployee = userRepository.saveAndFlush(User.builder()
@@ -81,7 +81,7 @@ class EmployeeRemovalIntegrationTests {
     @Test
     void shouldPermanentlyRemoveEmployeeWithoutAppointments() throws Exception {
         String adminToken = registerAndLogin(
-                "admin.removal.clean@salonhub.test", "10101010000191", "Salão Remoção Limpa");
+                "admin.removal.clean@salonhub.test", "10101010000177", "Salão Remoção Limpa");
 
         MvcResult created = mockMvc.perform(post("/api/funcionarios")
                         .header("Authorization", bearer(adminToken))
@@ -105,7 +105,7 @@ class EmployeeRemovalIntegrationTests {
     @Test
     void shouldDeactivateInsteadOfRemoveEmployeeWithAppointments() throws Exception {
         String adminToken = registerAndLogin(
-                "admin.removal.linked@salonhub.test", "20202020000191", "Salão Remoção Vinculada");
+                "admin.removal.linked@salonhub.test", "20202020000152", "Salão Remoção Vinculada");
 
         MvcResult employeeResult = mockMvc.perform(post("/api/funcionarios")
                         .header("Authorization", bearer(adminToken))

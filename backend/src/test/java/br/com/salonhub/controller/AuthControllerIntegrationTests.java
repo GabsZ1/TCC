@@ -64,4 +64,35 @@ class AuthControllerIntegrationTests {
                 .andExpect(jsonPath("$.role").value("ADMIN"))
                 .andExpect(jsonPath("$.establishmentName").value("Salão Integração"));
     }
+
+    @Test
+    void shouldRejectCnpjWithInvalidCheckDigits() throws Exception {
+        mockMvc.perform(post("/api/auth/cadastro")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "ownerName": "Administrador Inválido",
+                                  "ownerEmail": "invalid.cnpj@salonhub.test",
+                                  "password": "senha123",
+                                  "establishmentName": "Salão CNPJ Inválido",
+                                  "cnpj": "11.222.333/0001-80"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fields.cnpj").value("CNPJ inválido"));
+
+        mockMvc.perform(post("/api/auth/cadastro")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "ownerName": "Administrador Inválido",
+                                  "ownerEmail": "repeated.cnpj@salonhub.test",
+                                  "password": "senha123",
+                                  "establishmentName": "Salão CNPJ Repetido",
+                                  "cnpj": "11.111.111/1111-11"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fields.cnpj").value("CNPJ inválido"));
+    }
 }

@@ -77,7 +77,7 @@ export function EstablishmentPage() {
           <p className="mt-1 text-sm text-brand-600">Nome e telefone podem ser atualizados. O CNPJ é definido no cadastro inicial.</p>
           <fieldset disabled={isInactive || updateMutation.isPending} className="mt-6 grid gap-5 sm:grid-cols-2">
             <Field label="Nome do estabelecimento" value={form.name} onChange={(value) => updateField('name', value)} required className="sm:col-span-2" />
-            <label className="block"><span className="text-sm font-medium text-brand-800">CNPJ</span><input value={establishment.cnpj} readOnly className="mt-2 w-full rounded-xl border border-brand-200 bg-sand-100 px-3.5 py-3 text-brand-700" /></label>
+            <label className="block"><span className="text-sm font-medium text-brand-800">CNPJ</span><input value={formatCnpj(establishment.cnpj)} readOnly className="mt-2 w-full rounded-xl border border-brand-200 bg-sand-100 px-3.5 py-3 text-brand-700" /></label>
             <Field label="Telefone" value={form.phone} onChange={(value) => updateField('phone', value)} />
           </fieldset>
           <button type="submit" disabled={isInactive || updateMutation.isPending} className="primary-button mt-7 disabled:cursor-not-allowed disabled:opacity-60"><Save size={18} /> {updateMutation.isPending ? 'Salvando...' : 'Salvar alterações'}</button>
@@ -99,3 +99,4 @@ function Info({ label, value, icon }: { label: string; value: string; icon?: Rea
 function PageContainer({ children }: { children: React.ReactNode }) { return <div className="p-5 sm:p-7 lg:p-9">{children}</div> }
 function StateCard({ children, error = false }: { children: React.ReactNode; error?: boolean }) { return <div className={`rounded-2xl border bg-white p-8 text-center ${error ? 'border-danger-500/30 text-danger-600' : 'border-brand-100 text-brand-600'}`}>{children}</div> }
 function formatTime(value: string) { return value.slice(0, 5) }
+function formatCnpj(value: string) { return value.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') }
