@@ -21,6 +21,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 @Entity
 @Table(name = "appointments")
@@ -50,6 +52,21 @@ public class Appointment {
     @JoinColumn(name = "service_id", nullable = false)
     private EstablishmentService service;
 
+    @Column(name = "service_name", nullable = false, length = 100)
+    private String serviceName;
+
+    @Column(name = "agreed_price", nullable = false, precision = 10, scale = 2)
+    private BigDecimal agreedPrice;
+
+    @Column(name = "commission_percentage", nullable = false, precision = 5, scale = 2)
+    private BigDecimal commissionPercentage;
+
+    @Column(name = "commission_amount", nullable = false, precision = 10, scale = 2)
+    private BigDecimal commissionAmount;
+
+    @Column(name = "duration_minutes", nullable = false)
+    private Integer durationMinutes;
+
     @Column(name = "starts_at", nullable = false)
     private LocalDateTime startsAt;
 
@@ -75,8 +92,25 @@ public class Appointment {
 
     public void update(EstablishmentService service, User professional, LocalDateTime startsAt, LocalDateTime endsAt) {
         this.service = service;
+        snapshotService(service);
         this.professional = professional;
         this.startsAt = startsAt;
         this.endsAt = endsAt;
+    }
+
+    @jakarta.persistence.PrePersist
+    void ensureServiceSnapshot() {
+        if (serviceName == null) {
+            snapshotService(service);
+        }
+    }
+
+    public void snapshotService(EstablishmentService service) {
+        this.serviceName = service.getName();
+        this.agreedPrice = service.getPrice();
+        this.commissionPercentage = service.getCommissionPercentage();
+        this.commissionAmount = agreedPrice.multiply(commissionPercentage)
+                .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+        this.durationMinutes = service.getDurationMinutes();
     }
 }

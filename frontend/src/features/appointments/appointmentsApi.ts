@@ -25,6 +25,10 @@ export interface Appointment {
   establishmentName: string
   serviceId: number
   serviceName: string
+  agreedPrice: number
+  commissionPercentage: number
+  commissionAmount: number
+  durationMinutes: number
   professionalId: number
   professionalName: string
   clientId: number

@@ -67,6 +67,7 @@ export function AppointmentsPage() {
                     <div className="flex items-center gap-2"><Scissors size={18} className="text-brand-500" /><h2 className="text-lg font-semibold text-brand-900">{appointment.serviceName}</h2></div>
                     <p className="mt-2 flex items-center gap-2 text-sm text-brand-600"><MapPin size={16} /> {appointment.establishmentName}</p>
                     <p className="mt-1 text-sm text-brand-600">com {appointment.professionalName}</p>
+                    <p className="mt-1 text-sm font-semibold text-brand-800">{formatMoney(appointment.agreedPrice)} · {appointment.durationMinutes} min</p>
                   </div>
                   <div className="rounded-xl bg-brand-50 px-4 py-3 text-sm text-brand-800">
                     <p className="flex items-center gap-2 font-semibold"><CalendarDays size={16} /> {formatDate(appointment.startsAt)}</p>
@@ -111,3 +112,4 @@ function isUpcoming(appointment: Appointment) { return appointment.status === 'C
 function EmptyState({ children, error = false }: { children: React.ReactNode; error?: boolean }) { return <div className={`rounded-2xl border bg-white p-8 text-center ${error ? 'border-danger-500/30 text-danger-600' : 'border-brand-100 text-brand-600'}`}>{children}</div> }
 function formatDate(value: string) { return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' }).format(new Date(value)) }
 function formatTime(value: string) { return value.slice(11, 16) }
+function formatMoney(value: number) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value) }
