@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { api, clearStoredToken, getStoredToken, setStoredToken } from '@/lib/api'
 import type { AuthenticatedUser, LoginCredentials, LoginResponse } from '@/types/auth'
 import { AuthContext } from '@/contexts/authStore'
@@ -9,6 +9,7 @@ const INACTIVITY_LIMIT_MS = 30 * 60 * 1000
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthenticatedUser | null>(null)
   const [isLoading, setIsLoading] = useState(() => !!getStoredToken())
+  const sessionRequestRef = useRef<AbortController | null>(null)
 
   const logout = useCallback(() => {
     clearStoredToken()
@@ -16,9 +17,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const login = useCallback(async (credentials: LoginCredentials) => {
+    sessionRequestRef.current?.abort()
     const { data } = await api.post<LoginResponse>('/auth/login', credentials)
     setStoredToken(data.token)
     setUser(data.user)
+    setIsLoading(false)
     return data.user
   }, [])
 
@@ -27,11 +30,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const token = getStoredToken()
     if (!token) return
 
+    const controller = new AbortController()
+    sessionRequestRef.current = controller
+
     api
-      .get<AuthenticatedUser>('/auth/me')
-      .then(({ data }) => setUser(data))
-      .catch(() => clearStoredToken())
-      .finally(() => setIsLoading(false))
+      .get<AuthenticatedUser>('/auth/me', { signal: controller.signal })
+      .then(({ data }) => {
+        if (!controller.signal.aborted && getStoredToken() === token) setUser(data)
+      })
+      .catch(() => {
+        if (!controller.signal.aborted && getStoredToken() === token) clearStoredToken()
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setIsLoading(false)
+      })
+
+    return () => controller.abort()
   }, [])
 
   // Encerra a sessão automaticamente após inatividade prolongada.

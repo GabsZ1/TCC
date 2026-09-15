@@ -26,10 +26,17 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Sessão expirada ou token inválido: limpa e força novo login.
-      localStorage.removeItem(TOKEN_STORAGE_KEY)
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login'
+      // Uma resposta atrasada de uma sessão anterior não pode apagar um token
+      // que tenha sido salvo por um login mais recente.
+      const requestAuthorization = error.config?.headers?.Authorization
+      const currentToken = localStorage.getItem(TOKEN_STORAGE_KEY)
+      const currentAuthorization = currentToken ? `Bearer ${currentToken}` : null
+
+      if (!currentAuthorization || requestAuthorization === currentAuthorization) {
+        localStorage.removeItem(TOKEN_STORAGE_KEY)
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login'
+        }
       }
     }
     return Promise.reject(error)

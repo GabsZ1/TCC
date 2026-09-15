@@ -2,6 +2,13 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import axios from 'axios'
+import type { UserRole } from '@/types/auth'
+
+const allowedPathsByRole: Record<UserRole, (path: string) => boolean> = {
+  ADMIN: (path) => path === '/' || ['/funcionarios', '/servicos', '/estabelecimento'].includes(path),
+  CLIENT: (path) => path === '/agendamentos' || /^\/estabelecimentos\/\d+\/agendar$/.test(path),
+  PROFESSIONAL: (path) => path === '/minha-agenda',
+}
 
 export function LoginPage() {
   const { login } = useAuth()
@@ -26,8 +33,13 @@ export function LoginPage() {
 
     try {
       const user = await login({ email, password })
-      const redirectTo = (location.state as { from?: Location })?.from?.pathname
-        ?? (user.role === 'CLIENT' ? '/agendamentos' : '/')
+      const requestedPath = (location.state as { from?: Location })?.from?.pathname
+      const defaultPath = user.role === 'CLIENT'
+        ? '/agendamentos'
+        : user.role === 'PROFESSIONAL' ? '/minha-agenda' : '/'
+      const redirectTo = requestedPath && allowedPathsByRole[user.role](requestedPath)
+        ? requestedPath
+        : defaultPath
       navigate(redirectTo, { replace: true })
     } catch (err) {
       const message = axios.isAxiosError(err)
