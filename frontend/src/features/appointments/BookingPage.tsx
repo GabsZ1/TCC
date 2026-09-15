@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, CheckCircle2, Clock3 } from 'lucide-react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { createAppointment, fetchAvailability, fetchCatalogProfessionals, fetchCatalogServices } from '@/features/appointments/appointmentsApi'
+import { createAppointment, fetchActiveEstablishments, fetchAvailability, fetchCatalogProfessionals, fetchCatalogServices } from '@/features/appointments/appointmentsApi'
 import { getApiErrorMessage } from '@/lib/apiError'
 
 export function BookingPage() {
@@ -17,6 +17,7 @@ export function BookingPage() {
   const [success, setSuccess] = useState(false)
 
   const services = useQuery({ queryKey: ['catalog-services', establishmentId], queryFn: () => fetchCatalogServices(establishmentId), enabled: establishmentId > 0 })
+  const establishments = useQuery({ queryKey: ['active-establishments'], queryFn: fetchActiveEstablishments })
   const professionals = useQuery({ queryKey: ['catalog-professionals', establishmentId], queryFn: () => fetchCatalogProfessionals(establishmentId), enabled: establishmentId > 0 })
   const availability = useQuery({
     queryKey: ['availability', establishmentId, serviceId, professionalId, date],
@@ -26,6 +27,7 @@ export function BookingPage() {
   })
   const selectedService = useMemo(() => services.data?.find((item) => item.id === serviceId), [services.data, serviceId])
   const selectedProfessional = useMemo(() => professionals.data?.find((item) => item.id === professionalId), [professionals.data, professionalId])
+  const establishment = establishments.data?.find((item) => item.id === establishmentId)
 
   const createMutation = useMutation({
     mutationFn: () => createAppointment(establishmentId, serviceId!, professionalId!, `${date}T${normalizeTime(time!)}`),
@@ -82,7 +84,8 @@ export function BookingPage() {
           </BookingStep>
 
           <BookingStep number="3" title="Escolha a data e o horário">
-            <input type="date" min={today()} value={date} onChange={(event) => { setDate(event.target.value); setTime(null) }} className="rounded-xl border border-brand-200 px-3.5 py-2.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
+            <input type="date" min={today()} max={establishment ? addDays(establishment.maximumAdvanceDays) : undefined} value={date} onChange={(event) => { setDate(event.target.value); setTime(null) }} className="rounded-xl border border-brand-200 px-3.5 py-2.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
+            {establishment && <p className="mt-2 text-sm text-brand-500">Agendamentos entre {establishment.minimumAdvanceHours}h e {establishment.maximumAdvanceDays} dias de antecedência.</p>}
             <div className="mt-4 flex flex-wrap gap-2">
               {availability.isFetching && <p className="text-sm text-brand-500">Buscando horários...</p>}
               {availability.data?.availableTimes.map((availableTime) => (
@@ -114,6 +117,7 @@ function BookingStep({ number, title, children }: { number: string; title: strin
 function ChoiceButton({ selected, onClick, title, detail }: { selected: boolean; onClick: () => void; title: string; detail: string }) { return <button type="button" onClick={onClick} className={`rounded-xl border p-4 text-left ${selected ? 'border-brand-600 bg-brand-50 ring-1 ring-brand-600' : 'border-brand-100 hover:border-brand-300'}`}><span className="block font-semibold text-brand-900">{title}</span><span className="mt-1 block text-sm text-brand-600">{detail}</span></button> }
 function Summary({ label, value }: { label: string; value?: string }) { return <div className="mt-4"><p className="text-xs font-semibold uppercase tracking-wide text-brand-400">{label}</p><p className="mt-1 text-sm text-brand-800">{value ?? 'Não selecionado'}</p></div> }
 function today() { const date = new Date(); const offset = date.getTimezoneOffset(); return new Date(date.getTime() - offset * 60000).toISOString().slice(0, 10) }
+function addDays(days: number) { const date = new Date(); date.setDate(date.getDate() + days); const offset = date.getTimezoneOffset(); return new Date(date.getTime() - offset * 60000).toISOString().slice(0, 10) }
 function normalizeTime(value: string) { return value.length === 5 ? `${value}:00` : value }
 function shortTime(value: string) { return value.slice(0, 5) }
 function formatDate(value: string) { return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(`${value}T12:00:00Z`)) }

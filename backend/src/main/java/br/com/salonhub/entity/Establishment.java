@@ -52,6 +52,14 @@ public class Establishment {
     @Builder.Default
     private LocalTime closingTime = LocalTime.of(18, 0);
 
+    @Column(name = "minimum_advance_minutes", nullable = false)
+    @Builder.Default
+    private Integer minimumAdvanceMinutes = 120;
+
+    @Column(name = "maximum_advance_days", nullable = false)
+    @Builder.Default
+    private Integer maximumAdvanceDays = 60;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
@@ -64,6 +72,11 @@ public class Establishment {
         this.name = name;
         this.email = email;
         this.phone = phone;
+    }
+
+    public void updateAppointmentAdvancePolicy(int minimumAdvanceMinutes, int maximumAdvanceDays) {
+        this.minimumAdvanceMinutes = minimumAdvanceMinutes;
+        this.maximumAdvanceDays = maximumAdvanceDays;
     }
 
     public void deactivate() {

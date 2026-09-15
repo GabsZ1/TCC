@@ -52,8 +52,12 @@ public class AuthService {
                         .cnpj(cnpj)
                         .email(normalizeOptionalText(request.establishmentEmail()))
                         .phone(normalizeOptionalText(request.establishmentPhone()))
+                        .minimumAdvanceMinutes((request.minimumAdvanceHours() == null ? 2 : request.minimumAdvanceHours()) * 60)
+                        .maximumAdvanceDays(request.maximumAdvanceDays() == null ? 60 : request.maximumAdvanceDays())
                         .build()
         );
+
+        validateAdvancePolicy(establishment.getMinimumAdvanceMinutes(), establishment.getMaximumAdvanceDays());
 
         businessHourRepository.saveAll(Arrays.stream(DayOfWeek.values())
                 .map(day -> EstablishmentBusinessHour.builder()
@@ -138,5 +142,12 @@ public class AuthService {
 
     private String normalizeOptionalText(String value) {
         return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private void validateAdvancePolicy(int minimumMinutes, int maximumDays) {
+        if (minimumMinutes > maximumDays * 1440) {
+            throw new br.com.salonhub.exception.InvalidRequestException(
+                    "A antecedência mínima não pode ser maior que a janela máxima de agendamento.");
+        }
     }
 }

@@ -49,6 +49,13 @@ public class EstablishmentManagementService {
         if (request.businessHours() != null) {
             updateBusinessHours(establishment, request.businessHours());
         }
+        if (request.minimumAdvanceHours() != null && request.maximumAdvanceDays() != null) {
+            int minimumMinutes = request.minimumAdvanceHours() * 60;
+            if (minimumMinutes > request.maximumAdvanceDays() * 1440) {
+                throw new InvalidRequestException("A antecedência mínima não pode ser maior que a janela máxima de agendamento.");
+            }
+            establishment.updateAppointmentAdvancePolicy(minimumMinutes, request.maximumAdvanceDays());
+        }
         return response(establishmentRepository.save(establishment));
     }
 

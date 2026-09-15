@@ -13,7 +13,9 @@ public record EstablishmentResponse(
         LocalTime openingTime,
         LocalTime closingTime,
         boolean active,
-        List<BusinessHourResponse> businessHours
+        List<BusinessHourResponse> businessHours,
+        Integer minimumAdvanceHours,
+        Integer maximumAdvanceDays
 ) {
     public static EstablishmentResponse fromEntity(Establishment establishment, List<BusinessHourResponse> businessHours) {
         return new EstablishmentResponse(
@@ -25,7 +27,9 @@ public record EstablishmentResponse(
                 establishment.getOpeningTime(),
                 establishment.getClosingTime(),
                 establishment.isActive(),
-                businessHours
+                businessHours,
+                establishment.getMinimumAdvanceMinutes() / 60,
+                establishment.getMaximumAdvanceDays()
         );
     }
 }

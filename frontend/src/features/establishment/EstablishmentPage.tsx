@@ -12,7 +12,7 @@ const WEEK_DAYS: { value: WeekDay; label: string }[] = [
   { value: 'FRIDAY', label: 'Sexta-feira' }, { value: 'SATURDAY', label: 'Sábado' },
   { value: 'SUNDAY', label: 'Domingo' },
 ]
-const EMPTY_FORM: EstablishmentUpdateInput = { name: '', email: '', phone: '', businessHours: [] }
+const EMPTY_FORM: EstablishmentUpdateInput = { name: '', email: '', phone: '', businessHours: [], minimumAdvanceHours: 2, maximumAdvanceDays: 60 }
 
 export function EstablishmentPage() {
   const queryClient = useQueryClient()
@@ -24,7 +24,7 @@ export function EstablishmentPage() {
   const establishment = establishmentQuery.data
 
   useEffect(() => {
-    if (establishment) setForm({ name: establishment.name, email: establishment.email ?? '', phone: establishment.phone ?? '', businessHours: orderBusinessHours(establishment.businessHours) })
+    if (establishment) setForm({ name: establishment.name, email: establishment.email ?? '', phone: establishment.phone ?? '', businessHours: orderBusinessHours(establishment.businessHours), minimumAdvanceHours: establishment.minimumAdvanceHours, maximumAdvanceDays: establishment.maximumAdvanceDays })
   }, [establishment])
 
   const updateMutation = useMutation({
@@ -89,6 +89,9 @@ export function EstablishmentPage() {
             <label className="block"><span className="text-sm font-medium text-brand-800">CNPJ</span><input value={formatCnpj(establishment.cnpj)} readOnly className="mt-2 w-full rounded-xl border border-brand-200 bg-sand-100 px-3.5 py-3 text-brand-700" /></label>
             <Field label="Telefone" value={form.phone} onChange={(value) => updateField('phone', value)} />
             <Field label="E-mail" value={form.email} type="email" onChange={(value) => updateField('email', value)} className="sm:col-span-2" />
+            <label className="block"><span className="text-sm font-medium text-brand-800">Antecedência mínima (horas)</span><input type="number" min={0} max={168} required value={form.minimumAdvanceHours} onChange={(event) => setForm((current) => ({ ...current, minimumAdvanceHours: Number(event.target.value) }))} className="mt-2 w-full rounded-xl border border-brand-200 px-3.5 py-3" /></label>
+            <label className="block"><span className="text-sm font-medium text-brand-800">Antecedência máxima (dias)</span><input type="number" min={1} max={365} required value={form.maximumAdvanceDays} onChange={(event) => setForm((current) => ({ ...current, maximumAdvanceDays: Number(event.target.value) }))} className="mt-2 w-full rounded-xl border border-brand-200 px-3.5 py-3" /></label>
+            <p className="sm:col-span-2 text-sm text-brand-600">Exemplo: com 2 horas e 60 dias, clientes não conseguem marcar em cima da hora nem além dos próximos 60 dias.</p>
             <div className="sm:col-span-2 border-t border-brand-100 pt-5">
               <div className="flex items-center gap-2"><CalendarClock size={19} className="text-brand-500" /><h3 className="font-semibold text-brand-900">Horários de funcionamento</h3></div>
               <p className="mt-1 text-sm text-brand-600">Defina os horários de cada dia ou marque o estabelecimento como fechado.</p>

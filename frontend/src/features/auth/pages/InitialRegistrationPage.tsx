@@ -24,6 +24,8 @@ export function InitialRegistrationPage() {
         cnpj: String(form.get('cnpj')),
         establishmentEmail: String(form.get('establishmentEmail') || ''),
         establishmentPhone: String(form.get('establishmentPhone') || ''),
+        minimumAdvanceHours: Number(form.get('minimumAdvanceHours')),
+        maximumAdvanceDays: Number(form.get('maximumAdvanceDays')),
       })
       navigate('/login', { replace: true, state: { message: 'Cadastro concluído. Entre com sua conta.' } })
     } catch (requestError) {
@@ -43,6 +45,8 @@ export function InitialRegistrationPage() {
         <CnpjField />
         <Field name="establishmentEmail" label="E-mail do estabelecimento (opcional)" type="email" required={false} />
         <Field name="establishmentPhone" label="Telefone (opcional)" required={false} />
+        <Field name="minimumAdvanceHours" label="Antecedência mínima (horas)" type="number" min={0} max={168} defaultValue={2} />
+        <Field name="maximumAdvanceDays" label="Antecedência máxima (dias)" type="number" min={1} max={365} defaultValue={60} />
 
         {error && <p role="alert" className="sm:col-span-2 text-sm text-danger-600">{error}</p>}
 

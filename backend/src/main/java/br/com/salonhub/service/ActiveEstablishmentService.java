@@ -18,7 +18,11 @@ public class ActiveEstablishmentService {
     @Transactional(readOnly = true)
     public List<ActiveEstablishmentResponse> findAll() {
         return establishmentRepository.findAllByActiveTrueOrderByNameAsc().stream()
-                .map(establishment -> new ActiveEstablishmentResponse(establishment.getId(), establishment.getName()))
+                .map(establishment -> new ActiveEstablishmentResponse(
+                        establishment.getId(),
+                        establishment.getName(),
+                        establishment.getMinimumAdvanceMinutes() / 60,
+                        establishment.getMaximumAdvanceDays()))
                 .toList();
     }
 }

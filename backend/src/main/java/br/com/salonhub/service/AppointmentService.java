@@ -72,6 +72,7 @@ public class AppointmentService {
 
         LocalDateTime startsAt = request.startsAt();
         LocalDateTime endsAt = startsAt.plusMinutes(service.getDurationMinutes());
+        validateAdvanceWindow(establishment, startsAt);
         validateBusinessHours(establishment, startsAt, endsAt);
 
         boolean conflict = appointmentRepository
@@ -131,6 +132,7 @@ public class AppointmentService {
 
         LocalDateTime startsAt = request.startsAt();
         LocalDateTime endsAt = startsAt.plusMinutes(service.getDurationMinutes());
+        validateAdvanceWindow(establishment, startsAt);
         validateBusinessHours(establishment, startsAt, endsAt);
 
         boolean conflict = appointmentRepository
@@ -201,6 +203,12 @@ public class AppointmentService {
         Establishment establishment = establishmentRepository.findById(establishmentId)
                 .filter(Establishment::isActive)
                 .orElseThrow(() -> new ResourceNotFoundException("Estabelecimento não encontrado."));
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime earliestStart = now.plusMinutes(establishment.getMinimumAdvanceMinutes());
+        LocalDateTime latestStart = now.plusDays(establishment.getMaximumAdvanceDays());
+        if (date.isAfter(latestStart.toLocalDate())) {
+            throw new InvalidRequestException("A data excede a antecedência máxima permitida pelo estabelecimento.");
+        }
         EstablishmentService service = serviceRepository
                 .findByIdAndEstablishmentIdAndActiveTrue(serviceId, establishmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Serviço não encontrado."));
@@ -226,14 +234,13 @@ public class AppointmentService {
                 );
 
         List<LocalTime> availableTimes = new ArrayList<>();
-        LocalDateTime now = LocalDateTime.now();
         EstablishmentBusinessHour businessHour = requireOpenBusinessHour(establishment, date);
         LocalDateTime candidate = date.atTime(businessHour.getOpeningTime());
         LocalDateTime closing = date.atTime(businessHour.getClosingTime());
         while (!candidate.plusMinutes(service.getDurationMinutes()).isAfter(closing)) {
             LocalDateTime slotStart = candidate;
             LocalDateTime candidateEnd = slotStart.plusMinutes(service.getDurationMinutes());
-            boolean inFuture = slotStart.isAfter(now);
+            boolean withinAdvanceWindow = !slotStart.isBefore(earliestStart) && !slotStart.isAfter(latestStart);
             boolean overlaps = appointments.stream()
                     .filter(appointment -> appointmentId == null || !appointment.getId().equals(appointmentId))
                     .anyMatch(appointment -> appointment.getStartsAt().isBefore(candidateEnd)
@@ -242,7 +249,7 @@ public class AppointmentService {
                     .filter(appointment -> appointmentId == null || !appointment.getId().equals(appointmentId))
                     .anyMatch(appointment -> appointment.getStartsAt().isBefore(candidateEnd)
                             && appointment.getEndsAt().isAfter(slotStart));
-            if (inFuture && !overlaps && !clientOverlaps) {
+            if (withinAdvanceWindow && !overlaps && !clientOverlaps) {
                 availableTimes.add(slotStart.toLocalTime());
             }
             candidate = candidate.plusMinutes(30);
@@ -285,6 +292,25 @@ public class AppointmentService {
         if (changesDay || startsBeforeOpening || endsAfterClosing) {
             throw new ConflictException("O horário está fora do funcionamento do estabelecimento.");
         }
+    }
+
+    private void validateAdvanceWindow(Establishment establishment, LocalDateTime startsAt) {
+        LocalDateTime now = LocalDateTime.now();
+        if (startsAt.isBefore(now.plusMinutes(establishment.getMinimumAdvanceMinutes()))) {
+            throw new ConflictException("O agendamento exige pelo menos "
+                    + formatMinimumAdvance(establishment.getMinimumAdvanceMinutes()) + " de antecedência.");
+        }
+        if (startsAt.isAfter(now.plusDays(establishment.getMaximumAdvanceDays()))) {
+            throw new ConflictException("O agendamento pode ser feito com no máximo "
+                    + establishment.getMaximumAdvanceDays() + " dias de antecedência.");
+        }
+    }
+
+    private String formatMinimumAdvance(int minutes) {
+        if (minutes % 60 == 0) {
+            return (minutes / 60) + (minutes == 60 ? " hora" : " horas");
+        }
+        return minutes + " minutos";
     }
 
     private EstablishmentBusinessHour requireOpenBusinessHour(Establishment establishment, LocalDate date) {

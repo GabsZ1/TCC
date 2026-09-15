@@ -41,6 +41,8 @@ export interface Appointment {
 export interface ActiveEstablishment {
   id: number
   name: string
+  minimumAdvanceHours: number
+  maximumAdvanceDays: number
 }
 
 export function fetchActiveEstablishments() {

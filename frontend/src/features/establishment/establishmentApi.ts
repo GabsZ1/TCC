@@ -10,6 +10,8 @@ export interface Establishment {
   closingTime: string
   active: boolean
   businessHours: BusinessHour[]
+  minimumAdvanceHours: number
+  maximumAdvanceDays: number
 }
 
 export type WeekDay = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY'
@@ -26,6 +28,8 @@ export interface EstablishmentUpdateInput {
   email: string
   phone: string
   businessHours: BusinessHour[]
+  minimumAdvanceHours: number
+  maximumAdvanceDays: number
 }
 
 export function fetchMyEstablishment() {
