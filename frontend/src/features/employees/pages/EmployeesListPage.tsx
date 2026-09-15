@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Pencil, Plus, Trash2 } from 'lucide-react'
+import { Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { getApiErrorMessage } from '@/lib/apiError'
 import {
   createEmployee,
   fetchEmployees,
   removeEmployee,
+  reactivateEmployee,
   updateEmployee,
   type Employee,
 } from '@/features/employees/services/employeesApi'
@@ -78,6 +79,17 @@ export function EmployeesListPage() {
     },
     onError: (err) =>
       setDeleteError(getApiErrorMessage(err, 'Não foi possível remover o funcionário.')),
+  })
+
+  const reactivateMutation = useMutation({
+    mutationFn: reactivateEmployee,
+    onSuccess: (employee) => {
+      queryClient.invalidateQueries({ queryKey: EMPLOYEES_QUERY_KEY })
+      setDeleteError(null)
+      setRemovalMessage(`${employee.name} foi reativado com sucesso.`)
+    },
+    onError: (err) =>
+      setDeleteError(getApiErrorMessage(err, 'Não foi possível reativar o funcionário.')),
   })
 
   function closeFormModal() {
@@ -221,6 +233,22 @@ export function EmployeesListPage() {
                         >
                           <Trash2 size={16} />
                           Remover
+                        </button>
+                      )}
+                      {!employee.active && (
+                        <button
+                          type="button"
+                          disabled={reactivateMutation.isPending}
+                          onClick={() => {
+                            setDeleteError(null)
+                            setRemovalMessage(null)
+                            reactivateMutation.mutate(employee.id)
+                          }}
+                          className="flex items-center gap-1 text-sage-600 hover:text-sage-500 disabled:cursor-not-allowed disabled:opacity-60"
+                          aria-label={`Reativar ${employee.name}`}
+                        >
+                          <RotateCcw size={16} />
+                          Reativar
                         </button>
                       )}
                     </div>

@@ -1,5 +1,8 @@
 package br.com.salonhub.controller;
 
+import br.com.salonhub.entity.User;
+import br.com.salonhub.entity.UserRole;
+import br.com.salonhub.repository.UserRepository;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +18,7 @@ import java.time.LocalDateTime;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -31,6 +35,48 @@ class EmployeeRemovalIntegrationTests {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Test
+    void shouldReactivateOnlyAnEmployeeFromTheAdministratorsEstablishment() throws Exception {
+        String firstAdminEmail = "admin.reactivation.first@salonhub.test";
+        String firstAdminToken = registerAndLogin(
+                firstAdminEmail, "30303030000191", "Salão Reativação Um");
+        String secondAdminToken = registerAndLogin(
+                "admin.reactivation.second@salonhub.test", "40404040000191", "Salão Reativação Dois");
+
+        User firstAdmin = userRepository.findByEmailIgnoreCase(firstAdminEmail).orElseThrow();
+        User inactiveEmployee = userRepository.saveAndFlush(User.builder()
+                .name("Funcionário Inativo")
+                .email("inactive.reactivation@salonhub.test")
+                .password("senha-codificada-para-o-teste")
+                .role(UserRole.PROFESSIONAL)
+                .establishment(firstAdmin.getEstablishment())
+                .active(false)
+                .build());
+
+        mockMvc.perform(post("/api/funcionarios")
+                        .header("Authorization", bearer(secondAdminToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(employeePayload("Tentativa de transferência", inactiveEmployee.getEmail())))
+                .andExpect(status().isConflict());
+
+        mockMvc.perform(patch("/api/funcionarios/{id}/ativacao", inactiveEmployee.getId())
+                        .header("Authorization", bearer(secondAdminToken)))
+                .andExpect(status().isNotFound());
+
+        mockMvc.perform(patch("/api/funcionarios/{id}/ativacao", inactiveEmployee.getId())
+                        .header("Authorization", bearer(firstAdminToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.active").value(true))
+                .andExpect(jsonPath("$.establishmentName").value("Salão Reativação Um"));
+
+        mockMvc.perform(patch("/api/funcionarios/{id}/ativacao", inactiveEmployee.getId())
+                        .header("Authorization", bearer(firstAdminToken)))
+                .andExpect(status().isConflict());
+    }
 
     @Test
     void shouldPermanentlyRemoveEmployeeWithoutAppointments() throws Exception {

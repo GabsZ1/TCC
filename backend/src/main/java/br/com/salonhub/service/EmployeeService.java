@@ -16,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
 
 @Service
 public class EmployeeService {
@@ -42,23 +41,8 @@ public class EmployeeService {
         User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
 
         String email = request.email().trim().toLowerCase(Locale.ROOT);
-        Optional<User> existing = userRepository.findByEmailIgnoreCase(email);
-
-        if (existing.isPresent()) {
-            User existingUser = existing.get();
-            // Um e-mail de um funcionário desativado (soft delete) pode ser "reaproveitado":
-            // em vez de barrar o cadastro pra sempre, reativamos o mesmo registro.
-            boolean canReactivate = !existingUser.isActive() && existingUser.getRole() == UserRole.PROFESSIONAL;
-            if (!canReactivate) {
-                throw new ConflictException("E-mail já cadastrado no sistema.");
-            }
-
-            existingUser.setName(request.name().trim());
-            existingUser.setPassword(passwordEncoder.encode(request.password()));
-            existingUser.setEstablishment(administrator.getEstablishment());
-            existingUser.setActive(true);
-
-            return AuthenticatedUserResponse.fromEntity(userRepository.save(existingUser));
+        if (userRepository.existsByEmailIgnoreCase(email)) {
+            throw new ConflictException("E-mail já cadastrado no sistema.");
         }
 
         User employee = User.builder()
@@ -100,6 +84,19 @@ public class EmployeeService {
         employee.setName(request.name().trim());
         employee.setEmail(email);
 
+        return AuthenticatedUserResponse.fromEntity(userRepository.save(employee));
+    }
+
+    @Transactional
+    public AuthenticatedUserResponse reactivate(Long administratorId, Long employeeId) {
+        User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
+        User employee = findEmployee(employeeId, administrator.getEstablishment().getId());
+
+        if (employee.isActive()) {
+            throw new ConflictException("O funcionário já está ativo.");
+        }
+
+        employee.setActive(true);
         return AuthenticatedUserResponse.fromEntity(userRepository.save(employee));
     }
 
