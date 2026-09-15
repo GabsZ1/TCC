@@ -3,6 +3,8 @@ package br.com.salonhub.dto.establishment;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import jakarta.validation.Valid;
+import java.util.List;
 
 public record EstablishmentUpdateRequest(
         @NotBlank(message = "O nome do estabelecimento é obrigatório")
@@ -14,6 +16,9 @@ public record EstablishmentUpdateRequest(
         String email,
 
         @Size(max = 20, message = "O telefone deve ter no máximo 20 caracteres")
-        String phone
+        String phone,
+
+        @Size(min = 7, max = 7, message = "Informe os horários dos sete dias da semana")
+        List<@Valid BusinessHourRequest> businessHours
 ) {
 }

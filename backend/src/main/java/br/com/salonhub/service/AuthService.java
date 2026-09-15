@@ -7,11 +7,13 @@ import br.com.salonhub.dto.auth.LoginResponse;
 import br.com.salonhub.dto.auth.AuthenticatedUserResponse;
 import br.com.salonhub.dto.auth.ClientRegistrationRequest;
 import br.com.salonhub.entity.Establishment;
+import br.com.salonhub.entity.EstablishmentBusinessHour;
 import br.com.salonhub.entity.User;
 import br.com.salonhub.entity.UserRole;
 import br.com.salonhub.exception.ConflictException;
 import br.com.salonhub.exception.UnauthorizedException;
 import br.com.salonhub.repository.EstablishmentRepository;
+import br.com.salonhub.repository.EstablishmentBusinessHourRepository;
 import br.com.salonhub.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -19,12 +21,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Locale;
+import java.time.DayOfWeek;
+import java.util.Arrays;
 
 @Service
 @RequiredArgsConstructor
 public class AuthService {
 
     private final EstablishmentRepository establishmentRepository;
+    private final EstablishmentBusinessHourRepository businessHourRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
@@ -49,6 +54,16 @@ public class AuthService {
                         .phone(normalizeOptionalText(request.establishmentPhone()))
                         .build()
         );
+
+        businessHourRepository.saveAll(Arrays.stream(DayOfWeek.values())
+                .map(day -> EstablishmentBusinessHour.builder()
+                        .establishment(establishment)
+                        .dayOfWeek(day)
+                        .closed(false)
+                        .openingTime(establishment.getOpeningTime())
+                        .closingTime(establishment.getClosingTime())
+                        .build())
+                .toList());
 
         User administrator = userRepository.save(
                 User.builder()

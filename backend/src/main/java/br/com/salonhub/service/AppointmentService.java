@@ -7,6 +7,7 @@ import br.com.salonhub.entity.Appointment;
 import br.com.salonhub.entity.AppointmentStatus;
 import br.com.salonhub.entity.Establishment;
 import br.com.salonhub.entity.EstablishmentService;
+import br.com.salonhub.entity.EstablishmentBusinessHour;
 import br.com.salonhub.entity.User;
 import br.com.salonhub.entity.UserRole;
 import br.com.salonhub.exception.ConflictException;
@@ -15,6 +16,7 @@ import br.com.salonhub.exception.InvalidRequestException;
 import br.com.salonhub.repository.AppointmentRepository;
 import br.com.salonhub.repository.EstablishmentRepository;
 import br.com.salonhub.repository.EstablishmentServiceRepository;
+import br.com.salonhub.repository.EstablishmentBusinessHourRepository;
 import br.com.salonhub.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,18 +35,21 @@ public class AppointmentService {
     private final EstablishmentServiceRepository serviceRepository;
     private final UserRepository userRepository;
     private final TenantAuthorizationService tenantAuthorizationService;
+    private final EstablishmentBusinessHourRepository businessHourRepository;
 
     public AppointmentService(
             AppointmentRepository appointmentRepository,
             EstablishmentRepository establishmentRepository,
             EstablishmentServiceRepository serviceRepository,
             UserRepository userRepository,
-            TenantAuthorizationService tenantAuthorizationService) {
+            TenantAuthorizationService tenantAuthorizationService,
+            EstablishmentBusinessHourRepository businessHourRepository) {
         this.appointmentRepository = appointmentRepository;
         this.establishmentRepository = establishmentRepository;
         this.serviceRepository = serviceRepository;
         this.userRepository = userRepository;
         this.tenantAuthorizationService = tenantAuthorizationService;
+        this.businessHourRepository = businessHourRepository;
     }
 
     @Transactional
@@ -216,8 +221,9 @@ public class AppointmentService {
 
         List<LocalTime> availableTimes = new ArrayList<>();
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime candidate = date.atTime(establishment.getOpeningTime());
-        LocalDateTime closing = date.atTime(establishment.getClosingTime());
+        EstablishmentBusinessHour businessHour = requireOpenBusinessHour(establishment, date);
+        LocalDateTime candidate = date.atTime(businessHour.getOpeningTime());
+        LocalDateTime closing = date.atTime(businessHour.getClosingTime());
         while (!candidate.plusMinutes(service.getDurationMinutes()).isAfter(closing)) {
             LocalDateTime slotStart = candidate;
             LocalDateTime candidateEnd = slotStart.plusMinutes(service.getDurationMinutes());
@@ -265,12 +271,19 @@ public class AppointmentService {
             Establishment establishment,
             LocalDateTime startsAt,
             LocalDateTime endsAt) {
+        EstablishmentBusinessHour businessHour = requireOpenBusinessHour(establishment, startsAt.toLocalDate());
         boolean changesDay = !startsAt.toLocalDate().equals(endsAt.toLocalDate());
-        boolean startsBeforeOpening = startsAt.toLocalTime().isBefore(establishment.getOpeningTime());
-        boolean endsAfterClosing = endsAt.toLocalTime().isAfter(establishment.getClosingTime());
+        boolean startsBeforeOpening = startsAt.toLocalTime().isBefore(businessHour.getOpeningTime());
+        boolean endsAfterClosing = endsAt.toLocalTime().isAfter(businessHour.getClosingTime());
 
         if (changesDay || startsBeforeOpening || endsAfterClosing) {
             throw new ConflictException("O horário está fora do funcionamento do estabelecimento.");
         }
+    }
+
+    private EstablishmentBusinessHour requireOpenBusinessHour(Establishment establishment, LocalDate date) {
+        return businessHourRepository.findByEstablishmentIdAndDayOfWeek(establishment.getId(), date.getDayOfWeek())
+                .filter(hour -> !hour.isClosed())
+                .orElseThrow(() -> new ConflictException("O estabelecimento está fechado nesta data."));
     }
 }
