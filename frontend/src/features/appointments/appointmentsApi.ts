@@ -25,6 +25,10 @@ export interface Appointment {
   establishmentName: string
   serviceId: number
   serviceName: string
+  agreedPrice: number
+  commissionPercentage: number
+  commissionAmount: number
+  durationMinutes: number
   professionalId: number
   professionalName: string
   clientId: number
@@ -32,6 +36,17 @@ export interface Appointment {
   startsAt: string
   endsAt: string
   status: 'CONFIRMED' | 'CANCELLED'
+}
+
+export interface ActiveEstablishment {
+  id: number
+  name: string
+  minimumAdvanceHours: number
+  maximumAdvanceDays: number
+}
+
+export function fetchActiveEstablishments() {
+  return api.get<ActiveEstablishment[]>('/estabelecimentos').then((response) => response.data)
 }
 
 export function fetchCatalogServices(establishmentId: number) {
@@ -64,4 +79,14 @@ export function updateAppointment(appointmentId: number, serviceId: number, prof
 
 export function fetchMyAppointmentsAsProfessional() {
   return api.get<Appointment[]>('/agendamentos/profissional/me').then((response) => response.data)
+}
+
+export interface EstablishmentAgendaFilters {
+  date?: string
+  professionalId?: number
+  status?: Appointment['status']
+}
+
+export function fetchEstablishmentAgenda(filters: EstablishmentAgendaFilters) {
+  return api.get<Appointment[]>('/agendamentos/estabelecimento/me', { params: filters }).then((response) => response.data)
 }

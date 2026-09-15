@@ -50,6 +50,13 @@ public class EmployeeController {
         return ResponseEntity.ok(employeeService.remove(currentUserId(jwt), id));
     }
 
+    @PatchMapping("/{id}/ativacao")
+    public ResponseEntity<AuthenticatedUserResponse> reactivate(
+            @PathVariable Long id,
+            @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(employeeService.reactivate(currentUserId(jwt), id));
+    }
+
     private Long currentUserId(Jwt jwt) {
         return Long.valueOf(jwt.getSubject());
     }

@@ -4,6 +4,7 @@ import br.com.salonhub.entity.Appointment;
 import br.com.salonhub.entity.AppointmentStatus;
 
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 
 public record AppointmentResponse(
         Long id,
@@ -11,6 +12,10 @@ public record AppointmentResponse(
         String establishmentName,
         Long serviceId,
         String serviceName,
+        BigDecimal agreedPrice,
+        BigDecimal commissionPercentage,
+        BigDecimal commissionAmount,
+        Integer durationMinutes,
         Long professionalId,
         String professionalName,
         Long clientId,
@@ -25,7 +30,11 @@ public record AppointmentResponse(
                 appointment.getEstablishment().getId(),
                 appointment.getEstablishment().getName(),
                 appointment.getService().getId(),
-                appointment.getService().getName(),
+                appointment.getServiceName(),
+                appointment.getAgreedPrice(),
+                appointment.getCommissionPercentage(),
+                appointment.getCommissionAmount(),
+                appointment.getDurationMinutes(),
                 appointment.getProfessional().getId(),
                 appointment.getProfessional().getName(),
                 appointment.getClient().getId(),

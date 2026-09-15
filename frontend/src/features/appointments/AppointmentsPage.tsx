@@ -4,7 +4,7 @@ import { CalendarDays, Clock3, MapPin, Scissors } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { AppointmentEditModal } from '@/features/appointments/AppointmentEditModal'
-import { cancelAppointment, fetchMyAppointments, type Appointment } from '@/features/appointments/appointmentsApi'
+import { cancelAppointment, fetchActiveEstablishments, fetchMyAppointments, type Appointment } from '@/features/appointments/appointmentsApi'
 import { getApiErrorMessage } from '@/lib/apiError'
 
 const QUERY_KEY = ['my-appointments']
@@ -14,12 +14,13 @@ type AppointmentSection = 'upcoming' | 'history'
 export function AppointmentsPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [establishmentCode, setEstablishmentCode] = useState('')
+  const [establishmentId, setEstablishmentId] = useState('')
   const [section, setSection] = useState<AppointmentSection>('upcoming')
   const [cancelling, setCancelling] = useState<Appointment | null>(null)
   const [editing, setEditing] = useState<Appointment | null>(null)
   const [cancellationError, setCancellationError] = useState<string | null>(null)
   const appointments = useQuery({ queryKey: QUERY_KEY, queryFn: fetchMyAppointments })
+  const establishments = useQuery({ queryKey: ['active-establishments'], queryFn: fetchActiveEstablishments })
   const upcomingAppointments = (appointments.data ?? []).filter(isUpcoming)
   const historyAppointments = (appointments.data ?? []).filter((appointment) => !isUpcoming(appointment))
   const displayedAppointments = section === 'upcoming' ? upcomingAppointments : historyAppointments
@@ -37,7 +38,7 @@ export function AppointmentsPage() {
 
   function startBooking(event: FormEvent) {
     event.preventDefault()
-    const id = Number(establishmentCode)
+    const id = Number(establishmentId)
     if (Number.isInteger(id) && id > 0) navigate(`/estabelecimentos/${id}/agendar`)
   }
 
@@ -66,6 +67,7 @@ export function AppointmentsPage() {
                     <div className="flex items-center gap-2"><Scissors size={18} className="text-brand-500" /><h2 className="text-lg font-semibold text-brand-900">{appointment.serviceName}</h2></div>
                     <p className="mt-2 flex items-center gap-2 text-sm text-brand-600"><MapPin size={16} /> {appointment.establishmentName}</p>
                     <p className="mt-1 text-sm text-brand-600">com {appointment.professionalName}</p>
+                    <p className="mt-1 text-sm font-semibold text-brand-800">{formatMoney(appointment.agreedPrice)} · {appointment.durationMinutes} min</p>
                   </div>
                   <div className="rounded-xl bg-brand-50 px-4 py-3 text-sm text-brand-800">
                     <p className="flex items-center gap-2 font-semibold"><CalendarDays size={16} /> {formatDate(appointment.startsAt)}</p>
@@ -83,11 +85,16 @@ export function AppointmentsPage() {
 
         <aside className="h-fit rounded-2xl border border-brand-200 bg-brand-900 p-6 text-white shadow-sm">
           <h2 className="font-[var(--font-display)] text-2xl">Marcar um horário</h2>
-          <p className="mt-2 text-sm leading-6 text-brand-100">Informe o código compartilhado pelo estabelecimento.</p>
+          <p className="mt-2 text-sm leading-6 text-brand-100">Escolha um dos estabelecimentos disponíveis.</p>
           <form onSubmit={startBooking} className="mt-5">
-            <label className="text-sm font-medium" htmlFor="establishment-code">Código do estabelecimento</label>
-            <input id="establishment-code" type="number" min="1" required value={establishmentCode} onChange={(event) => setEstablishmentCode(event.target.value)} className="mt-2 w-full rounded-xl border border-white/20 bg-white px-3.5 py-3 text-brand-900 outline-none focus:ring-2 focus:ring-brand-300" placeholder="Ex.: 1" />
-            <button className="mt-3 w-full rounded-xl bg-white px-4 py-3 font-semibold text-brand-800 hover:bg-brand-50">Continuar</button>
+            <label className="text-sm font-medium" htmlFor="establishment">Estabelecimento</label>
+            <select id="establishment" required value={establishmentId} onChange={(event) => setEstablishmentId(event.target.value)} disabled={establishments.isLoading || establishments.isError || establishments.data?.length === 0} className="mt-2 w-full rounded-xl border border-white/20 bg-white px-3.5 py-3 text-brand-900 outline-none focus:ring-2 focus:ring-brand-300 disabled:cursor-not-allowed disabled:opacity-70">
+              <option value="">{establishments.isLoading ? 'Carregando estabelecimentos...' : 'Selecione um estabelecimento'}</option>
+              {establishments.data?.map((establishment) => <option key={establishment.id} value={establishment.id}>{establishment.name}</option>)}
+            </select>
+            {establishments.isError && <p className="mt-2 text-sm text-danger-500">{getApiErrorMessage(establishments.error, 'Não foi possível carregar os estabelecimentos.')}</p>}
+            {!establishments.isLoading && !establishments.isError && establishments.data?.length === 0 && <p className="mt-2 text-sm text-brand-100">Nenhum estabelecimento está disponível no momento.</p>}
+            <button disabled={!establishmentId} className="mt-3 w-full rounded-xl bg-white px-4 py-3 font-semibold text-brand-800 hover:bg-brand-50 disabled:cursor-not-allowed disabled:opacity-60">Continuar</button>
           </form>
         </aside>
       </div>
@@ -105,3 +112,4 @@ function isUpcoming(appointment: Appointment) { return appointment.status === 'C
 function EmptyState({ children, error = false }: { children: React.ReactNode; error?: boolean }) { return <div className={`rounded-2xl border bg-white p-8 text-center ${error ? 'border-danger-500/30 text-danger-600' : 'border-brand-100 text-brand-600'}`}>{children}</div> }
 function formatDate(value: string) { return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' }).format(new Date(value)) }
 function formatTime(value: string) { return value.slice(11, 16) }
+function formatMoney(value: number) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value) }

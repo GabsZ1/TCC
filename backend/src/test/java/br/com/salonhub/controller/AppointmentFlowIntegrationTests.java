@@ -46,7 +46,7 @@ class AppointmentFlowIntegrationTests {
                                   "ownerEmail": "admin.appointment@salonhub.test",
                                   "password": "senha123",
                                   "establishmentName": "Salão MVP",
-                                  "cnpj": "66777888000199"
+                                  "cnpj": "66777888000181"
                                 }
                                 """))
                 .andExpect(status().isCreated())
@@ -135,6 +135,20 @@ class AppointmentFlowIntegrationTests {
                 .andExpect(jsonPath("$.status").value("CONFIRMED"))
                 .andReturn();
         Number appointmentId = JsonPath.read(appointment.getResponse().getContentAsString(), "$.id");
+
+        mockMvc.perform(get("/api/agendamentos/estabelecimento/me")
+                        .header("Authorization", bearer(administratorToken))
+                        .param("date", appointmentDate.toString())
+                        .param("professionalId", professionalId.toString())
+                        .param("status", "CONFIRMED"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].clientName").value("Cliente MVP"));
+
+        mockMvc.perform(get("/api/agendamentos/estabelecimento/me")
+                        .header("Authorization", bearer(clientToken)))
+                .andExpect(status().isForbidden());
+
         mockMvc.perform(put("/api/agendamentos/{id}", appointmentId.longValue())
                         .header("Authorization", bearer(clientToken))
                         .contentType(MediaType.APPLICATION_JSON)
@@ -289,7 +303,7 @@ class AppointmentFlowIntegrationTests {
                                   "ownerEmail": "admin.forbidden.appointment@salonhub.test",
                                   "password": "senha123",
                                   "establishmentName": "Salão Restrito",
-                                  "cnpj": "99888777000166"
+                                  "cnpj": "99888777000100"
                                 }
                                 """))
                 .andExpect(status().isCreated())

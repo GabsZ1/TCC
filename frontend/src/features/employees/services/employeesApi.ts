@@ -31,6 +31,10 @@ export function updateEmployee(id: number, input: EmployeeUpdateInput) {
   return api.put<Employee>(`/funcionarios/${id}`, input).then((res) => res.data)
 }
 
+export function reactivateEmployee(id: number) {
+  return api.patch<Employee>(`/funcionarios/${id}/ativacao`).then((res) => res.data)
+}
+
 /**
  * Remove um funcionário. Se ele não tiver atendimentos vinculados, é
  * removido permanentemente; caso contrário, o back-end apenas o desativa

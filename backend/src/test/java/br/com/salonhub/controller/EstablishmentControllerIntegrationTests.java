@@ -42,15 +42,15 @@ class EstablishmentControllerIntegrationTests {
 
     @Test
     void shouldReadAndUpdateOnlyOwnEstablishmentWithoutChangingBusinessHours() throws Exception {
-        User first = administrator("first", "12345678000190");
-        User second = administrator("second", "22345678000190");
+        User first = administrator("first", "12345678000195");
+        User second = administrator("second", "22345678000149");
         Long firstId = first.getEstablishment().getId();
         Long secondId = second.getEstablishment().getId();
 
         mockMvc.perform(get(ENDPOINT).header("Authorization", bearer(first)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(firstId))
-                .andExpect(jsonPath("$.cnpj").value("12345678000190"))
+                .andExpect(jsonPath("$.cnpj").value("12345678000195"))
                 .andExpect(jsonPath("$.active").value(true));
         mockMvc.perform(get(ENDPOINT).header("Authorization", bearer(second)))
                 .andExpect(jsonPath("$.id").value(secondId));
@@ -60,7 +60,7 @@ class EstablishmentControllerIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(firstId))
                 .andExpect(jsonPath("$.name").value("Salão Atualizado"))
-                .andExpect(jsonPath("$.cnpj").value("12345678000190"))
+                .andExpect(jsonPath("$.cnpj").value("12345678000195"))
                 .andExpect(jsonPath("$.phone").value("44999999999"));
 
         entityManager.flush();
@@ -85,14 +85,14 @@ class EstablishmentControllerIntegrationTests {
                                 {"name":"Novo nome","email":"","phone":" "}
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.cnpj").value("12345678000190"))
+                .andExpect(jsonPath("$.cnpj").value("12345678000195"))
                 .andExpect(jsonPath("$.email").isEmpty())
                 .andExpect(jsonPath("$.phone").isEmpty());
     }
 
     @Test
     void shouldKeepCnpjWhenUpdatingRegistration() throws Exception {
-        User admin = administrator("registration", "12345678000190");
+        User admin = administrator("registration", "12345678000195");
 
         mockMvc.perform(put(ENDPOINT).header("Authorization", bearer(admin))
                         .contentType(MediaType.APPLICATION_JSON)
@@ -100,12 +100,12 @@ class EstablishmentControllerIntegrationTests {
                                 {"name":"Nome atualizado","email":"","phone":" "}
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.cnpj").value("12345678000190"));
+                .andExpect(jsonPath("$.cnpj").value("12345678000195"));
     }
 
     @Test
     void shouldReturnPortugueseValidationErrors() throws Exception {
-        User admin = administrator("validation", "12345678000190");
+        User admin = administrator("validation", "12345678000195");
 
         mockMvc.perform(put(ENDPOINT).header("Authorization", bearer(admin))
                         .contentType(MediaType.APPLICATION_JSON)
@@ -121,7 +121,7 @@ class EstablishmentControllerIntegrationTests {
 
     @Test
     void shouldRequireAnActiveAdministratorWithAnEstablishment() throws Exception {
-        User admin = administrator("authorization", "12345678000190");
+        User admin = administrator("authorization", "12345678000195");
         User client = user("client-authorization", UserRole.CLIENT, null);
         User professional = user("professional-authorization", UserRole.PROFESSIONAL, admin.getEstablishment());
         User unlinkedAdmin = user("unlinked", UserRole.ADMIN, null);
@@ -146,8 +146,8 @@ class EstablishmentControllerIntegrationTests {
 
     @Test
     void shouldPreserveHistoryAndBlockOperationsAfterLogicalDeletion() throws Exception {
-        User admin = administrator("deletion", "12345678000190");
-        User otherAdmin = administrator("unaffected", "22345678000190");
+        User admin = administrator("deletion", "12345678000195");
+        User otherAdmin = administrator("unaffected", "22345678000149");
         Establishment establishment = admin.getEstablishment();
         Long establishmentId = establishment.getId();
         User professional = user("professional-deletion", UserRole.PROFESSIONAL, establishment);
