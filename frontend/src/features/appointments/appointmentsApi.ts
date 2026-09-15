@@ -34,6 +34,15 @@ export interface Appointment {
   status: 'CONFIRMED' | 'CANCELLED'
 }
 
+export interface ActiveEstablishment {
+  id: number
+  name: string
+}
+
+export function fetchActiveEstablishments() {
+  return api.get<ActiveEstablishment[]>('/estabelecimentos').then((response) => response.data)
+}
+
 export function fetchCatalogServices(establishmentId: number) {
   return api.get<CatalogService[]>(`/estabelecimentos/${establishmentId}/catalogo/servicos`).then((response) => response.data)
 }
