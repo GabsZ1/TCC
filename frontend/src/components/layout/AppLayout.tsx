@@ -7,6 +7,7 @@ export function AppLayout() {
   const navItems = user?.role === 'ADMIN'
     ? [
         { to: '/', label: 'Início', icon: House },
+        { to: '/agenda', label: 'Agenda', icon: CalendarDays },
         { to: '/funcionarios', label: 'Funcionários', icon: UsersRound },
         { to: '/servicos', label: 'Serviços', icon: Scissors },
         { to: '/estabelecimento', label: 'Estabelecimento', icon: Building2 },

@@ -135,6 +135,20 @@ class AppointmentFlowIntegrationTests {
                 .andExpect(jsonPath("$.status").value("CONFIRMED"))
                 .andReturn();
         Number appointmentId = JsonPath.read(appointment.getResponse().getContentAsString(), "$.id");
+
+        mockMvc.perform(get("/api/agendamentos/estabelecimento/me")
+                        .header("Authorization", bearer(administratorToken))
+                        .param("date", appointmentDate.toString())
+                        .param("professionalId", professionalId.toString())
+                        .param("status", "CONFIRMED"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].clientName").value("Cliente MVP"));
+
+        mockMvc.perform(get("/api/agendamentos/estabelecimento/me")
+                        .header("Authorization", bearer(clientToken)))
+                .andExpect(status().isForbidden());
+
         mockMvc.perform(put("/api/agendamentos/{id}", appointmentId.longValue())
                         .header("Authorization", bearer(clientToken))
                         .contentType(MediaType.APPLICATION_JSON)

@@ -184,6 +184,24 @@ public class AppointmentService {
     }
 
     @Transactional(readOnly = true)
+    public List<AppointmentResponse> findEstablishmentAgenda(
+            Long administratorId,
+            LocalDate date,
+            Long professionalId,
+            AppointmentStatus status) {
+        User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
+        Long establishmentId = administrator.getEstablishment().getId();
+
+        return appointmentRepository.findByEstablishmentIdOrderByStartsAtDesc(establishmentId).stream()
+                .filter(appointment -> date == null || appointment.getStartsAt().toLocalDate().equals(date))
+                .filter(appointment -> professionalId == null
+                        || appointment.getProfessional().getId().equals(professionalId))
+                .filter(appointment -> status == null || appointment.getStatus() == status)
+                .map(AppointmentResponse::fromEntity)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public AvailabilityResponse findAvailability(
             Long clientId,
             Long establishmentId,

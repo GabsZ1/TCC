@@ -80,3 +80,13 @@ export function updateAppointment(appointmentId: number, serviceId: number, prof
 export function fetchMyAppointmentsAsProfessional() {
   return api.get<Appointment[]>('/agendamentos/profissional/me').then((response) => response.data)
 }
+
+export interface EstablishmentAgendaFilters {
+  date?: string
+  professionalId?: number
+  status?: Appointment['status']
+}
+
+export function fetchEstablishmentAgenda(filters: EstablishmentAgendaFilters) {
+  return api.get<Appointment[]>('/agendamentos/estabelecimento/me', { params: filters }).then((response) => response.data)
+}

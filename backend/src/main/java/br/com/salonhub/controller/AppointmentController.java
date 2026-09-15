@@ -3,6 +3,7 @@ package br.com.salonhub.controller;
 import br.com.salonhub.dto.appointment.AppointmentCreateRequest;
 import br.com.salonhub.dto.appointment.AppointmentResponse;
 import br.com.salonhub.dto.appointment.AvailabilityResponse;
+import br.com.salonhub.entity.AppointmentStatus;
 import br.com.salonhub.service.AppointmentService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -65,6 +66,16 @@ public class AppointmentController {
     @GetMapping("/agendamentos/profissional/me")
     public List<AppointmentResponse> findMineAsProfessional(@AuthenticationPrincipal Jwt jwt) {
         return appointmentService.findMineAsProfessional(currentUserId(jwt));
+    }
+
+    @GetMapping("/agendamentos/estabelecimento/me")
+    public List<AppointmentResponse> findEstablishmentAgenda(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam(required = false) Long professionalId,
+            @RequestParam(required = false) AppointmentStatus status) {
+        return appointmentService.findEstablishmentAgenda(
+                currentUserId(jwt), date, professionalId, status);
     }
 
     @GetMapping("/estabelecimentos/{establishmentId}/agendamentos/disponibilidade")
