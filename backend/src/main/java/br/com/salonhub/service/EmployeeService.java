@@ -15,6 +15,7 @@ import br.com.salonhub.repository.AppointmentRepository;
 import br.com.salonhub.repository.UserRepository;
 import br.com.salonhub.repository.EstablishmentServiceRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -137,29 +138,34 @@ public class EmployeeService {
     }
 
     @Transactional
+    public AuthenticatedUserResponse deactivate(Long administratorId, Long employeeId) {
+        User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
+        User employee = findEmployee(employeeId, administrator.getEstablishment().getId());
+        if (!employee.isActive()) {
+            throw new ConflictException("O funcionário já está desativado.");
+        }
+        employee.deactivate();
+        return AuthenticatedUserResponse.fromEntity(employee);
+    }
+
+    @Transactional
     public EmployeeRemovalResponse remove(Long administratorId, Long employeeId) {
         User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
         User employee = findEmployee(employeeId, administrator.getEstablishment().getId());
-
-        boolean hasAppointments = appointmentRepository.existsByProfessionalId(employee.getId());
-
-        // RN 2.3.2: só é possível remover de verdade um funcionário sem atendimentos
-        // vinculados; caso contrário, a remoção é convertida em inativação (CT04).
-        if (!hasAppointments) {
+        // Use the same professional lock as appointment creation.
+        userRepository.findByIdForUpdate(employee.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Funcionário não encontrado."));
+        if (appointmentRepository.existsByProfessionalId(employee.getId())
+                || !employee.getOfferedServices().isEmpty()) {
+            throw new ConflictException("O funcionário possui agendamentos ou serviços vinculados e não pode ser excluído. Utilize a desativação.");
+        }
+        try {
             userRepository.delete(employee);
-            return new EmployeeRemovalResponse(true, "O funcionário foi removido com sucesso.");
+            userRepository.flush();
+        } catch (DataIntegrityViolationException exception) {
+            throw new ConflictException("O funcionário possui vínculos que impedem a exclusão definitiva. Utilize a desativação.");
         }
-
-        if (!employee.isActive()) {
-            // CT05: funcionário já está desativado, nenhuma alteração é realizada.
-            throw new ConflictException("O funcionário já está desativado.");
-        }
-
-        employee.deactivate();
-        return new EmployeeRemovalResponse(
-                false,
-                "O funcionário não pode ser removido pois possui atendimentos vinculados. Ele foi desativado."
-        );
+        return new EmployeeRemovalResponse(true, "O funcionário foi excluído definitivamente.");
     }
 
     private User findEmployee(Long employeeId, Long establishmentId) {

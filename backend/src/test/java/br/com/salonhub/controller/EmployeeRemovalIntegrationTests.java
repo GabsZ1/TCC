@@ -1,6 +1,15 @@
 package br.com.salonhub.controller;
 
 import br.com.salonhub.entity.User;
+import br.com.salonhub.entity.Appointment;
+import br.com.salonhub.entity.EstablishmentService;
+import br.com.salonhub.repository.AppointmentRepository;
+import br.com.salonhub.repository.EstablishmentServiceRepository;
+import jakarta.persistence.EntityManager;
+import java.math.BigDecimal;
+import java.util.List;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import br.com.salonhub.entity.UserRole;
 import br.com.salonhub.repository.UserRepository;
 import com.jayway.jsonpath.JsonPath;
@@ -23,11 +32,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * Cobre a RN 2.3.2 do TCC: funcionário sem atendimentos vinculados é removido
- * permanentemente; funcionário com atendimentos vinculados é apenas desativado
- * (e continua aparecendo na listagem, com status inativo).
- */
+/** Desativação, reativação e exclusão definitiva são operações distintas. */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
@@ -38,6 +43,10 @@ class EmployeeRemovalIntegrationTests {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired private EstablishmentServiceRepository serviceRepository;
+    @Autowired private AppointmentRepository appointmentRepository;
+    @Autowired private EntityManager entityManager;
 
     @Test
     void shouldReactivateOnlyAnEmployeeFromTheAdministratorsEstablishment() throws Exception {
@@ -103,7 +112,7 @@ class EmployeeRemovalIntegrationTests {
     }
 
     @Test
-    void shouldDeactivateInsteadOfRemoveEmployeeWithAppointments() throws Exception {
+    void shouldRejectDeletionWithAppointmentsAndAllowExplicitDeactivation() throws Exception {
         String adminToken = registerAndLogin(
                 "admin.removal.linked@salonhub.test", "20202020000152", "Salão Remoção Vinculada");
 
@@ -163,8 +172,12 @@ class EmployeeRemovalIntegrationTests {
 
         mockMvc.perform(delete("/api/funcionarios/{id}", employeeId.longValue())
                         .header("Authorization", bearer(adminToken)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.removedPermanently").value(false));
+                .andExpect(status().isConflict());
+        assertThat(userRepository.findById(employeeId.longValue()).orElseThrow().isActive()).isTrue();
+
+        mockMvc.perform(patch("/api/funcionarios/{id}/desativacao", employeeId.longValue())
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.active").value(false));
 
         mockMvc.perform(get("/api/funcionarios")
                         .header("Authorization", bearer(adminToken)))
@@ -172,10 +185,138 @@ class EmployeeRemovalIntegrationTests {
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].active").value(false));
 
-        // CT05: tentar remover de novo não deve alterar nada, só informar que já está desativado.
+        // Mesmo inativo, o histórico impede a exclusão.
         mockMvc.perform(delete("/api/funcionarios/{id}", employeeId.longValue())
                         .header("Authorization", bearer(adminToken)))
                 .andExpect(status().isConflict());
+    }
+
+    @Test
+    void shouldDeactivateWithoutAppointmentsKeepVisibleReactivateAndDeleteSafely() throws Exception {
+        String token = registerAndLogin("lifecycle@employee.test", "51515151000113", "Lifecycle");
+        User admin = userRepository.findByEmailIgnoreCase("lifecycle@employee.test").orElseThrow();
+        User employee = employee(admin, "clean");
+        mockMvc.perform(get("/api/funcionarios").header("Authorization", bearer(token)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$[0].active").value(true));
+        mockMvc.perform(patch("/api/funcionarios/{id}/desativacao", employee.getId())
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.active").value(false));
+        entityManager.flush();
+        entityManager.clear();
+        assertThat(userRepository.findById(employee.getId()).orElseThrow().isActive()).isFalse();
+        mockMvc.perform(get("/api/funcionarios").header("Authorization", bearer(token)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].active").value(false));
+        mockMvc.perform(patch("/api/funcionarios/{id}/desativacao", employee.getId())
+                        .header("Authorization", bearer(token))).andExpect(status().isConflict());
+        mockMvc.perform(patch("/api/funcionarios/{id}/ativacao", employee.getId())
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.id").value(employee.getId()))
+                .andExpect(jsonPath("$.active").value(true));
+        mockMvc.perform(patch("/api/funcionarios/{id}/desativacao", employee.getId())
+                        .header("Authorization", bearer(token))).andExpect(status().isOk());
+        mockMvc.perform(delete("/api/funcionarios/{id}", employee.getId())
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.removedPermanently").value(true));
+        entityManager.clear();
+        assertThat(userRepository.findById(employee.getId())).isEmpty();
+    }
+
+    @Test
+    void shouldPreserveServiceLinksAndRejectDeletionEvenForInactiveServices() throws Exception {
+        String token = registerAndLogin("links@employee.test", "61616161000107", "Links");
+        User admin = userRepository.findByEmailIgnoreCase("links@employee.test").orElseThrow();
+        User employee = employee(admin, "linked");
+        EstablishmentService service = serviceRepository.saveAndFlush(EstablishmentService.builder()
+                .establishment(admin.getEstablishment()).name("Corte").price(new BigDecimal("40.00"))
+                .commissionPercentage(BigDecimal.TEN).durationMinutes(30).active(false).build());
+        employee.updateOfferedServices(false, List.of(service));
+        entityManager.flush();
+        mockMvc.perform(delete("/api/funcionarios/{id}", employee.getId())
+                        .header("Authorization", bearer(token))).andExpect(status().isConflict());
+        assertThat(employee.isActive()).isTrue();
+        mockMvc.perform(patch("/api/funcionarios/{id}/desativacao", employee.getId())
+                        .header("Authorization", bearer(token))).andExpect(status().isOk());
+        entityManager.flush();
+        entityManager.clear();
+        assertLinks(employee.getId(), service.getId(), false);
+        mockMvc.perform(delete("/api/funcionarios/{id}", employee.getId())
+                        .header("Authorization", bearer(token))).andExpect(status().isConflict());
+        mockMvc.perform(patch("/api/funcionarios/{id}/ativacao", employee.getId())
+                        .header("Authorization", bearer(token))).andExpect(status().isOk());
+        entityManager.flush();
+        entityManager.clear();
+        assertLinks(employee.getId(), service.getId(), true);
+    }
+
+    @Test
+    void shouldPreserveCancelledAppointmentHistoryAndSnapshots() throws Exception {
+        String token = registerAndLogin("history@employee.test", "71717171000184", "History");
+        User admin = userRepository.findByEmailIgnoreCase("history@employee.test").orElseThrow();
+        User employee = employee(admin, "history");
+        User client = userRepository.saveAndFlush(User.builder().name("Client").email("client@employee.test")
+                .password("test").role(UserRole.CLIENT).build());
+        EstablishmentService service = serviceRepository.saveAndFlush(EstablishmentService.builder()
+                .establishment(admin.getEstablishment()).name("Corte").price(new BigDecimal("40.00"))
+                .commissionPercentage(BigDecimal.TEN).durationMinutes(30).build());
+        Appointment appointment = Appointment.schedule(admin.getEstablishment(), client, employee, service,
+                LocalDateTime.now().minusDays(2).withNano(0));
+        appointment.cancel();
+        appointmentRepository.saveAndFlush(appointment);
+        Long id = appointment.getId();
+        for (String action : List.of("desativacao", "ativacao")) {
+            mockMvc.perform(patch("/api/funcionarios/{id}/" + action, employee.getId())
+                            .header("Authorization", bearer(token))).andExpect(status().isOk());
+            mockMvc.perform(delete("/api/funcionarios/{id}", employee.getId())
+                            .header("Authorization", bearer(token))).andExpect(status().isConflict());
+            entityManager.flush();
+            entityManager.clear();
+            Appointment saved = appointmentRepository.findById(id).orElseThrow();
+            assertThat(saved.getProfessional().getId()).isEqualTo(employee.getId());
+            assertThat(saved.getStatus()).isEqualTo(appointment.getStatus());
+            assertThat(saved.getServiceName()).isEqualTo("Corte");
+            assertThat(saved.getAgreedPrice()).isEqualByComparingTo("40.00");
+            assertThat(saved.getCommissionPercentage()).isEqualByComparingTo("10.00");
+            assertThat(saved.getCommissionAmount()).isEqualByComparingTo("4.00");
+            assertThat(saved.getDurationMinutes()).isEqualTo(30);
+            assertThat(saved.getStartsAt()).isEqualTo(appointment.getStartsAt());
+            assertThat(saved.getEndsAt()).isEqualTo(appointment.getEndsAt());
+        }
+    }
+
+    @Test
+    void shouldRejectCrossTenantDeactivationAndNonAdminLifecycleChanges() throws Exception {
+        String token = registerAndLogin("owner@employee.test", "81818181000160", "Owner");
+        User admin = userRepository.findByEmailIgnoreCase("owner@employee.test").orElseThrow();
+        User employee = employee(admin, "secured");
+        String otherToken = registerAndLogin("other@employee.test", "82828282000184", "Other");
+        mockMvc.perform(patch("/api/funcionarios/{id}/desativacao", employee.getId())
+                        .header("Authorization", bearer(otherToken))).andExpect(status().isNotFound());
+        User client = userRepository.saveAndFlush(User.builder().name("Client").email("security@employee.test")
+                .password("test").role(UserRole.CLIENT).build());
+        for (User actor : List.of(employee, client)) {
+            for (String action : List.of("desativacao", "ativacao")) {
+                mockMvc.perform(patch("/api/funcionarios/{id}/" + action, employee.getId())
+                                .with(jwt().jwt(jwt -> jwt.subject(actor.getId().toString()))))
+                        .andExpect(status().isForbidden());
+            }
+            mockMvc.perform(delete("/api/funcionarios/{id}", employee.getId())
+                            .with(jwt().jwt(jwt -> jwt.subject(actor.getId().toString()))))
+                    .andExpect(status().isForbidden());
+        }
+        assertThat(employee.isActive()).isTrue();
+    }
+
+    private User employee(User admin, String name) {
+        return userRepository.saveAndFlush(User.builder().name(name).email(name + "@fixture.test")
+                .password("test").role(UserRole.PROFESSIONAL).establishment(admin.getEstablishment()).build());
+    }
+
+    private void assertLinks(Long employeeId, Long serviceId, boolean active) {
+        User employee = userRepository.findById(employeeId).orElseThrow();
+        assertThat(employee.isActive()).isEqualTo(active);
+        assertThat(employee.isOffersAllServices()).isFalse();
+        assertThat(employee.getOfferedServices()).extracting(EstablishmentService::getId).containsExactly(serviceId);
     }
 
     private String registerAndLogin(String email, String cnpj, String establishmentName) throws Exception {

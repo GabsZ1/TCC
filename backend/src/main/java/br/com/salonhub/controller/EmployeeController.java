@@ -68,6 +68,13 @@ public class EmployeeController {
         return ResponseEntity.ok(employeeService.remove(currentUserId(jwt), id));
     }
 
+    @PatchMapping("/{id}/desativacao")
+    public ResponseEntity<AuthenticatedUserResponse> deactivate(
+            @PathVariable Long id,
+            @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(employeeService.deactivate(currentUserId(jwt), id));
+    }
+
     @PatchMapping("/{id}/ativacao")
     public ResponseEntity<AuthenticatedUserResponse> reactivate(
             @PathVariable Long id,
