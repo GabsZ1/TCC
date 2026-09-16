@@ -6,6 +6,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Repository
 public interface EstablishmentServiceRepository extends JpaRepository<EstablishmentService, Long> {
@@ -15,4 +16,6 @@ public interface EstablishmentServiceRepository extends JpaRepository<Establishm
     Optional<EstablishmentService> findByIdAndEstablishmentId(Long id, Long establishmentId);
 
     Optional<EstablishmentService> findByIdAndEstablishmentIdAndActiveTrue(Long id, Long establishmentId);
+
+    List<EstablishmentService> findByIdInAndEstablishmentIdAndActiveTrue(Set<Long> ids, Long establishmentId);
 }

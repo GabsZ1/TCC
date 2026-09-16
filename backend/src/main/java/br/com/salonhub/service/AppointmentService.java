@@ -69,6 +69,7 @@ public class AppointmentService {
                 .filter(user -> user.getEstablishment() != null)
                 .filter(user -> user.getEstablishment().getId().equals(establishmentId))
                 .orElseThrow(() -> new ResourceNotFoundException("Funcionário não encontrado."));
+        validateProfessionalOffersService(professional, service);
 
         LocalDateTime startsAt = request.startsAt();
         LocalDateTime endsAt = startsAt.plusMinutes(service.getDurationMinutes());
@@ -129,6 +130,7 @@ public class AppointmentService {
                 .filter(user -> user.getEstablishment() != null)
                 .filter(user -> user.getEstablishment().getId().equals(establishmentId))
                 .orElseThrow(() -> new ResourceNotFoundException("Funcionário não encontrado."));
+        validateProfessionalOffersService(professional, service);
 
         LocalDateTime startsAt = request.startsAt();
         LocalDateTime endsAt = startsAt.plusMinutes(service.getDurationMinutes());
@@ -230,9 +232,10 @@ public class AppointmentService {
         EstablishmentService service = serviceRepository
                 .findByIdAndEstablishmentIdAndActiveTrue(serviceId, establishmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Serviço não encontrado."));
-        userRepository.findByIdAndEstablishmentIdAndRoleAndActiveTrue(
+        User professional = userRepository.findByIdAndEstablishmentIdAndRoleAndActiveTrue(
                         professionalId, establishmentId, UserRole.PROFESSIONAL)
                 .orElseThrow(() -> new ResourceNotFoundException("Funcionário não encontrado."));
+        validateProfessionalOffersService(professional, service);
 
         LocalDateTime dayStart = date.atStartOfDay();
         LocalDateTime dayEnd = date.plusDays(1).atStartOfDay();
@@ -280,6 +283,13 @@ public class AppointmentService {
         tenantAuthorizationService.requireClient(clientId);
         return userRepository.findByIdForUpdate(clientId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cliente não encontrado."));
+    }
+
+    private void validateProfessionalOffersService(User professional, EstablishmentService service) {
+        if (!professional.isOffersAllServices()
+                && professional.getOfferedServices().stream().noneMatch(item -> item.getId().equals(service.getId()))) {
+            throw new ConflictException("O profissional selecionado não oferece este serviço.");
+        }
     }
 
     private void validateClientAvailability(

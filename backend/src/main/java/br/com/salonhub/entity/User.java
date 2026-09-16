@@ -6,6 +6,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.OffsetDateTime;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "users")
@@ -39,6 +41,19 @@ public class User {
     @Column(nullable = false)
     @Builder.Default
     private boolean active = true;
+
+    @Column(name = "offers_all_services", nullable = false)
+    @Builder.Default
+    private boolean offersAllServices = true;
+
+    @ManyToMany
+    @JoinTable(
+            name = "professional_services",
+            joinColumns = @JoinColumn(name = "professional_id"),
+            inverseJoinColumns = @JoinColumn(name = "service_id"))
+    @OrderBy("name ASC")
+    @Builder.Default
+    private Set<EstablishmentService> offeredServices = new LinkedHashSet<>();
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

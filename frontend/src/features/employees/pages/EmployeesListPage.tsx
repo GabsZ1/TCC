@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react'
+import { Pencil, Plus, RotateCcw, Scissors, Trash2 } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { getApiErrorMessage } from '@/lib/apiError'
 import {
@@ -15,6 +15,7 @@ import {
   EmployeeFormModal,
   type EmployeeFormValues,
 } from '@/features/employees/components/EmployeeFormModal'
+import { ProfessionalServicesModal } from '@/features/employees/components/ProfessionalServicesModal'
 
 const EMPLOYEES_QUERY_KEY = ['employees']
 
@@ -33,6 +34,7 @@ export function EmployeesListPage() {
   const [employeeToPermanentlyConfirm, setEmployeeToPermanentlyConfirm] = useState<Employee | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [removalMessage, setRemovalMessage] = useState<string | null>(null)
+  const [servicesEmployee, setServicesEmployee] = useState<Employee | null>(null)
 
   const {
     data: employees,
@@ -211,6 +213,15 @@ export function EmployeesListPage() {
                   <td className="px-4 py-3">
                     <div className="flex gap-3">
                       <button
+                        type="button"
+                        onClick={() => setServicesEmployee(employee)}
+                        className="flex items-center gap-1 text-brand-600 hover:text-brand-800"
+                        aria-label={`Gerenciar serviços de ${employee.name}`}
+                      >
+                        <Scissors size={16} />
+                        Serviços
+                      </button>
+                      <button
                         onClick={() => {
                           setRemovalMessage(null)
                           setModalState({ mode: 'edit', employee })
@@ -268,6 +279,8 @@ export function EmployeesListPage() {
           onClose={closeFormModal}
         />
       )}
+
+      {servicesEmployee && <ProfessionalServicesModal employee={servicesEmployee} onClose={() => setServicesEmployee(null)} />}
 
       {employeeToDelete && (
         <ConfirmDialog

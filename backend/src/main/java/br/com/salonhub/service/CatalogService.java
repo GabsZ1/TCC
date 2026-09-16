@@ -39,9 +39,13 @@ public class CatalogService {
     }
 
     @Transactional(readOnly = true)
-    public List<CatalogProfessionalResponse> findProfessionals(Long establishmentId) {
+    public List<CatalogProfessionalResponse> findProfessionals(Long establishmentId, Long serviceId) {
         requireActiveEstablishment(establishmentId);
-        return userRepository.findByEstablishmentIdAndRoleAndActiveTrue(establishmentId, UserRole.PROFESSIONAL)
+        if (serviceId != null) {
+            serviceRepository.findByIdAndEstablishmentIdAndActiveTrue(serviceId, establishmentId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Serviço não encontrado."));
+        }
+        return userRepository.findActiveProfessionalsForService(establishmentId, UserRole.PROFESSIONAL, serviceId)
                 .stream()
                 .map(CatalogProfessionalResponse::fromEntity)
                 .toList();

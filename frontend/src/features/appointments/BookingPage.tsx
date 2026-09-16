@@ -18,7 +18,7 @@ export function BookingPage() {
 
   const services = useQuery({ queryKey: ['catalog-services', establishmentId], queryFn: () => fetchCatalogServices(establishmentId), enabled: establishmentId > 0 })
   const establishments = useQuery({ queryKey: ['active-establishments'], queryFn: fetchActiveEstablishments })
-  const professionals = useQuery({ queryKey: ['catalog-professionals', establishmentId], queryFn: () => fetchCatalogProfessionals(establishmentId), enabled: establishmentId > 0 })
+  const professionals = useQuery({ queryKey: ['catalog-professionals', establishmentId, serviceId], queryFn: () => fetchCatalogProfessionals(establishmentId, serviceId), enabled: establishmentId > 0 && !!serviceId })
   const availability = useQuery({
     queryKey: ['availability', establishmentId, serviceId, professionalId, date],
     queryFn: () => fetchAvailability(establishmentId, serviceId!, professionalId!, date),
@@ -69,7 +69,7 @@ export function BookingPage() {
           )}
           <BookingStep number="1" title="Escolha o serviço">
             <div className="grid gap-3 sm:grid-cols-2">
-              {services.data?.map((service) => <ChoiceButton key={service.id} selected={service.id === serviceId} onClick={() => { setServiceId(service.id); setTime(null) }} title={service.name} detail={`${formatMoney(service.price)} · ${service.durationMinutes} min`} />)}
+              {services.data?.map((service) => <ChoiceButton key={service.id} selected={service.id === serviceId} onClick={() => { setServiceId(service.id); setProfessionalId(null); setTime(null) }} title={service.name} detail={`${formatMoney(service.price)} · ${service.durationMinutes} min`} />)}
               {services.isLoading && <p className="text-brand-500">Carregando serviços...</p>}
               {services.data?.length === 0 && <p className="text-brand-500">Nenhum serviço disponível.</p>}
             </div>
@@ -80,6 +80,7 @@ export function BookingPage() {
               {professionals.data?.map((professional) => <ChoiceButton key={professional.id} selected={professional.id === professionalId} onClick={() => { setProfessionalId(professional.id); setTime(null) }} title={professional.name} detail="Profissional disponível" />)}
               {professionals.isLoading && <p className="text-brand-500">Carregando profissionais...</p>}
               {professionals.data?.length === 0 && <p className="text-brand-500">Nenhum profissional disponível.</p>}
+              {!serviceId && <p className="text-brand-500">Selecione um serviço primeiro.</p>}
             </div>
           </BookingStep>
 

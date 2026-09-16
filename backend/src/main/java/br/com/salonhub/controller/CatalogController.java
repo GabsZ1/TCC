@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
@@ -26,7 +27,9 @@ public class CatalogController {
     }
 
     @GetMapping("/funcionarios")
-    public List<CatalogProfessionalResponse> findProfessionals(@PathVariable Long establishmentId) {
-        return catalogService.findProfessionals(establishmentId);
+    public List<CatalogProfessionalResponse> findProfessionals(
+            @PathVariable Long establishmentId,
+            @RequestParam(required = false) Long serviceId) {
+        return catalogService.findProfessionals(establishmentId, serviceId);
     }
 }
