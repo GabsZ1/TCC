@@ -6,6 +6,7 @@ import br.com.salonhub.entity.EstablishmentService;
 import br.com.salonhub.entity.User;
 import br.com.salonhub.exception.ResourceNotFoundException;
 import br.com.salonhub.repository.EstablishmentServiceRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,17 +14,11 @@ import java.util.List;
 import java.math.BigDecimal;
 
 @Service
+@RequiredArgsConstructor
 public class ServiceCatalogService {
 
     private final EstablishmentServiceRepository establishmentServiceRepository;
     private final TenantAuthorizationService tenantAuthorizationService;
-
-    public ServiceCatalogService(
-            EstablishmentServiceRepository establishmentServiceRepository,
-            TenantAuthorizationService tenantAuthorizationService) {
-        this.establishmentServiceRepository = establishmentServiceRepository;
-        this.tenantAuthorizationService = tenantAuthorizationService;
-    }
 
     @Transactional
     public EstablishmentServiceResponse create(Long administratorId, EstablishmentServiceRequest request) {
@@ -57,13 +52,14 @@ public class ServiceCatalogService {
         User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
         EstablishmentService service = findService(id, administrator.getEstablishment().getId());
 
-        service.setName(request.name().trim());
-        service.setDescription(normalizeOptionalText(request.description()));
-        service.setPrice(request.price());
-        service.setCommissionPercentage(defaultCommission(request.commissionPercentage()));
-        service.setDurationMinutes(request.durationMinutes());
+        service.updateDetails(
+                request.name().trim(),
+                normalizeOptionalText(request.description()),
+                request.price(),
+                defaultCommission(request.commissionPercentage()),
+                request.durationMinutes());
 
-        return EstablishmentServiceResponse.fromEntity(establishmentServiceRepository.save(service));
+        return EstablishmentServiceResponse.fromEntity(service);
     }
 
     @Transactional
@@ -71,8 +67,7 @@ public class ServiceCatalogService {
         User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
         EstablishmentService service = findService(id, administrator.getEstablishment().getId());
 
-        service.setActive(false);
-        establishmentServiceRepository.save(service);
+        service.deactivate();
     }
 
     private EstablishmentService findService(Long serviceId, Long establishmentId) {

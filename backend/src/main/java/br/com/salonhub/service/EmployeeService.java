@@ -4,12 +4,17 @@ import br.com.salonhub.dto.auth.AuthenticatedUserResponse;
 import br.com.salonhub.dto.employee.EmployeeCreateRequest;
 import br.com.salonhub.dto.employee.EmployeeRemovalResponse;
 import br.com.salonhub.dto.employee.EmployeeUpdateRequest;
+import br.com.salonhub.dto.employee.ProfessionalServicesRequest;
+import br.com.salonhub.dto.employee.ProfessionalServicesResponse;
+import br.com.salonhub.entity.EstablishmentService;
 import br.com.salonhub.entity.User;
 import br.com.salonhub.entity.UserRole;
 import br.com.salonhub.exception.ConflictException;
 import br.com.salonhub.exception.ResourceNotFoundException;
 import br.com.salonhub.repository.AppointmentRepository;
 import br.com.salonhub.repository.UserRepository;
+import br.com.salonhub.repository.EstablishmentServiceRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,22 +23,54 @@ import java.util.List;
 import java.util.Locale;
 
 @Service
+@RequiredArgsConstructor
 public class EmployeeService {
 
     private final UserRepository userRepository;
     private final AppointmentRepository appointmentRepository;
     private final PasswordEncoder passwordEncoder;
     private final TenantAuthorizationService tenantAuthorizationService;
+    private final EstablishmentServiceRepository establishmentServiceRepository;
 
-    public EmployeeService(
-            UserRepository userRepository,
-            AppointmentRepository appointmentRepository,
-            PasswordEncoder passwordEncoder,
-            TenantAuthorizationService tenantAuthorizationService) {
-        this.userRepository = userRepository;
-        this.appointmentRepository = appointmentRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.tenantAuthorizationService = tenantAuthorizationService;
+    @Transactional(readOnly = true)
+    public ProfessionalServicesResponse findServices(Long userId, Long employeeId) {
+        User administrator = tenantAuthorizationService.requireAdministrator(userId);
+        return responseWithEffectiveServices(findEmployee(employeeId, administrator.getEstablishment().getId()));
+    }
+
+    @Transactional(readOnly = true)
+    public ProfessionalServicesResponse findMyServices(Long professionalId) {
+        return responseWithEffectiveServices(tenantAuthorizationService.requireProfessional(professionalId));
+    }
+
+    @Transactional
+    public ProfessionalServicesResponse updateServices(
+            Long administratorId, Long employeeId, ProfessionalServicesRequest request) {
+        User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
+        Long establishmentId = administrator.getEstablishment().getId();
+        User employee = findEmployee(employeeId, establishmentId);
+
+        List<EstablishmentService> services = List.of();
+        if (!request.allServices() && !request.serviceIds().isEmpty()) {
+            services = establishmentServiceRepository
+                    .findByIdInAndEstablishmentIdAndActiveTrue(request.serviceIds(), establishmentId);
+            if (services.size() != request.serviceIds().size()) {
+                throw new ResourceNotFoundException("Um ou mais serviços não foram encontrados.");
+            }
+        }
+        employee.updateOfferedServices(request.allServices(), services);
+        return responseWithEffectiveServices(employee);
+    }
+
+    private ProfessionalServicesResponse responseWithEffectiveServices(User professional) {
+        if (!professional.isOffersAllServices()) {
+            return ProfessionalServicesResponse.fromEntity(professional);
+        }
+        List<br.com.salonhub.dto.service.EstablishmentServiceResponse> services = establishmentServiceRepository
+                .findByEstablishmentIdAndActiveTrue(professional.getEstablishment().getId()).stream()
+                .map(br.com.salonhub.dto.service.EstablishmentServiceResponse::fromEntity)
+                .toList();
+        return new ProfessionalServicesResponse(professional.getId(), true, services);
     }
 
     @Transactional
@@ -81,10 +118,9 @@ public class EmployeeService {
             throw new ConflictException("E-mail já cadastrado no sistema.");
         }
 
-        employee.setName(request.name().trim());
-        employee.setEmail(email);
+        employee.updateProfile(request.name().trim(), email);
 
-        return AuthenticatedUserResponse.fromEntity(userRepository.save(employee));
+        return AuthenticatedUserResponse.fromEntity(employee);
     }
 
     @Transactional
@@ -96,8 +132,8 @@ public class EmployeeService {
             throw new ConflictException("O funcionário já está ativo.");
         }
 
-        employee.setActive(true);
-        return AuthenticatedUserResponse.fromEntity(userRepository.save(employee));
+        employee.reactivate();
+        return AuthenticatedUserResponse.fromEntity(employee);
     }
 
     @Transactional
@@ -119,8 +155,7 @@ public class EmployeeService {
             throw new ConflictException("O funcionário já está desativado.");
         }
 
-        employee.setActive(false);
-        userRepository.save(employee);
+        employee.deactivate();
         return new EmployeeRemovalResponse(
                 false,
                 "O funcionário não pode ser removido pois possui atendimentos vinculados. Ele foi desativado."

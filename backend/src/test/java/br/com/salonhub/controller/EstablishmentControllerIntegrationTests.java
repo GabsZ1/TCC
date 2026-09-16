@@ -136,7 +136,7 @@ class EstablishmentControllerIntegrationTests {
             }
         }
         String token = bearer(admin);
-        admin.setActive(false);
+        admin.deactivate();
         userRepository.saveAndFlush(admin);
         for (MockHttpServletRequestBuilder request : establishmentRequests()) {
             mockMvc.perform(request.header("Authorization", token))
@@ -156,10 +156,8 @@ class EstablishmentControllerIntegrationTests {
                 .establishment(establishment).name("Corte").price(new BigDecimal("50.00"))
                 .commissionPercentage(BigDecimal.ZERO).durationMinutes(30).active(true).build());
         LocalDate date = LocalDate.now().plusDays(2);
-        Appointment appointment = appointmentRepository.saveAndFlush(Appointment.builder()
-                .establishment(establishment).professional(professional).client(client).service(service)
-                .startsAt(date.atTime(10, 0)).endsAt(date.atTime(10, 30))
-                .status(AppointmentStatus.CONFIRMED).build());
+        Appointment appointment = appointmentRepository.saveAndFlush(Appointment.schedule(
+                establishment, client, professional, service, date.atTime(10, 0)));
         String adminToken = bearer(admin);
         String clientToken = bearer(client);
         String professionalToken = bearer(professional);

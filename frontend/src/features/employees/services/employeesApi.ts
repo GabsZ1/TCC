@@ -1,5 +1,6 @@
 import { api } from '@/lib/api'
 import type { AuthenticatedUser } from '@/types/auth'
+import type { SalonService } from '@/features/services/servicesApi'
 
 export type Employee = AuthenticatedUser
 
@@ -19,6 +20,12 @@ export interface EmployeeRemovalResult {
   message: string
 }
 
+export interface ProfessionalServices {
+  professionalId: number
+  allServices: boolean
+  services: SalonService[]
+}
+
 export function fetchEmployees() {
   return api.get<Employee[]>('/funcionarios').then((res) => res.data)
 }
@@ -33,6 +40,18 @@ export function updateEmployee(id: number, input: EmployeeUpdateInput) {
 
 export function reactivateEmployee(id: number) {
   return api.patch<Employee>(`/funcionarios/${id}/ativacao`).then((res) => res.data)
+}
+
+export function fetchEmployeeServices(id: number) {
+  return api.get<ProfessionalServices>(`/funcionarios/${id}/servicos`).then((res) => res.data)
+}
+
+export function updateEmployeeServices(id: number, allServices: boolean, serviceIds: number[]) {
+  return api.put<ProfessionalServices>(`/funcionarios/${id}/servicos`, { allServices, serviceIds }).then((res) => res.data)
+}
+
+export function fetchMyProfessionalServices() {
+  return api.get<ProfessionalServices>('/funcionarios/me/servicos').then((res) => res.data)
 }
 
 /**

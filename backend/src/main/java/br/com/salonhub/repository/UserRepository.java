@@ -32,4 +32,15 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select u from User u where u.id = :id")
     Optional<User> findByIdForUpdate(@Param("id") Long id);
+
+    @Query("""
+            select distinct u from User u left join u.offeredServices s
+            where u.establishment.id = :establishmentId
+              and u.role = :role and u.active = true
+              and (:serviceId is null or u.offersAllServices = true or s.id = :serviceId)
+            """)
+    List<User> findActiveProfessionalsForService(
+            @Param("establishmentId") Long establishmentId,
+            @Param("role") UserRole role,
+            @Param("serviceId") Long serviceId);
 }

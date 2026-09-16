@@ -53,8 +53,8 @@ export function fetchCatalogServices(establishmentId: number) {
   return api.get<CatalogService[]>(`/estabelecimentos/${establishmentId}/catalogo/servicos`).then((response) => response.data)
 }
 
-export function fetchCatalogProfessionals(establishmentId: number) {
-  return api.get<CatalogProfessional[]>(`/estabelecimentos/${establishmentId}/catalogo/funcionarios`).then((response) => response.data)
+export function fetchCatalogProfessionals(establishmentId: number, serviceId?: number | null) {
+  return api.get<CatalogProfessional[]>(`/estabelecimentos/${establishmentId}/catalogo/funcionarios`, { params: { serviceId } }).then((response) => response.data)
 }
 
 export function fetchAvailability(establishmentId: number, serviceId: number, professionalId: number, date: string, appointmentId?: number) {

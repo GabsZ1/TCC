@@ -4,6 +4,7 @@ import br.com.salonhub.dto.service.EstablishmentServiceRequest;
 import br.com.salonhub.dto.service.EstablishmentServiceResponse;
 import br.com.salonhub.service.ServiceCatalogService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -14,13 +15,10 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/servicos")
+@RequiredArgsConstructor
 public class SalonServiceController {
 
     private final ServiceCatalogService serviceCatalogService;
-
-    public SalonServiceController(ServiceCatalogService serviceCatalogService) {
-        this.serviceCatalogService = serviceCatalogService;
-    }
 
     @PostMapping
     public ResponseEntity<EstablishmentServiceResponse> create(

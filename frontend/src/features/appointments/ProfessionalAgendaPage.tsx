@@ -3,12 +3,14 @@ import { useQuery } from '@tanstack/react-query'
 import { CalendarDays, Clock3, Scissors, User } from 'lucide-react'
 import { fetchMyAppointmentsAsProfessional, type Appointment } from '@/features/appointments/appointmentsApi'
 import { getApiErrorMessage } from '@/lib/apiError'
+import { fetchMyProfessionalServices } from '@/features/employees/services/employeesApi'
 
 type AppointmentSection = 'upcoming' | 'history'
 
 export function ProfessionalAgendaPage() {
   const [section, setSection] = useState<AppointmentSection>('upcoming')
   const appointments = useQuery({ queryKey: ['my-appointments-professional'], queryFn: fetchMyAppointmentsAsProfessional })
+  const services = useQuery({ queryKey: ['my-professional-services'], queryFn: fetchMyProfessionalServices })
   const upcomingAppointments = (appointments.data ?? []).filter(isUpcoming)
   const historyAppointments = (appointments.data ?? []).filter((appointment) => !isUpcoming(appointment))
   const displayedAppointments = section === 'upcoming' ? upcomingAppointments : historyAppointments
@@ -18,6 +20,12 @@ export function ProfessionalAgendaPage() {
       <div className="max-w-3xl">
         <h1 className="page-title">Minha agenda</h1>
         <p className="page-subtitle">{section === 'upcoming' ? 'Seus próximos atendimentos confirmados aparecem aqui.' : 'Consulte atendimentos anteriores e cancelados.'}</p>
+        <section className="mt-6 rounded-2xl border border-brand-100 bg-white p-5 shadow-sm">
+          <div className="flex items-center gap-2"><Scissors size={18} className="text-brand-500" /><h2 className="font-semibold text-brand-900">Serviços que você oferece</h2></div>
+          {services.isLoading && <p className="mt-3 text-sm text-brand-500">Carregando serviços...</p>}
+          {services.isError && <p className="mt-3 text-sm text-danger-600">{getApiErrorMessage(services.error, 'Não foi possível carregar seus serviços.')}</p>}
+          {services.data && <div className="mt-3 flex flex-wrap gap-2">{services.data.services.map((service) => <span key={service.id} className="rounded-full bg-brand-50 px-3 py-1.5 text-sm text-brand-700">{service.name}</span>)}{services.data.services.length === 0 && <p className="text-sm text-brand-500">Nenhum serviço foi atribuído ao seu perfil.</p>}</div>}
+        </section>
         <Tabs section={section} onChange={setSection} />
         <div className="mt-7 space-y-4">
           {appointments.isLoading && <EmptyState>Carregando sua agenda...</EmptyState>}

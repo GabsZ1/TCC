@@ -4,6 +4,7 @@ import br.com.salonhub.dto.establishment.EstablishmentResponse;
 import br.com.salonhub.dto.establishment.EstablishmentUpdateRequest;
 import br.com.salonhub.service.EstablishmentManagementService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -11,13 +12,10 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/estabelecimentos/me")
+@RequiredArgsConstructor
 public class EstablishmentController {
 
     private final EstablishmentManagementService establishmentManagementService;
-
-    public EstablishmentController(EstablishmentManagementService establishmentManagementService) {
-        this.establishmentManagementService = establishmentManagementService;
-    }
 
     @GetMapping
     public EstablishmentResponse findMine(@AuthenticationPrincipal Jwt jwt) {

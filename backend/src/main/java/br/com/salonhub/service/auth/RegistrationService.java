@@ -1,43 +1,40 @@
-package br.com.salonhub.service;
+package br.com.salonhub.service.auth;
 
-import br.com.salonhub.dto.auth.InitialRegistrationRequest;
-import br.com.salonhub.dto.auth.InitialRegistrationResponse;
-import br.com.salonhub.dto.auth.LoginRequest;
-import br.com.salonhub.dto.auth.LoginResponse;
 import br.com.salonhub.dto.auth.AuthenticatedUserResponse;
 import br.com.salonhub.dto.auth.ClientRegistrationRequest;
+import br.com.salonhub.dto.auth.InitialRegistrationRequest;
+import br.com.salonhub.dto.auth.InitialRegistrationResponse;
 import br.com.salonhub.entity.Establishment;
 import br.com.salonhub.entity.EstablishmentBusinessHour;
 import br.com.salonhub.entity.User;
 import br.com.salonhub.entity.UserRole;
 import br.com.salonhub.exception.ConflictException;
-import br.com.salonhub.exception.UnauthorizedException;
-import br.com.salonhub.repository.EstablishmentRepository;
+import br.com.salonhub.exception.InvalidRequestException;
 import br.com.salonhub.repository.EstablishmentBusinessHourRepository;
+import br.com.salonhub.repository.EstablishmentRepository;
 import br.com.salonhub.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Locale;
 import java.time.DayOfWeek;
 import java.util.Arrays;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
-public class AuthService {
+public class RegistrationService {
 
     private final EstablishmentRepository establishmentRepository;
     private final EstablishmentBusinessHourRepository businessHourRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final TokenService tokenService;
 
     @Transactional
-    public InitialRegistrationResponse register(InitialRegistrationRequest request) {
+    public InitialRegistrationResponse registerEstablishment(InitialRegistrationRequest request) {
         String cnpj = digitsOnly(request.cnpj());
-        String ownerEmail = request.ownerEmail().trim().toLowerCase(Locale.ROOT);
+        String ownerEmail = normalizeEmail(request.ownerEmail());
 
         if (establishmentRepository.existsByCnpj(cnpj)) {
             throw new ConflictException("CNPJ já cadastrado");
@@ -46,29 +43,23 @@ public class AuthService {
             throw new ConflictException("E-mail já cadastrado");
         }
 
+        int minimumAdvanceMinutes = (request.minimumAdvanceHours() == null
+                ? 2
+                : request.minimumAdvanceHours()) * 60;
+        int maximumAdvanceDays = request.maximumAdvanceDays() == null ? 60 : request.maximumAdvanceDays();
+        validateAdvancePolicy(minimumAdvanceMinutes, maximumAdvanceDays);
+
         Establishment establishment = establishmentRepository.save(
                 Establishment.builder()
                         .name(request.establishmentName().trim())
                         .cnpj(cnpj)
                         .email(normalizeOptionalText(request.establishmentEmail()))
                         .phone(normalizeOptionalText(request.establishmentPhone()))
-                        .minimumAdvanceMinutes((request.minimumAdvanceHours() == null ? 2 : request.minimumAdvanceHours()) * 60)
-                        .maximumAdvanceDays(request.maximumAdvanceDays() == null ? 60 : request.maximumAdvanceDays())
-                        .build()
-        );
+                        .minimumAdvanceMinutes(minimumAdvanceMinutes)
+                        .maximumAdvanceDays(maximumAdvanceDays)
+                        .build());
 
-        validateAdvancePolicy(establishment.getMinimumAdvanceMinutes(), establishment.getMaximumAdvanceDays());
-
-        businessHourRepository.saveAll(Arrays.stream(DayOfWeek.values())
-                .map(day -> EstablishmentBusinessHour.builder()
-                        .establishment(establishment)
-                        .dayOfWeek(day)
-                        .closed(false)
-                        .openingTime(establishment.getOpeningTime())
-                        .closingTime(establishment.getClosingTime())
-                        .build())
-                .toList());
-
+        createDefaultBusinessHours(establishment);
         User administrator = userRepository.save(
                 User.builder()
                         .establishment(establishment)
@@ -76,21 +67,19 @@ public class AuthService {
                         .email(ownerEmail)
                         .password(passwordEncoder.encode(request.password()))
                         .role(UserRole.ADMIN)
-                        .build()
-        );
+                        .build());
 
         return new InitialRegistrationResponse(
                 establishment.getId(),
                 establishment.getName(),
                 administrator.getId(),
                 administrator.getName(),
-                administrator.getEmail()
-        );
+                administrator.getEmail());
     }
 
     @Transactional
     public AuthenticatedUserResponse registerClient(ClientRegistrationRequest request) {
-        String email = request.email().trim().toLowerCase(Locale.ROOT);
+        String email = normalizeEmail(request.email());
         if (userRepository.existsByEmailIgnoreCase(email)) {
             throw new ConflictException("E-mail já cadastrado");
         }
@@ -102,38 +91,31 @@ public class AuthService {
                         .password(passwordEncoder.encode(request.password()))
                         .role(UserRole.CLIENT)
                         .active(true)
-                        .build()
-        );
-
+                        .build());
         return AuthenticatedUserResponse.fromEntity(client);
     }
 
-    @Transactional(readOnly = true)
-    public LoginResponse authenticate(LoginRequest request) {
-        String email = request.email().trim().toLowerCase(Locale.ROOT);
-        User user = userRepository.findByEmailIgnoreCase(email)
-                .filter(User::isActive)
-                .orElseThrow(() -> new UnauthorizedException("E-mail ou senha inválidos"));
-
-        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
-            throw new UnauthorizedException("E-mail ou senha inválidos");
-        }
-
-        TokenService.GeneratedToken token = tokenService.generate(user);
-        return new LoginResponse(
-                token.value(),
-                "Bearer",
-                token.expiresAt(),
-                AuthenticatedUserResponse.fromEntity(user)
-        );
+    private void createDefaultBusinessHours(Establishment establishment) {
+        businessHourRepository.saveAll(Arrays.stream(DayOfWeek.values())
+                .map(day -> EstablishmentBusinessHour.builder()
+                        .establishment(establishment)
+                        .dayOfWeek(day)
+                        .closed(false)
+                        .openingTime(establishment.getOpeningTime())
+                        .closingTime(establishment.getClosingTime())
+                        .build())
+                .toList());
     }
 
-    @Transactional(readOnly = true)
-    public AuthenticatedUserResponse getCurrentUser(Long userId) {
-        User user = userRepository.findById(userId)
-                .filter(User::isActive)
-                .orElseThrow(() -> new UnauthorizedException("Usuário inválido ou inativo"));
-        return AuthenticatedUserResponse.fromEntity(user);
+    private void validateAdvancePolicy(int minimumMinutes, int maximumDays) {
+        if (minimumMinutes > maximumDays * 1440) {
+            throw new InvalidRequestException(
+                    "A antecedência mínima não pode ser maior que a janela máxima de agendamento.");
+        }
+    }
+
+    private String normalizeEmail(String email) {
+        return email.trim().toLowerCase(Locale.ROOT);
     }
 
     private String digitsOnly(String value) {
@@ -142,12 +124,5 @@ public class AuthService {
 
     private String normalizeOptionalText(String value) {
         return value == null || value.isBlank() ? null : value.trim();
-    }
-
-    private void validateAdvancePolicy(int minimumMinutes, int maximumDays) {
-        if (minimumMinutes > maximumDays * 1440) {
-            throw new br.com.salonhub.exception.InvalidRequestException(
-                    "A antecedência mínima não pode ser maior que a janela máxima de agendamento.");
-        }
     }
 }

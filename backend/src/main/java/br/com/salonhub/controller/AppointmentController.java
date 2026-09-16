@@ -4,8 +4,10 @@ import br.com.salonhub.dto.appointment.AppointmentCreateRequest;
 import br.com.salonhub.dto.appointment.AppointmentResponse;
 import br.com.salonhub.dto.appointment.AvailabilityResponse;
 import br.com.salonhub.entity.AppointmentStatus;
-import br.com.salonhub.service.AppointmentService;
+import br.com.salonhub.service.appointment.AppointmentCommandService;
+import br.com.salonhub.service.appointment.AppointmentQueryService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -26,13 +28,11 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api")
+@RequiredArgsConstructor
 public class AppointmentController {
 
-    private final AppointmentService appointmentService;
-
-    public AppointmentController(AppointmentService appointmentService) {
-        this.appointmentService = appointmentService;
-    }
+    private final AppointmentCommandService commandService;
+    private final AppointmentQueryService queryService;
 
     @PostMapping("/estabelecimentos/{establishmentId}/agendamentos")
     @ResponseStatus(HttpStatus.CREATED)
@@ -40,12 +40,12 @@ public class AppointmentController {
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long establishmentId,
             @Valid @RequestBody AppointmentCreateRequest request) {
-        return appointmentService.create(currentUserId(jwt), establishmentId, request);
+        return commandService.create(currentUserId(jwt), establishmentId, request);
     }
 
     @GetMapping("/agendamentos/me")
     public List<AppointmentResponse> findMine(@AuthenticationPrincipal Jwt jwt) {
-        return appointmentService.findMine(currentUserId(jwt));
+        return queryService.findMine(currentUserId(jwt));
     }
 
     @PutMapping("/agendamentos/{appointmentId}")
@@ -53,19 +53,19 @@ public class AppointmentController {
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long appointmentId,
             @Valid @RequestBody AppointmentCreateRequest request) {
-        return appointmentService.update(currentUserId(jwt), appointmentId, request);
+        return commandService.update(currentUserId(jwt), appointmentId, request);
     }
 
     @PatchMapping("/agendamentos/{appointmentId}/cancelamento")
     public AppointmentResponse cancel(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long appointmentId) {
-        return appointmentService.cancel(currentUserId(jwt), appointmentId);
+        return commandService.cancel(currentUserId(jwt), appointmentId);
     }
 
     @GetMapping("/agendamentos/profissional/me")
     public List<AppointmentResponse> findMineAsProfessional(@AuthenticationPrincipal Jwt jwt) {
-        return appointmentService.findMineAsProfessional(currentUserId(jwt));
+        return queryService.findMineAsProfessional(currentUserId(jwt));
     }
 
     @GetMapping("/agendamentos/estabelecimento/me")
@@ -74,7 +74,7 @@ public class AppointmentController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             @RequestParam(required = false) Long professionalId,
             @RequestParam(required = false) AppointmentStatus status) {
-        return appointmentService.findEstablishmentAgenda(
+        return queryService.findEstablishmentAgenda(
                 currentUserId(jwt), date, professionalId, status);
     }
 
@@ -86,7 +86,7 @@ public class AppointmentController {
             @RequestParam Long professionalId,
             @RequestParam(required = false) Long appointmentId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        return appointmentService.findAvailability(
+        return queryService.findAvailability(
                 currentUserId(jwt), establishmentId, serviceId, professionalId, date, appointmentId);
     }
 

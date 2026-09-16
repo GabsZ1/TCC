@@ -2,18 +2,16 @@ package br.com.salonhub.service;
 
 import br.com.salonhub.dto.establishment.ActiveEstablishmentResponse;
 import br.com.salonhub.repository.EstablishmentRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class ActiveEstablishmentService {
     private final EstablishmentRepository establishmentRepository;
-
-    public ActiveEstablishmentService(EstablishmentRepository establishmentRepository) {
-        this.establishmentRepository = establishmentRepository;
-    }
 
     @Transactional(readOnly = true)
     public List<ActiveEstablishmentResponse> findAll() {

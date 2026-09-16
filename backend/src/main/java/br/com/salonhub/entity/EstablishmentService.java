@@ -8,10 +8,9 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "salon_services")
 @Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
 @Builder
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class EstablishmentService {
 
     @Id
@@ -55,5 +54,22 @@ public class EstablishmentService {
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
+    }
+
+    public void updateDetails(
+            String name,
+            String description,
+            BigDecimal price,
+            BigDecimal commissionPercentage,
+            Integer durationMinutes) {
+        this.name = name;
+        this.description = description;
+        this.price = price;
+        this.commissionPercentage = commissionPercentage;
+        this.durationMinutes = durationMinutes;
+    }
+
+    public void deactivate() {
+        this.active = false;
     }
 }

@@ -13,7 +13,6 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
@@ -27,7 +26,6 @@ import java.math.RoundingMode;
 @Entity
 @Table(name = "appointments")
 @Getter
-@Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class Appointment {
@@ -75,7 +73,6 @@ public class Appointment {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    @Builder.Default
     private AppointmentStatus status = AppointmentStatus.CONFIRMED;
 
     @CreationTimestamp
@@ -86,16 +83,34 @@ public class Appointment {
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
+    public static Appointment schedule(
+            Establishment establishment,
+            User client,
+            User professional,
+            EstablishmentService service,
+            LocalDateTime startsAt) {
+        Appointment appointment = new Appointment();
+        appointment.establishment = establishment;
+        appointment.client = client;
+        appointment.professional = professional;
+        appointment.service = service;
+        appointment.snapshotService(service);
+        appointment.startsAt = startsAt;
+        appointment.endsAt = startsAt.plusMinutes(service.getDurationMinutes());
+        appointment.status = AppointmentStatus.CONFIRMED;
+        return appointment;
+    }
+
     public void cancel() {
         this.status = AppointmentStatus.CANCELLED;
     }
 
-    public void update(EstablishmentService service, User professional, LocalDateTime startsAt, LocalDateTime endsAt) {
+    public void update(EstablishmentService service, User professional, LocalDateTime startsAt) {
         this.service = service;
         snapshotService(service);
         this.professional = professional;
         this.startsAt = startsAt;
-        this.endsAt = endsAt;
+        this.endsAt = startsAt.plusMinutes(service.getDurationMinutes());
     }
 
     @jakarta.persistence.PrePersist
@@ -105,7 +120,7 @@ public class Appointment {
         }
     }
 
-    public void snapshotService(EstablishmentService service) {
+    private void snapshotService(EstablishmentService service) {
         this.serviceName = service.getName();
         this.agreedPrice = service.getPrice();
         this.commissionPercentage = service.getCommissionPercentage();
