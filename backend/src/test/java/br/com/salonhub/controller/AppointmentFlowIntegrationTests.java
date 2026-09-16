@@ -136,6 +136,13 @@ class AppointmentFlowIntegrationTests {
                 .andReturn();
         Number appointmentId = JsonPath.read(appointment.getResponse().getContentAsString(), "$.id");
 
+        mockMvc.perform(post("/api/estabelecimentos/{id}/agendamentos", establishmentId.longValue())
+                        .header("Authorization", bearer(clientToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(appointmentPayload(serviceId, professionalId, appointmentDate.atTime(10, 17))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("O horário deve estar alinhado aos intervalos de 30 minutos."));
+
         mockMvc.perform(get("/api/agendamentos/estabelecimento/me")
                         .header("Authorization", bearer(administratorToken))
                         .param("date", appointmentDate.toString())
@@ -156,6 +163,13 @@ class AppointmentFlowIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(appointmentId))
                 .andExpect(jsonPath("$.endsAt").value(appointmentDate + "T11:00:00"));
+
+        mockMvc.perform(put("/api/agendamentos/{id}", appointmentId.longValue())
+                        .header("Authorization", bearer(clientToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(appointmentPayload(serviceId, professionalId, appointmentDate.atTime(10, 45))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("O horário deve estar alinhado aos intervalos de 30 minutos."));
 
         mockMvc.perform(post("/api/auth/clientes")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -229,6 +243,10 @@ class AppointmentFlowIntegrationTests {
                         .content(appointmentPayload(secondServiceId, secondProfessionalId, appointmentDate.atTime(11, 0))))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message").value("Apenas agendamentos futuros e confirmados podem ser editados."));
+        mockMvc.perform(patch("/api/agendamentos/{id}/cancelamento", past.getId())
+                        .header("Authorization", bearer(clientToken)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("O agendamento não pode ser cancelado."));
         mockMvc.perform(post("/api/estabelecimentos/{id}/agendamentos", establishmentId.longValue())
                         .header("Authorization", bearer(clientToken))
                         .contentType(MediaType.APPLICATION_JSON)
