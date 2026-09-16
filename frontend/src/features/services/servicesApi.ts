@@ -19,6 +19,10 @@ export interface SalonServiceInput {
 }
 
 export function fetchServices() {
+  return fetchAdministrativeServices().then((services) => services.filter((service) => service.active))
+}
+
+export function fetchAdministrativeServices() {
   return api.get<SalonService[]>('/servicos').then((response) => response.data)
 }
 
@@ -32,4 +36,8 @@ export function updateService(id: number, input: SalonServiceInput) {
 
 export function deactivateService(id: number) {
   return api.delete<void>(`/servicos/${id}`).then((response) => response.data)
+}
+
+export function reactivateService(id: number) {
+  return api.patch<SalonService>(`/servicos/${id}/ativacao`).then((response) => response.data)
 }

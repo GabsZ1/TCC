@@ -5,6 +5,8 @@ import br.com.salonhub.dto.service.EstablishmentServiceResponse;
 import br.com.salonhub.entity.EstablishmentService;
 import br.com.salonhub.entity.User;
 import br.com.salonhub.exception.ResourceNotFoundException;
+import br.com.salonhub.exception.ConflictException;
+import org.springframework.dao.DataIntegrityViolationException;
 import br.com.salonhub.repository.EstablishmentServiceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,8 @@ public class ServiceCatalogService {
     public EstablishmentServiceResponse create(Long administratorId, EstablishmentServiceRequest request) {
         User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
 
+        requireUniqueName(administrator.getEstablishment().getId(), request.name(), null);
+
         EstablishmentService service = EstablishmentService.builder()
                 .establishment(administrator.getEstablishment())
                 .name(request.name().trim())
@@ -34,14 +38,14 @@ public class ServiceCatalogService {
                 .active(true)
                 .build();
 
-        return EstablishmentServiceResponse.fromEntity(establishmentServiceRepository.save(service));
+        return save(service);
     }
 
     @Transactional(readOnly = true)
     public List<EstablishmentServiceResponse> findAll(Long administratorId) {
         User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
 
-        return establishmentServiceRepository.findByEstablishmentIdAndActiveTrue(administrator.getEstablishment().getId())
+        return establishmentServiceRepository.findByEstablishmentId(administrator.getEstablishment().getId())
                 .stream()
                 .map(EstablishmentServiceResponse::fromEntity)
                 .toList();
@@ -52,6 +56,8 @@ public class ServiceCatalogService {
         User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
         EstablishmentService service = findService(id, administrator.getEstablishment().getId());
 
+        requireUniqueName(administrator.getEstablishment().getId(), request.name(), id);
+
         service.updateDetails(
                 request.name().trim(),
                 normalizeOptionalText(request.description()),
@@ -59,7 +65,7 @@ public class ServiceCatalogService {
                 defaultCommission(request.commissionPercentage()),
                 request.durationMinutes());
 
-        return EstablishmentServiceResponse.fromEntity(service);
+        return save(service);
     }
 
     @Transactional
@@ -68,6 +74,37 @@ public class ServiceCatalogService {
         EstablishmentService service = findService(id, administrator.getEstablishment().getId());
 
         service.deactivate();
+    }
+
+    @Transactional
+    public EstablishmentServiceResponse reactivate(Long administratorId, Long id) {
+        User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
+        EstablishmentService service = findService(id, administrator.getEstablishment().getId());
+        if (service.isActive()) {
+            throw new ConflictException("O serviço já está ativo.");
+        }
+        service.reactivate();
+        return EstablishmentServiceResponse.fromEntity(service);
+    }
+
+    private void requireUniqueName(Long establishmentId, String name, Long excludedId) {
+        if (establishmentServiceRepository.existsWithName(establishmentId, name.trim(), excludedId)) {
+            throw new ConflictException("Já existe um serviço com esse nome neste estabelecimento.");
+        }
+    }
+
+    private EstablishmentServiceResponse save(EstablishmentService service) {
+        try {
+            return EstablishmentServiceResponse.fromEntity(establishmentServiceRepository.saveAndFlush(service));
+        } catch (DataIntegrityViolationException exception) {
+            for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
+                if (cause instanceof org.hibernate.exception.ConstraintViolationException violation
+                        && "uk_salon_services_establishment_name".equals(violation.getConstraintName())) {
+                    throw new ConflictException("Já existe um serviço com esse nome neste estabelecimento.");
+                }
+            }
+            throw exception;
+        }
     }
 
     private EstablishmentService findService(Long serviceId, Long establishmentId) {
