@@ -1,0 +1,124 @@
+package br.com.salonhub.controller;
+
+import br.com.salonhub.entity.*;
+import br.com.salonhub.repository.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+@SpringBootTest
+@AutoConfigureMockMvc
+@Transactional
+class AdministrativeAgendaIntegrationTests {
+    private static final LocalDate DATE = LocalDate.of(2026, 9, 16);
+    private static final String ENDPOINT = "/api/agendamentos/estabelecimento/me";
+
+    @Autowired MockMvc mvc;
+    @Autowired EstablishmentRepository establishments;
+    @Autowired UserRepository users;
+    @Autowired EstablishmentServiceRepository services;
+    @Autowired AppointmentRepository appointments;
+
+    private User admin;
+    private User professional;
+    private User otherProfessional;
+    private final Map<String, Long> ids = new LinkedHashMap<>();
+
+    @BeforeEach
+    void setUp() {
+        Establishment establishment = establishments.saveAndFlush(Establishment.builder()
+                .name("Agenda").cnpj("93939393000193").build());
+        admin = user("admin", UserRole.ADMIN, establishment);
+        professional = user("professional", UserRole.PROFESSIONAL, establishment);
+        User secondProfessional = user("second", UserRole.PROFESSIONAL, establishment);
+        User client = user("client", UserRole.CLIENT, null);
+        EstablishmentService service = service(establishment);
+        add("before", client, professional, service, DATE.minusDays(1).atTime(23, 30), false);
+        add("start", client, professional, service, DATE.atStartOfDay(), false);
+        add("cancelled", client, professional, service, DATE.atTime(10, 0), true);
+        add("afternoon", client, secondProfessional, service, DATE.atTime(15, 0), false);
+        add("end", client, professional, service, DATE.plusDays(1).atStartOfDay(), false);
+
+        Establishment other = establishments.saveAndFlush(Establishment.builder()
+                .name("Other").cnpj("94949494000194").build());
+        otherProfessional = user("other", UserRole.PROFESSIONAL, other);
+        add("foreign", client, otherProfessional, service(other), DATE.atTime(12, 0), false);
+    }
+
+    @ParameterizedTest(name = "date={0}, professional={1}, status={2}")
+    @CsvSource({
+            "false,false,false,end afternoon cancelled start before",
+            "true,false,false,afternoon cancelled start",
+            "false,true,false,end cancelled start before",
+            "true,true,false,cancelled start",
+            "false,false,true,end afternoon start before",
+            "true,false,true,afternoon start",
+            "false,true,true,end start before",
+            "true,true,true,start"
+    })
+    void shouldApplyOptionalFiltersAndKeepDescendingOrderAndTenantIsolation(
+            boolean date, boolean filterProfessional, boolean status, String expected) throws Exception {
+        var request = get(ENDPOINT).with(jwt().jwt(token -> token.subject(admin.getId().toString())));
+        if (date) request.param("date", DATE.toString());
+        if (filterProfessional) request.param("professionalId", professional.getId().toString());
+        if (status) request.param("status", "CONFIRMED");
+        String[] names = expected.split(" ");
+        var result = mvc.perform(request).andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(names.length));
+        for (int i = 0; i < names.length; i++) {
+            result.andExpect(jsonPath("$[" + i + "].id").value(ids.get(names[i])));
+        }
+    }
+
+    @Test
+    void shouldFilterCancelledAppointmentsWithoutDateOrProfessional() throws Exception {
+        mvc.perform(get(ENDPOINT).with(jwt().jwt(token -> token.subject(admin.getId().toString())))
+                        .param("status", "CANCELLED"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(ids.get("cancelled")));
+    }
+
+    @Test
+    void shouldReturnEmptyForDateWithoutAppointmentsOrProfessionalFromAnotherEstablishment() throws Exception {
+        mvc.perform(get(ENDPOINT).with(jwt().jwt(token -> token.subject(admin.getId().toString())))
+                        .param("date", DATE.plusDays(2).toString()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+        mvc.perform(get(ENDPOINT).with(jwt().jwt(token -> token.subject(admin.getId().toString())))
+                        .param("professionalId", otherProfessional.getId().toString()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+    }
+
+    private User user(String name, UserRole role, Establishment establishment) {
+        return users.saveAndFlush(User.builder().name(name).email(name + "@agenda.test")
+                .password("test").role(role).establishment(establishment).build());
+    }
+
+    private EstablishmentService service(Establishment establishment) {
+        return services.saveAndFlush(EstablishmentService.builder().establishment(establishment)
+                .name("Corte").price(new BigDecimal("40.00")).commissionPercentage(BigDecimal.TEN)
+                .durationMinutes(30).build());
+    }
+
+    private void add(String name, User client, User professional, EstablishmentService service,
+                     LocalDateTime start, boolean cancelled) {
+        Appointment appointment = Appointment.schedule(service.getEstablishment(), client, professional, service, start);
+        if (cancelled) appointment.cancel();
+        ids.put(name, appointments.saveAndFlush(appointment).getId());
+    }
+}
