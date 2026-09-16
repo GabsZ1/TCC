@@ -82,7 +82,8 @@ public class AppointmentCommandService {
         User client = tenantAuthorizationService.requireClient(clientId);
         Appointment appointment = appointmentRepository.findByIdAndClientId(appointmentId, client.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Agendamento não encontrado."));
-        if (appointment.getStatus() != AppointmentStatus.CONFIRMED) {
+        if (appointment.getStatus() != AppointmentStatus.CONFIRMED
+                || !appointment.getStartsAt().isAfter(LocalDateTime.now(clock))) {
             throw new ConflictException("O agendamento não pode ser cancelado.");
         }
         appointment.cancel();
@@ -96,10 +97,17 @@ public class AppointmentCommandService {
             LocalDateTime startsAt,
             LocalDateTime endsAt,
             Long ignoredAppointmentId) {
+        validateSlotAlignment(startsAt);
         validateAdvanceWindow(establishment, startsAt);
         validateBusinessHours(establishment, startsAt, endsAt);
         validateProfessionalAvailability(professional.getId(), startsAt, endsAt, ignoredAppointmentId);
         validateClientAvailability(client.getId(), startsAt, endsAt, ignoredAppointmentId);
+    }
+
+    private void validateSlotAlignment(LocalDateTime startsAt) {
+        if (!AppointmentSlotPolicy.isAligned(startsAt)) {
+            throw new ConflictException("O horário deve estar alinhado aos intervalos de 30 minutos.");
+        }
     }
 
     private Establishment findActiveEstablishment(Long establishmentId) {

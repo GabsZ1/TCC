@@ -143,7 +143,7 @@ public class AppointmentQueryService {
             if (withinAdvanceWindow && !professionalOverlaps && !clientOverlaps) {
                 availableTimes.add(slotStart.toLocalTime());
             }
-            candidate = candidate.plusMinutes(30);
+            candidate = candidate.plusMinutes(AppointmentSlotPolicy.SLOT_INTERVAL_MINUTES);
         }
         return availableTimes;
     }
