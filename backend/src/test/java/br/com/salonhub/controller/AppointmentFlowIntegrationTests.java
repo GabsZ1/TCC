@@ -217,11 +217,12 @@ class AppointmentFlowIntegrationTests {
                 .andExpect(jsonPath("$.durationMinutes").value(30));
 
         Appointment current = appointmentRepository.findById(appointmentId.longValue()).orElseThrow();
-        Appointment past = appointmentRepository.saveAndFlush(Appointment.builder()
-                .establishment(current.getEstablishment()).client(current.getClient())
-                .professional(current.getProfessional()).service(current.getService())
-                .startsAt(LocalDateTime.now().minusDays(1)).endsAt(LocalDateTime.now().minusDays(1).plusMinutes(30))
-                .status(AppointmentStatus.CONFIRMED).build());
+        Appointment past = appointmentRepository.saveAndFlush(Appointment.schedule(
+                current.getEstablishment(),
+                current.getClient(),
+                current.getProfessional(),
+                current.getService(),
+                LocalDateTime.now().minusDays(1)));
         mockMvc.perform(put("/api/agendamentos/{id}", past.getId())
                         .header("Authorization", bearer(clientToken))
                         .contentType(MediaType.APPLICATION_JSON)

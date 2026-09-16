@@ -3,6 +3,7 @@ package br.com.salonhub.entity;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -16,9 +17,12 @@ class AppointmentSnapshotTests {
                 .commissionPercentage(new BigDecimal("10.00"))
                 .durationMinutes(60)
                 .build();
-        Appointment appointment = Appointment.builder().service(service).build();
-
-        appointment.snapshotService(service);
+        Appointment appointment = Appointment.schedule(
+                Establishment.builder().name("Salão").build(),
+                User.builder().name("Cliente").build(),
+                User.builder().name("Profissional").build(),
+                service,
+                LocalDateTime.of(2026, 1, 1, 10, 0));
         service.updateDetails(
                 "Corte reajustado",
                 service.getDescription(),

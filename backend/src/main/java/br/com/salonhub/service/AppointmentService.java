@@ -75,21 +75,12 @@ public class AppointmentService {
         }
         validateClientAvailability(client.getId(), startsAt, endsAt, null);
 
-        Appointment appointment = Appointment.builder()
-                .establishment(establishment)
-                .client(client)
-                .professional(professional)
-                .service(service)
-                .serviceName(service.getName())
-                .agreedPrice(service.getPrice())
-                .commissionPercentage(service.getCommissionPercentage())
-                .commissionAmount(service.getPrice().multiply(service.getCommissionPercentage())
-                        .divide(new java.math.BigDecimal("100"), 2, java.math.RoundingMode.HALF_UP))
-                .durationMinutes(service.getDurationMinutes())
-                .startsAt(startsAt)
-                .endsAt(endsAt)
-                .status(AppointmentStatus.CONFIRMED)
-                .build();
+        Appointment appointment = Appointment.schedule(
+                establishment,
+                client,
+                professional,
+                service,
+                startsAt);
 
         return AppointmentResponse.fromEntity(appointmentRepository.save(appointment));
     }
@@ -137,7 +128,7 @@ public class AppointmentService {
         }
         validateClientAvailability(client.getId(), startsAt, endsAt, appointment.getId());
 
-        appointment.update(service, professional, startsAt, endsAt);
+        appointment.update(service, professional, startsAt);
         return AppointmentResponse.fromEntity(appointment);
     }
     @Transactional(readOnly = true)
