@@ -59,7 +59,7 @@ public class ServiceCatalogService {
                 defaultCommission(request.commissionPercentage()),
                 request.durationMinutes());
 
-        return EstablishmentServiceResponse.fromEntity(establishmentServiceRepository.save(service));
+        return EstablishmentServiceResponse.fromEntity(service);
     }
 
     @Transactional
@@ -68,7 +68,6 @@ public class ServiceCatalogService {
         EstablishmentService service = findService(id, administrator.getEstablishment().getId());
 
         service.deactivate();
-        establishmentServiceRepository.save(service);
     }
 
     private EstablishmentService findService(Long serviceId, Long establishmentId) {

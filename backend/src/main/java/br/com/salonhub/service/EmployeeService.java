@@ -59,7 +59,6 @@ public class EmployeeService {
             }
         }
         employee.updateOfferedServices(request.allServices(), services);
-        userRepository.save(employee);
         return responseWithEffectiveServices(employee);
     }
 
@@ -121,7 +120,7 @@ public class EmployeeService {
 
         employee.updateProfile(request.name().trim(), email);
 
-        return AuthenticatedUserResponse.fromEntity(userRepository.save(employee));
+        return AuthenticatedUserResponse.fromEntity(employee);
     }
 
     @Transactional
@@ -134,7 +133,7 @@ public class EmployeeService {
         }
 
         employee.reactivate();
-        return AuthenticatedUserResponse.fromEntity(userRepository.save(employee));
+        return AuthenticatedUserResponse.fromEntity(employee);
     }
 
     @Transactional
@@ -157,7 +156,6 @@ public class EmployeeService {
         }
 
         employee.deactivate();
-        userRepository.save(employee);
         return new EmployeeRemovalResponse(
                 false,
                 "O funcionário não pode ser removido pois possui atendimentos vinculados. Ele foi desativado."

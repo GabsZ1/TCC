@@ -138,7 +138,7 @@ public class AppointmentService {
         validateClientAvailability(client.getId(), startsAt, endsAt, appointment.getId());
 
         appointment.update(service, professional, startsAt, endsAt);
-        return AppointmentResponse.fromEntity(appointmentRepository.save(appointment));
+        return AppointmentResponse.fromEntity(appointment);
     }
     @Transactional(readOnly = true)
     public List<AppointmentResponse> findMine(Long clientId) {
@@ -160,7 +160,7 @@ public class AppointmentService {
         }
 
         appointment.cancel();
-        return AppointmentResponse.fromEntity(appointmentRepository.save(appointment));
+        return AppointmentResponse.fromEntity(appointment);
     }
 
     @Transactional(readOnly = true)

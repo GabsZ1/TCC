@@ -49,7 +49,7 @@ public class EstablishmentManagementService {
             }
             establishment.updateAppointmentAdvancePolicy(minimumMinutes, request.maximumAdvanceDays());
         }
-        return response(establishmentRepository.save(establishment));
+        return response(establishment);
     }
 
     @Transactional
@@ -57,7 +57,6 @@ public class EstablishmentManagementService {
         Establishment establishment = findEstablishment(administratorId);
         if (establishment.isActive()) {
             establishment.deactivate();
-            establishmentRepository.save(establishment);
         }
     }
 
@@ -83,7 +82,9 @@ public class EstablishmentManagementService {
                     .orElseGet(() -> EstablishmentBusinessHour.builder()
                             .establishment(establishment).dayOfWeek(request.dayOfWeek()).build());
             hour.update(request.closed(), request.openingTime(), request.closingTime());
-            businessHourRepository.save(hour);
+            if (hour.getId() == null) {
+                businessHourRepository.save(hour);
+            }
         });
     }
 
