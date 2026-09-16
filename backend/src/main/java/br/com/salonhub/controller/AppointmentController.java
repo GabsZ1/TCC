@@ -6,6 +6,7 @@ import br.com.salonhub.dto.appointment.AvailabilityResponse;
 import br.com.salonhub.entity.AppointmentStatus;
 import br.com.salonhub.service.AppointmentService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -26,13 +27,10 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api")
+@RequiredArgsConstructor
 public class AppointmentController {
 
     private final AppointmentService appointmentService;
-
-    public AppointmentController(AppointmentService appointmentService) {
-        this.appointmentService = appointmentService;
-    }
 
     @PostMapping("/estabelecimentos/{establishmentId}/agendamentos")
     @ResponseStatus(HttpStatus.CREATED)

@@ -6,6 +6,7 @@ import br.com.salonhub.entity.EstablishmentService;
 import br.com.salonhub.entity.User;
 import br.com.salonhub.exception.ResourceNotFoundException;
 import br.com.salonhub.repository.EstablishmentServiceRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,17 +14,11 @@ import java.util.List;
 import java.math.BigDecimal;
 
 @Service
+@RequiredArgsConstructor
 public class ServiceCatalogService {
 
     private final EstablishmentServiceRepository establishmentServiceRepository;
     private final TenantAuthorizationService tenantAuthorizationService;
-
-    public ServiceCatalogService(
-            EstablishmentServiceRepository establishmentServiceRepository,
-            TenantAuthorizationService tenantAuthorizationService) {
-        this.establishmentServiceRepository = establishmentServiceRepository;
-        this.tenantAuthorizationService = tenantAuthorizationService;
-    }
 
     @Transactional
     public EstablishmentServiceResponse create(Long administratorId, EstablishmentServiceRequest request) {

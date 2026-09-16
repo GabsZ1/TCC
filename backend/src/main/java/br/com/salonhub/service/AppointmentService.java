@@ -18,6 +18,7 @@ import br.com.salonhub.repository.EstablishmentRepository;
 import br.com.salonhub.repository.EstablishmentServiceRepository;
 import br.com.salonhub.repository.EstablishmentBusinessHourRepository;
 import br.com.salonhub.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
@@ -36,21 +38,6 @@ public class AppointmentService {
     private final UserRepository userRepository;
     private final TenantAuthorizationService tenantAuthorizationService;
     private final EstablishmentBusinessHourRepository businessHourRepository;
-
-    public AppointmentService(
-            AppointmentRepository appointmentRepository,
-            EstablishmentRepository establishmentRepository,
-            EstablishmentServiceRepository serviceRepository,
-            UserRepository userRepository,
-            TenantAuthorizationService tenantAuthorizationService,
-            EstablishmentBusinessHourRepository businessHourRepository) {
-        this.appointmentRepository = appointmentRepository;
-        this.establishmentRepository = establishmentRepository;
-        this.serviceRepository = serviceRepository;
-        this.userRepository = userRepository;
-        this.tenantAuthorizationService = tenantAuthorizationService;
-        this.businessHourRepository = businessHourRepository;
-    }
 
     @Transactional
     public AppointmentResponse create(Long clientId, Long establishmentId, AppointmentCreateRequest request) {

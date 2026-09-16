@@ -10,24 +10,17 @@ import br.com.salonhub.exception.ConflictException;
 import br.com.salonhub.exception.InvalidRequestException;
 import br.com.salonhub.repository.EstablishmentRepository;
 import br.com.salonhub.repository.EstablishmentBusinessHourRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class EstablishmentManagementService {
 
     private final EstablishmentRepository establishmentRepository;
     private final TenantAuthorizationService tenantAuthorizationService;
     private final EstablishmentBusinessHourRepository businessHourRepository;
-
-    public EstablishmentManagementService(
-            EstablishmentRepository establishmentRepository,
-            TenantAuthorizationService tenantAuthorizationService,
-            EstablishmentBusinessHourRepository businessHourRepository) {
-        this.establishmentRepository = establishmentRepository;
-        this.tenantAuthorizationService = tenantAuthorizationService;
-        this.businessHourRepository = businessHourRepository;
-    }
 
     @Transactional(readOnly = true)
     public EstablishmentResponse findMine(Long administratorId) {

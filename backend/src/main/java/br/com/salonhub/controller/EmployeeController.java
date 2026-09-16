@@ -8,6 +8,7 @@ import br.com.salonhub.dto.employee.ProfessionalServicesRequest;
 import br.com.salonhub.dto.employee.ProfessionalServicesResponse;
 import br.com.salonhub.service.EmployeeService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -18,13 +19,10 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/funcionarios")
+@RequiredArgsConstructor
 public class EmployeeController {
 
     private final EmployeeService employeeService;
-
-    public EmployeeController(EmployeeService employeeService) {
-        this.employeeService = employeeService;
-    }
 
     @PostMapping
     public ResponseEntity<AuthenticatedUserResponse> create(

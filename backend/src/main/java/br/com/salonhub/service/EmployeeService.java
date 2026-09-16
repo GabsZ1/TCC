@@ -14,6 +14,7 @@ import br.com.salonhub.exception.ResourceNotFoundException;
 import br.com.salonhub.repository.AppointmentRepository;
 import br.com.salonhub.repository.UserRepository;
 import br.com.salonhub.repository.EstablishmentServiceRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +23,7 @@ import java.util.List;
 import java.util.Locale;
 
 @Service
+@RequiredArgsConstructor
 public class EmployeeService {
 
     private final UserRepository userRepository;
@@ -29,19 +31,6 @@ public class EmployeeService {
     private final PasswordEncoder passwordEncoder;
     private final TenantAuthorizationService tenantAuthorizationService;
     private final EstablishmentServiceRepository establishmentServiceRepository;
-
-    public EmployeeService(
-            UserRepository userRepository,
-            AppointmentRepository appointmentRepository,
-            PasswordEncoder passwordEncoder,
-            TenantAuthorizationService tenantAuthorizationService,
-            EstablishmentServiceRepository establishmentServiceRepository) {
-        this.userRepository = userRepository;
-        this.appointmentRepository = appointmentRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.tenantAuthorizationService = tenantAuthorizationService;
-        this.establishmentServiceRepository = establishmentServiceRepository;
-    }
 
     @Transactional(readOnly = true)
     public ProfessionalServicesResponse findServices(Long userId, Long employeeId) {
