@@ -61,12 +61,15 @@ public class AppointmentQueryService {
     public List<AppointmentResponse> findEstablishmentAgenda(
             Long administratorId, LocalDate date, Long professionalId, AppointmentStatus status) {
         User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
-        return appointmentRepository.findByEstablishmentIdOrderByStartsAtDesc(
-                        administrator.getEstablishment().getId()).stream()
-                .filter(appointment -> date == null || appointment.getStartsAt().toLocalDate().equals(date))
-                .filter(appointment -> professionalId == null
-                        || appointment.getProfessional().getId().equals(professionalId))
-                .filter(appointment -> status == null || appointment.getStatus() == status)
+        LocalDateTime dayStart = date == null ? null : date.atStartOfDay();
+        LocalDateTime dayEnd = date == null ? null : date.plusDays(1).atStartOfDay();
+
+        return appointmentRepository.findEstablishmentAgenda(
+                        administrator.getEstablishment().getId(),
+                        dayStart,
+                        dayEnd,
+                        professionalId,
+                        status).stream()
                 .map(AppointmentResponse::fromEntity)
                 .toList();
     }

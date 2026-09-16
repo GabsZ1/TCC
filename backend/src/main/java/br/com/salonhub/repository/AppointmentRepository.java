@@ -3,6 +3,8 @@ package br.com.salonhub.repository;
 import br.com.salonhub.entity.Appointment;
 import br.com.salonhub.entity.AppointmentStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -48,7 +50,23 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     List<Appointment> findByProfessionalIdOrderByStartsAtDesc(Long professionalId);
 
-    List<Appointment> findByEstablishmentIdOrderByStartsAtDesc(Long establishmentId);
+    @Query("""
+            select appointment
+            from Appointment appointment
+            where appointment.establishment.id = :establishmentId
+              and (:dayStart is null or (
+                    appointment.startsAt >= :dayStart
+                    and appointment.startsAt < :dayEnd))
+              and (:professionalId is null or appointment.professional.id = :professionalId)
+              and (:status is null or appointment.status = :status)
+            order by appointment.startsAt desc
+            """)
+    List<Appointment> findEstablishmentAgenda(
+            @Param("establishmentId") Long establishmentId,
+            @Param("dayStart") LocalDateTime dayStart,
+            @Param("dayEnd") LocalDateTime dayEnd,
+            @Param("professionalId") Long professionalId,
+            @Param("status") AppointmentStatus status);
 
     List<Appointment> findByProfessionalIdAndStatusAndStartsAtLessThanAndEndsAtGreaterThanOrderByStartsAt(
             Long professionalId,
