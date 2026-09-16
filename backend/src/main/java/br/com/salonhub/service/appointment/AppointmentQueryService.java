@@ -22,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -38,6 +39,7 @@ public class AppointmentQueryService {
     private final UserRepository userRepository;
     private final TenantAuthorizationService tenantAuthorizationService;
     private final EstablishmentBusinessHourRepository businessHourRepository;
+    private final Clock clock;
 
     @Transactional(readOnly = true)
     public List<AppointmentResponse> findMine(Long clientId) {
@@ -79,14 +81,14 @@ public class AppointmentQueryService {
             Long appointmentId) {
         User client = tenantAuthorizationService.requireClient(clientId);
         validateAppointmentOwnership(appointmentId, client);
-        if (date.isBefore(LocalDate.now())) {
+        if (date.isBefore(LocalDate.now(clock))) {
             throw new InvalidRequestException("A data da consulta não pode estar no passado.");
         }
 
         Establishment establishment = establishmentRepository.findById(establishmentId)
                 .filter(Establishment::isActive)
                 .orElseThrow(() -> new ResourceNotFoundException("Estabelecimento não encontrado."));
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         LocalDateTime earliestStart = now.plusMinutes(establishment.getMinimumAdvanceMinutes());
         LocalDateTime latestStart = now.plusDays(establishment.getMaximumAdvanceDays());
         if (date.isAfter(latestStart.toLocalDate())) {

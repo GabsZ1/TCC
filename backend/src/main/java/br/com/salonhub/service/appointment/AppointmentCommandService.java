@@ -21,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -34,6 +35,7 @@ public class AppointmentCommandService {
     private final UserRepository userRepository;
     private final TenantAuthorizationService tenantAuthorizationService;
     private final EstablishmentBusinessHourRepository businessHourRepository;
+    private final Clock clock;
 
     @Transactional
     public AppointmentResponse create(Long clientId, Long establishmentId, AppointmentCreateRequest request) {
@@ -57,7 +59,7 @@ public class AppointmentCommandService {
         Appointment appointment = appointmentRepository.findByIdAndClientId(appointmentId, client.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Agendamento não encontrado."));
         if (appointment.getStatus() != AppointmentStatus.CONFIRMED
-                || !appointment.getStartsAt().isAfter(LocalDateTime.now())) {
+                || !appointment.getStartsAt().isAfter(LocalDateTime.now(clock))) {
             throw new ConflictException("Apenas agendamentos futuros e confirmados podem ser editados.");
         }
 
@@ -168,7 +170,7 @@ public class AppointmentCommandService {
     }
 
     private void validateAdvanceWindow(Establishment establishment, LocalDateTime startsAt) {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         if (startsAt.isBefore(now.plusMinutes(establishment.getMinimumAdvanceMinutes()))) {
             throw new ConflictException("O agendamento exige pelo menos "
                     + formatMinimumAdvance(establishment.getMinimumAdvanceMinutes()) + " de antecedência.");

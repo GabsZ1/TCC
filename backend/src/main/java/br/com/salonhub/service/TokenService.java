@@ -10,6 +10,7 @@ import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
@@ -18,12 +19,13 @@ import java.time.temporal.ChronoUnit;
 public class TokenService {
 
     private final JwtEncoder jwtEncoder;
+    private final Clock clock;
 
     @Value("${app.jwt.expiration-minutes}")
     private long expirationMinutes;
 
     public GeneratedToken generate(User user) {
-        Instant issuedAt = Instant.now();
+        Instant issuedAt = Instant.now(clock);
         Instant expiresAt = issuedAt.plus(expirationMinutes, ChronoUnit.MINUTES);
 
         JwtClaimsSet.Builder claimsBuilder = JwtClaimsSet.builder()
