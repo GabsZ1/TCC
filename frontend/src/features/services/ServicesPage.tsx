@@ -1,36 +1,52 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Clock3, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Clock3, Pencil, Plus, Power, RotateCcw } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { ServiceFormModal } from '@/features/services/ServiceFormModal'
-import { createService, deactivateService, fetchServices, updateService, type SalonService, type SalonServiceInput } from '@/features/services/servicesApi'
+import { createService, deactivateService, fetchAdministrativeServices, reactivateService, updateService, type SalonService, type SalonServiceInput } from '@/features/services/servicesApi'
 import { getApiErrorMessage } from '@/lib/apiError'
 
-const QUERY_KEY = ['services']
+const QUERY_KEY = ['services', 'administrative']
 
 export function ServicesPage() {
   const queryClient = useQueryClient()
   const [editing, setEditing] = useState<SalonService | 'new' | null>(null)
   const [deleting, setDeleting] = useState<SalonService | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const servicesQuery = useQuery({ queryKey: QUERY_KEY, queryFn: fetchServices })
+  const servicesQuery = useQuery({ queryKey: QUERY_KEY, queryFn: fetchAdministrativeServices })
   const services = useMemo(() => [...(servicesQuery.data ?? [])].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')), [servicesQuery.data])
 
   const saveMutation = useMutation({
     mutationFn: (input: SalonServiceInput) => editing === 'new' ? createService(input) : updateService((editing as SalonService).id, input),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: ['services'] })
       setEditing(null)
       setError(null)
     },
     onError: (requestError) => setError(getApiErrorMessage(requestError, 'Não foi possível salvar o serviço.')),
   })
 
+  const [statusError, setStatusError] = useState<string | null>(null)
+
+  const reactivateMutation = useMutation({
+    mutationFn: reactivateService,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['services'] })
+      setStatusError(null)
+    },
+    onError: (requestError) => setStatusError(getApiErrorMessage(requestError, 'Não foi possível reativar o serviço.')),
+  })
+
   const deleteMutation = useMutation({
     mutationFn: (id: number) => deactivateService(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: ['services'] })
       setDeleting(null)
+      setStatusError(null)
+    },
+    onError: (requestError) => {
+      setDeleting(null)
+      setStatusError(getApiErrorMessage(requestError, 'Não foi possível desativar o serviço.'))
     },
   })
 
@@ -41,6 +57,8 @@ export function ServicesPage() {
         <button onClick={() => setEditing('new')} className="primary-button"><Plus size={18} /> Novo serviço</button>
       </div>
 
+      {statusError && <p role="alert" className="mt-4 text-sm text-danger-600">{statusError}</p>}
+
       <div className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {servicesQuery.isLoading && <StateCard>Carregando serviços...</StateCard>}
         {servicesQuery.isError && <StateCard error>{getApiErrorMessage(servicesQuery.error, 'Não foi possível carregar os serviços.')}</StateCard>}
@@ -49,13 +67,13 @@ export function ServicesPage() {
           <article key={service.id} className="rounded-2xl border border-brand-100 bg-white p-5 shadow-sm">
             <div className="flex items-start justify-between gap-3">
               <div><h2 className="text-lg font-semibold text-brand-900">{service.name}</h2><p className="mt-1 text-sm text-brand-600">{service.description || 'Sem descrição'}</p></div>
-              <span className="rounded-full bg-sage-50 px-2.5 py-1 text-xs font-semibold text-sage-600">Ativo</span>
+              <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${service.active ? 'bg-sage-50 text-sage-600' : 'bg-sand-100 text-brand-600'}`}>{service.active ? 'Ativo' : 'Inativo'}</span>
             </div>
             <div className="mt-5 flex items-center justify-between border-t border-brand-100 pt-4">
               <div><p className="font-semibold text-brand-900">{formatMoney(service.price)}</p><p className="mt-1 flex items-center gap-1 text-sm text-brand-600"><Clock3 size={15} /> {service.durationMinutes} min · {service.commissionPercentage}% comissão</p></div>
               <div className="flex gap-1">
                 <button onClick={() => setEditing(service)} className="icon-button" aria-label={`Editar ${service.name}`}><Pencil size={17} /></button>
-                <button onClick={() => setDeleting(service)} className="icon-button text-danger-600" aria-label={`Remover ${service.name}`}><Trash2 size={17} /></button>
+                <button disabled={deleteMutation.isPending || reactivateMutation.isPending} onClick={() => service.active ? setDeleting(service) : reactivateMutation.mutate(service.id)} className={`icon-button disabled:opacity-60 ${service.active ? 'text-danger-600' : 'text-sage-600'}`} title={service.active ? 'Desativar serviço' : 'Reativar serviço'} aria-label={`${service.active ? 'Desativar' : 'Reativar'} ${service.name}`}>{service.active ? <Power size={17} /> : <RotateCcw size={17} />}</button>
               </div>
             </div>
           </article>
@@ -63,7 +81,7 @@ export function ServicesPage() {
       </div>
 
       {editing && <ServiceFormModal service={editing === 'new' ? null : editing} isSubmitting={saveMutation.isPending} errorMessage={error} onSubmit={(values) => saveMutation.mutate(values)} onClose={() => { setEditing(null); setError(null) }} />}
-      {deleting && <ConfirmDialog title="Remover serviço" message={`O serviço “${deleting.name}” deixará de aparecer para novos agendamentos.`} confirmLabel="Remover" isLoading={deleteMutation.isPending} onConfirm={() => deleteMutation.mutate(deleting.id)} onCancel={() => setDeleting(null)} />}
+      {deleting && <ConfirmDialog title="Desativar serviço" message={`O serviço “${deleting.name}” deixará de aparecer para novos agendamentos.`} confirmLabel="Desativar" isLoading={deleteMutation.isPending} onConfirm={() => deleteMutation.mutate(deleting.id)} onCancel={() => setDeleting(null)} />}
     </PageContainer>
   )
 }

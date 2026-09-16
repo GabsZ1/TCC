@@ -69,6 +69,10 @@ public class EstablishmentService {
         this.durationMinutes = durationMinutes;
     }
 
+    public void reactivate() {
+        this.active = true;
+    }
+
     public void deactivate() {
         this.active = false;
     }

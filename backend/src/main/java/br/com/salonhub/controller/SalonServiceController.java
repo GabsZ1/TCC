@@ -49,6 +49,13 @@ public class SalonServiceController {
         return ResponseEntity.noContent().build();
     }
 
+    @PatchMapping("/{id}/ativacao")
+    public ResponseEntity<EstablishmentServiceResponse> reactivate(
+            @PathVariable Long id,
+            @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(serviceCatalogService.reactivate(currentUserId(jwt), id));
+    }
+
     private Long currentUserId(Jwt jwt) {
         return Long.valueOf(jwt.getSubject());
     }
