@@ -1,9 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Building2, CalendarClock, Save, Trash2 } from 'lucide-react'
+import { Building2, CalendarClock, Save, Power, RotateCcw } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { getApiErrorMessage } from '@/lib/apiError'
-import { deactivateMyEstablishment, fetchMyEstablishment, updateMyEstablishment, type BusinessHour, type EstablishmentUpdateInput, type WeekDay } from '@/features/establishment/establishmentApi'
+import { deactivateMyEstablishment, fetchMyEstablishment, reactivateMyEstablishment, updateMyEstablishment, type BusinessHour, type EstablishmentUpdateInput, type WeekDay } from '@/features/establishment/establishmentApi'
 
 const QUERY_KEY = ['my-establishment']
 const WEEK_DAYS: { value: WeekDay; label: string }[] = [
@@ -43,6 +43,7 @@ export function EstablishmentPage() {
     mutationFn: deactivateMyEstablishment,
     onSuccess: () => {
       queryClient.setQueryData(QUERY_KEY, (current: typeof establishment) => current ? { ...current, active: false } : current)
+      queryClient.invalidateQueries()
       setIsConfirmingDeactivation(false)
       setMessage('Estabelecimento desativado com sucesso.')
       setErrorMessage(null)
@@ -51,6 +52,20 @@ export function EstablishmentPage() {
       setIsConfirmingDeactivation(false)
       setMessage(null)
       setErrorMessage(getApiErrorMessage(error, 'Não foi possível desativar o estabelecimento.'))
+    },
+  })
+
+  const reactivateMutation = useMutation({
+    mutationFn: reactivateMyEstablishment,
+    onSuccess: (updated) => {
+      queryClient.setQueryData(QUERY_KEY, updated)
+      queryClient.invalidateQueries()
+      setMessage('Estabelecimento reativado com sucesso.')
+      setErrorMessage(null)
+    },
+    onError: (error) => {
+      setMessage(null)
+      setErrorMessage(getApiErrorMessage(error, 'Não foi possível reativar o estabelecimento.'))
     },
   })
 
@@ -78,13 +93,13 @@ export function EstablishmentPage() {
       </div>
       {message && <p role="status" className="mt-5 rounded-xl bg-sage-50 px-4 py-3 text-sm text-sage-600">{message}</p>}
       {errorMessage && <p role="alert" className="mt-5 rounded-xl border border-danger-500/30 bg-danger-500/5 px-4 py-3 text-sm text-danger-600">{errorMessage}</p>}
-      {isInactive && <p className="mt-5 rounded-xl border border-danger-500/30 bg-danger-500/5 px-4 py-3 text-sm text-danger-600">Este estabelecimento está inativo. A edição e a desativação não estão disponíveis.</p>}
+      {isInactive && <p className="mt-5 rounded-xl border border-danger-500/30 bg-danger-500/5 px-4 py-3 text-sm text-danger-600">Este estabelecimento está inativo. Reative-o para liberar as operações administrativas e novos agendamentos.</p>}
 
       <div className="mt-7 grid gap-6 xl:grid-cols-[minmax(0,1fr)_18rem]">
         <form onSubmit={submit} className="rounded-2xl border border-brand-100 bg-white p-5 shadow-sm sm:p-6">
           <div className="flex items-center gap-2"><Building2 size={20} className="text-brand-500" /><h2 className="text-lg font-semibold text-brand-900">Dados cadastrais</h2></div>
           <p className="mt-1 text-sm text-brand-600">Nome e telefone podem ser atualizados. O CNPJ é definido no cadastro inicial.</p>
-          <fieldset disabled={isInactive || updateMutation.isPending} className="mt-6 grid gap-5 sm:grid-cols-2">
+          <fieldset disabled={isInactive || updateMutation.isPending || deactivateMutation.isPending} className="mt-6 grid gap-5 sm:grid-cols-2">
             <Field label="Nome do estabelecimento" value={form.name} onChange={(value) => updateField('name', value)} required className="sm:col-span-2" />
             <label className="block"><span className="text-sm font-medium text-brand-800">CNPJ</span><input value={formatCnpj(establishment.cnpj)} readOnly className="mt-2 w-full rounded-xl border border-brand-200 bg-sand-100 px-3.5 py-3 text-brand-700" /></label>
             <Field label="Telefone" value={form.phone} onChange={(value) => updateField('phone', value)} />
@@ -104,7 +119,19 @@ export function EstablishmentPage() {
         <aside className="h-fit rounded-2xl border border-brand-100 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-semibold text-brand-900">Informações</h2>
           <dl className="mt-5 space-y-4 text-sm"><Info label="Código" value={`#${establishment.id}`} /><Info label="Funcionamento" value="Configuração semanal" icon={<CalendarClock size={16} />} /></dl>
-          <div className="mt-6 border-t border-brand-100 pt-5"><h3 className="font-semibold text-danger-600">Desativar estabelecimento</h3><p className="mt-2 text-sm leading-6 text-brand-600">O salão deixará de aceitar novas operações administrativas e novos agendamentos. O histórico será preservado.</p><button type="button" disabled={isInactive || deactivateMutation.isPending} onClick={() => { setMessage(null); setErrorMessage(null); setIsConfirmingDeactivation(true) }} className="mt-4 inline-flex items-center gap-2 rounded-xl border border-danger-500/30 px-4 py-2 text-sm font-semibold text-danger-600 hover:bg-danger-500/5 disabled:cursor-not-allowed disabled:opacity-60"><Trash2 size={17} /> Desativar</button></div>
+          <div className="mt-6 border-t border-brand-100 pt-5">
+            <h3 className={`font-semibold ${isInactive ? 'text-sage-600' : 'text-danger-600'}`}>{isInactive ? 'Reativar estabelecimento' : 'Desativar estabelecimento'}</h3>
+            <p className="mt-2 text-sm leading-6 text-brand-600">{isInactive ? 'Reative o salão para retomar as operações com os dados e vínculos preservados.' : 'O salão deixará de aceitar novas operações administrativas e novos agendamentos. O histórico será preservado.'}</p>
+            <button type="button" disabled={updateMutation.isPending || deactivateMutation.isPending || reactivateMutation.isPending} onClick={() => {
+              setMessage(null)
+              setErrorMessage(null)
+              if (isInactive) reactivateMutation.mutate()
+              else setIsConfirmingDeactivation(true)
+            }} className={`mt-4 inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60 ${isInactive ? 'border-sage-600/30 text-sage-600 hover:bg-sage-50' : 'border-danger-500/30 text-danger-600 hover:bg-danger-500/5'}`}>
+              {isInactive ? <RotateCcw size={17} /> : <Power size={17} />}
+              {reactivateMutation.isPending ? 'Reativando...' : isInactive ? 'Reativar' : 'Desativar'}
+            </button>
+          </div>
         </aside>
       </div>
       {isConfirmingDeactivation && <ConfirmDialog title="Desativar estabelecimento" message={`Tem certeza que deseja desativar “${establishment.name}”? Esta ação bloqueará novas operações administrativas e novos agendamentos, mas preservará o histórico.`} confirmLabel="Desativar estabelecimento" isLoading={deactivateMutation.isPending} onConfirm={() => deactivateMutation.mutate()} onCancel={() => setIsConfirmingDeactivation(false)} />}

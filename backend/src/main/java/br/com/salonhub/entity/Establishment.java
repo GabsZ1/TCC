@@ -79,6 +79,10 @@ public class Establishment {
         this.maximumAdvanceDays = maximumAdvanceDays;
     }
 
+    public void reactivate() {
+        this.active = true;
+    }
+
     public void deactivate() {
         this.active = false;
     }

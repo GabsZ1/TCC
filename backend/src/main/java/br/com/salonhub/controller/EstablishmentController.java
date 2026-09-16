@@ -29,6 +29,11 @@ public class EstablishmentController {
         return establishmentManagementService.update(Long.valueOf(jwt.getSubject()), request);
     }
 
+    @PatchMapping("/ativacao")
+    public EstablishmentResponse reactivate(@AuthenticationPrincipal Jwt jwt) {
+        return establishmentManagementService.reactivate(Long.valueOf(jwt.getSubject()));
+    }
+
     @DeleteMapping
     public ResponseEntity<Void> deactivate(@AuthenticationPrincipal Jwt jwt) {
         establishmentManagementService.deactivate(Long.valueOf(jwt.getSubject()));

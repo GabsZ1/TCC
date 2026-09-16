@@ -43,3 +43,7 @@ export function updateMyEstablishment(input: EstablishmentUpdateInput) {
 export function deactivateMyEstablishment() {
   return api.delete('/estabelecimentos/me')
 }
+
+export function reactivateMyEstablishment() {
+  return api.patch<Establishment>('/estabelecimentos/me/ativacao').then((response) => response.data)
+}
