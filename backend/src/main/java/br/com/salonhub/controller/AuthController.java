@@ -6,7 +6,8 @@ import br.com.salonhub.dto.auth.LoginRequest;
 import br.com.salonhub.dto.auth.LoginResponse;
 import br.com.salonhub.dto.auth.AuthenticatedUserResponse;
 import br.com.salonhub.dto.auth.ClientRegistrationRequest;
-import br.com.salonhub.service.AuthService;
+import br.com.salonhub.service.auth.AuthenticationService;
+import br.com.salonhub.service.auth.RegistrationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
@@ -29,7 +30,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final AuthService authService;
+    private final RegistrationService registrationService;
+    private final AuthenticationService authenticationService;
 
     @PostMapping("/cadastro")
     @ResponseStatus(HttpStatus.CREATED)
@@ -42,7 +44,7 @@ public class AuthController {
     @ApiResponse(responseCode = "409", description = "CNPJ ou e-mail já cadastrado")
     @SecurityRequirements
     public InitialRegistrationResponse register(@Valid @RequestBody InitialRegistrationRequest request) {
-        return authService.register(request);
+        return registrationService.registerEstablishment(request);
     }
 
     @PostMapping("/clientes")
@@ -53,7 +55,7 @@ public class AuthController {
     @ApiResponse(responseCode = "409", description = "E-mail já cadastrado")
     @SecurityRequirements
     public AuthenticatedUserResponse registerClient(@Valid @RequestBody ClientRegistrationRequest request) {
-        return authService.registerClient(request);
+        return registrationService.registerClient(request);
     }
 
     @PostMapping("/login")
@@ -62,7 +64,7 @@ public class AuthController {
     @ApiResponse(responseCode = "401", description = "Credenciais inválidas")
     @SecurityRequirements
     public LoginResponse login(@Valid @RequestBody LoginRequest request) {
-        return authService.authenticate(request);
+        return authenticationService.authenticate(request);
     }
 
     @GetMapping("/me")
@@ -70,6 +72,6 @@ public class AuthController {
     @ApiResponse(responseCode = "200", description = "Usuário autenticado")
     @ApiResponse(responseCode = "401", description = "Token ausente, inválido ou usuário inativo")
     public AuthenticatedUserResponse getCurrentUser(@AuthenticationPrincipal Jwt jwt) {
-        return authService.getCurrentUser(Long.valueOf(jwt.getSubject()));
+        return authenticationService.getCurrentUser(Long.valueOf(jwt.getSubject()));
     }
 }
