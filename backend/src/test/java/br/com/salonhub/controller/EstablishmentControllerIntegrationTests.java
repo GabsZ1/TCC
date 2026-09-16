@@ -136,7 +136,7 @@ class EstablishmentControllerIntegrationTests {
             }
         }
         String token = bearer(admin);
-        admin.setActive(false);
+        admin.deactivate();
         userRepository.saveAndFlush(admin);
         for (MockHttpServletRequestBuilder request : establishmentRequests()) {
             mockMvc.perform(request.header("Authorization", token))

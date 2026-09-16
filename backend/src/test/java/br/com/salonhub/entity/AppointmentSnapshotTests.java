@@ -19,10 +19,12 @@ class AppointmentSnapshotTests {
         Appointment appointment = Appointment.builder().service(service).build();
 
         appointment.snapshotService(service);
-        service.setName("Corte reajustado");
-        service.setPrice(new BigDecimal("80.00"));
-        service.setCommissionPercentage(new BigDecimal("20.00"));
-        service.setDurationMinutes(90);
+        service.updateDetails(
+                "Corte reajustado",
+                service.getDescription(),
+                new BigDecimal("80.00"),
+                new BigDecimal("20.00"),
+                90);
 
         assertThat(appointment.getServiceName()).isEqualTo("Corte original");
         assertThat(appointment.getAgreedPrice()).isEqualByComparingTo("50.00");

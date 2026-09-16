@@ -50,16 +50,15 @@ public class EmployeeService {
         Long establishmentId = administrator.getEstablishment().getId();
         User employee = findEmployee(employeeId, establishmentId);
 
-        employee.setOffersAllServices(request.allServices());
-        employee.getOfferedServices().clear();
+        List<EstablishmentService> services = List.of();
         if (!request.allServices() && !request.serviceIds().isEmpty()) {
-            List<EstablishmentService> services = establishmentServiceRepository
+            services = establishmentServiceRepository
                     .findByIdInAndEstablishmentIdAndActiveTrue(request.serviceIds(), establishmentId);
             if (services.size() != request.serviceIds().size()) {
                 throw new ResourceNotFoundException("Um ou mais serviços não foram encontrados.");
             }
-            employee.getOfferedServices().addAll(services);
         }
+        employee.updateOfferedServices(request.allServices(), services);
         userRepository.save(employee);
         return responseWithEffectiveServices(employee);
     }
@@ -120,8 +119,7 @@ public class EmployeeService {
             throw new ConflictException("E-mail já cadastrado no sistema.");
         }
 
-        employee.setName(request.name().trim());
-        employee.setEmail(email);
+        employee.updateProfile(request.name().trim(), email);
 
         return AuthenticatedUserResponse.fromEntity(userRepository.save(employee));
     }
@@ -135,7 +133,7 @@ public class EmployeeService {
             throw new ConflictException("O funcionário já está ativo.");
         }
 
-        employee.setActive(true);
+        employee.reactivate();
         return AuthenticatedUserResponse.fromEntity(userRepository.save(employee));
     }
 
@@ -158,7 +156,7 @@ public class EmployeeService {
             throw new ConflictException("O funcionário já está desativado.");
         }
 
-        employee.setActive(false);
+        employee.deactivate();
         userRepository.save(employee);
         return new EmployeeRemovalResponse(
                 false,

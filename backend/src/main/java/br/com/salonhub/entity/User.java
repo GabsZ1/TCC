@@ -6,13 +6,14 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.OffsetDateTime;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
 @Entity
 @Table(name = "users")
 @Getter
-@Setter
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -62,4 +63,31 @@ public class User {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
+
+    public void updateProfile(String name, String email) {
+        this.name = name;
+        this.email = email;
+    }
+
+    public Set<EstablishmentService> getOfferedServices() {
+        return Collections.unmodifiableSet(offeredServices);
+    }
+
+    public void updateOfferedServices(
+            boolean offersAllServices,
+            Collection<EstablishmentService> services) {
+        this.offersAllServices = offersAllServices;
+        this.offeredServices.clear();
+        if (!offersAllServices) {
+            this.offeredServices.addAll(services);
+        }
+    }
+
+    public void deactivate() {
+        this.active = false;
+    }
+
+    public void reactivate() {
+        this.active = true;
+    }
 }

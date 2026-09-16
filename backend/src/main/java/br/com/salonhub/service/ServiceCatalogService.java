@@ -52,11 +52,12 @@ public class ServiceCatalogService {
         User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
         EstablishmentService service = findService(id, administrator.getEstablishment().getId());
 
-        service.setName(request.name().trim());
-        service.setDescription(normalizeOptionalText(request.description()));
-        service.setPrice(request.price());
-        service.setCommissionPercentage(defaultCommission(request.commissionPercentage()));
-        service.setDurationMinutes(request.durationMinutes());
+        service.updateDetails(
+                request.name().trim(),
+                normalizeOptionalText(request.description()),
+                request.price(),
+                defaultCommission(request.commissionPercentage()),
+                request.durationMinutes());
 
         return EstablishmentServiceResponse.fromEntity(establishmentServiceRepository.save(service));
     }
@@ -66,7 +67,7 @@ public class ServiceCatalogService {
         User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
         EstablishmentService service = findService(id, administrator.getEstablishment().getId());
 
-        service.setActive(false);
+        service.deactivate();
         establishmentServiceRepository.save(service);
     }
 
