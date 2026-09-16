@@ -83,6 +83,18 @@ public class User {
         }
     }
 
+    public boolean offers(EstablishmentService service) {
+        if (offersAllServices) {
+            return true;
+        }
+        if (service == null) {
+            return false;
+        }
+        return offeredServices.stream().anyMatch(offeredService ->
+                offeredService == service
+                        || service.getId() != null && service.getId().equals(offeredService.getId()));
+    }
+
     public void deactivate() {
         this.active = false;
     }

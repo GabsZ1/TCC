@@ -41,7 +41,7 @@ public class AppointmentCommandService {
         Establishment establishment = findActiveEstablishment(establishmentId);
         EstablishmentService service = findActiveService(request.serviceId(), establishmentId);
         User professional = findAndLockProfessional(request.professionalId(), establishmentId);
-        validateProfessionalOffersService(professional, service);
+        requireProfessionalOffersService(professional, service);
 
         LocalDateTime startsAt = request.startsAt();
         LocalDateTime endsAt = startsAt.plusMinutes(service.getDurationMinutes());
@@ -65,7 +65,7 @@ public class AppointmentCommandService {
         Establishment establishment = findActiveEstablishment(establishmentId);
         EstablishmentService service = findActiveService(request.serviceId(), establishmentId);
         User professional = findAndLockProfessional(request.professionalId(), establishmentId);
-        validateProfessionalOffersService(professional, service);
+        requireProfessionalOffersService(professional, service);
 
         LocalDateTime startsAt = request.startsAt();
         LocalDateTime endsAt = startsAt.plusMinutes(service.getDurationMinutes());
@@ -126,9 +126,8 @@ public class AppointmentCommandService {
                 .orElseThrow(() -> new ResourceNotFoundException("Cliente não encontrado."));
     }
 
-    private void validateProfessionalOffersService(User professional, EstablishmentService service) {
-        if (!professional.isOffersAllServices()
-                && professional.getOfferedServices().stream().noneMatch(item -> item.getId().equals(service.getId()))) {
+    private void requireProfessionalOffersService(User professional, EstablishmentService service) {
+        if (!professional.offers(service)) {
             throw new ConflictException("O profissional selecionado não oferece este serviço.");
         }
     }

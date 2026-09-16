@@ -99,7 +99,7 @@ public class AppointmentQueryService {
         User professional = userRepository.findByIdAndEstablishmentIdAndRoleAndActiveTrue(
                         professionalId, establishmentId, UserRole.PROFESSIONAL)
                 .orElseThrow(() -> new ResourceNotFoundException("Funcionário não encontrado."));
-        validateProfessionalOffersService(professional, service);
+        requireProfessionalOffersService(professional, service);
 
         LocalDateTime dayStart = date.atStartOfDay();
         LocalDateTime dayEnd = date.plusDays(1).atStartOfDay();
@@ -162,9 +162,8 @@ public class AppointmentQueryService {
         }
     }
 
-    private void validateProfessionalOffersService(User professional, EstablishmentService service) {
-        if (!professional.isOffersAllServices()
-                && professional.getOfferedServices().stream().noneMatch(item -> item.getId().equals(service.getId()))) {
+    private void requireProfessionalOffersService(User professional, EstablishmentService service) {
+        if (!professional.offers(service)) {
             throw new ConflictException("O profissional selecionado não oferece este serviço.");
         }
     }
