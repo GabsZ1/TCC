@@ -1,7 +1,9 @@
 package br.com.salonhub.controller;
 
+import br.com.salonhub.dto.dashboard.DashboardSummaryResponse;
 import br.com.salonhub.dto.establishment.EstablishmentResponse;
 import br.com.salonhub.dto.establishment.EstablishmentUpdateRequest;
+import br.com.salonhub.service.DashboardService;
 import br.com.salonhub.service.EstablishmentManagementService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -16,10 +18,16 @@ import org.springframework.web.bind.annotation.*;
 public class EstablishmentController {
 
     private final EstablishmentManagementService establishmentManagementService;
+    private final DashboardService dashboardService;
 
     @GetMapping
     public EstablishmentResponse findMine(@AuthenticationPrincipal Jwt jwt) {
         return establishmentManagementService.findMine(Long.valueOf(jwt.getSubject()));
+    }
+
+    @GetMapping("/dashboard")
+    public DashboardSummaryResponse dashboard(@AuthenticationPrincipal Jwt jwt) {
+        return dashboardService.getSummary(Long.valueOf(jwt.getSubject()));
     }
 
     @PutMapping

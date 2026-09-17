@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -83,4 +84,25 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             LocalDateTime periodEnd,
             LocalDateTime periodStart
     );
+
+    long countByEstablishmentIdAndStatusAndStartsAtGreaterThanEqualAndStartsAtLessThan(
+            Long establishmentId,
+            AppointmentStatus status,
+            LocalDateTime periodStart,
+            LocalDateTime periodEnd
+    );
+
+    @Query("""
+            select sum(appointment.commissionAmount)
+            from Appointment appointment
+            where appointment.establishment.id = :establishmentId
+              and appointment.status = :status
+              and appointment.startsAt >= :periodStart
+              and appointment.startsAt < :periodEnd
+            """)
+    BigDecimal sumCommissionByEstablishmentIdAndStatusAndStartsAtBetween(
+            @Param("establishmentId") Long establishmentId,
+            @Param("status") AppointmentStatus status,
+            @Param("periodStart") LocalDateTime periodStart,
+            @Param("periodEnd") LocalDateTime periodEnd);
 }
