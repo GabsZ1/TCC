@@ -11,6 +11,8 @@ import br.com.salonhub.entity.User;
 import br.com.salonhub.entity.UserRole;
 import br.com.salonhub.exception.ConflictException;
 import br.com.salonhub.exception.ResourceNotFoundException;
+import br.com.salonhub.exception.UnauthorizedException;
+import org.springframework.security.access.AccessDeniedException;
 import br.com.salonhub.repository.AppointmentRepository;
 import br.com.salonhub.repository.EstablishmentBusinessHourRepository;
 import br.com.salonhub.repository.EstablishmentRepository;
@@ -88,6 +90,50 @@ public class AppointmentCommandService {
         }
         appointment.cancel();
         return AppointmentResponse.fromEntity(appointment);
+    }
+
+    @Transactional
+    public AppointmentResponse complete(Long userId, Long appointmentId) {
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Agendamento não encontrado."));
+        requireOwningProfessionalOrAdministrator(userId, appointment);
+        if (appointment.getStatus() != AppointmentStatus.CONFIRMED) {
+            throw new ConflictException("Apenas agendamentos confirmados podem ser concluídos.");
+        }
+        if (appointment.getStartsAt().isAfter(LocalDateTime.now(clock))) {
+            throw new ConflictException("O agendamento só pode ser concluído a partir do horário previsto de início.");
+        }
+        appointment.complete();
+        return AppointmentResponse.fromEntity(appointment);
+    }
+
+    @Transactional
+    public AppointmentResponse invalidate(Long administratorId, Long appointmentId, String reason) {
+        User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
+        Appointment appointment = appointmentRepository
+                .findByIdAndEstablishmentId(appointmentId, administrator.getEstablishment().getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Agendamento não encontrado."));
+        if (appointment.getStatus() != AppointmentStatus.COMPLETED) {
+            throw new ConflictException("Apenas agendamentos concluídos podem ser invalidados.");
+        }
+        appointment.invalidate(reason);
+        return AppointmentResponse.fromEntity(appointment);
+    }
+
+    private void requireOwningProfessionalOrAdministrator(Long userId, Appointment appointment) {
+        User user = userRepository.findById(userId)
+                .filter(User::isActive)
+                .orElseThrow(() -> new UnauthorizedException("Usuário inválido ou inativo"));
+
+        boolean isOwningProfessional = user.getRole() == UserRole.PROFESSIONAL
+                && user.getId().equals(appointment.getProfessional().getId());
+        boolean isEstablishmentAdministrator = user.getRole() == UserRole.ADMIN
+                && user.getEstablishment() != null
+                && user.getEstablishment().getId().equals(appointment.getEstablishment().getId());
+
+        if (!isOwningProfessional && !isEstablishmentAdministrator) {
+            throw new AccessDeniedException("Você não tem permissão para concluir este agendamento.");
+        }
     }
 
     private void validateSchedule(

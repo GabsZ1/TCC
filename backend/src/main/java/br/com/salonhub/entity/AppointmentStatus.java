@@ -2,5 +2,7 @@ package br.com.salonhub.entity;
 
 public enum AppointmentStatus {
     CONFIRMED,
-    CANCELLED
+    CANCELLED,
+    COMPLETED,
+    INVALIDATED
 }

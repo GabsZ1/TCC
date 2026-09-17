@@ -22,7 +22,8 @@ public record AppointmentResponse(
         String clientName,
         LocalDateTime startsAt,
         LocalDateTime endsAt,
-        AppointmentStatus status
+        AppointmentStatus status,
+        String invalidationReason
 ) {
     public static AppointmentResponse fromEntity(Appointment appointment) {
         return new AppointmentResponse(
@@ -41,7 +42,8 @@ public record AppointmentResponse(
                 appointment.getClient().getName(),
                 appointment.getStartsAt(),
                 appointment.getEndsAt(),
-                appointment.getStatus()
+                appointment.getStatus(),
+                appointment.getInvalidationReason()
         );
     }
 }

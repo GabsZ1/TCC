@@ -12,7 +12,7 @@ export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
   const location = useLocation()
 
   if (isLoading) {
-    return null // ou um spinner de tela cheia, se preferir
+    return null // ou um spinner de tela cheia
   }
 
   if (!isAuthenticated || !user) {

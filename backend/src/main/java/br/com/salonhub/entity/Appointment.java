@@ -75,6 +75,9 @@ public class Appointment {
     @Column(nullable = false, length = 20)
     private AppointmentStatus status = AppointmentStatus.CONFIRMED;
 
+    @Column(name = "invalidation_reason", length = 500)
+    private String invalidationReason;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
@@ -103,6 +106,15 @@ public class Appointment {
 
     public void cancel() {
         this.status = AppointmentStatus.CANCELLED;
+    }
+
+    public void complete() {
+        this.status = AppointmentStatus.COMPLETED;
+    }
+
+    public void invalidate(String reason) {
+        this.status = AppointmentStatus.INVALIDATED;
+        this.invalidationReason = reason;
     }
 
     public void update(EstablishmentService service, User professional, LocalDateTime startsAt) {

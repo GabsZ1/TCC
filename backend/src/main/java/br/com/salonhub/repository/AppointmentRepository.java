@@ -48,6 +48,8 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     Optional<Appointment> findByIdAndClientId(Long id, Long clientId);
 
+    Optional<Appointment> findByIdAndEstablishmentId(Long id, Long establishmentId);
+
     List<Appointment> findByProfessionalIdOrderByStartsAtDesc(Long professionalId);
 
     @Query("""
