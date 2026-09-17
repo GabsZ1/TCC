@@ -15,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -66,8 +65,6 @@ class EstablishmentControllerIntegrationTests {
         entityManager.flush();
         entityManager.clear();
         Establishment updated = establishmentRepository.findById(firstId).orElseThrow();
-        assertThat(updated.getOpeningTime()).isEqualTo(LocalTime.of(9, 0));
-        assertThat(updated.getClosingTime()).isEqualTo(LocalTime.of(18, 0));
         assertThat(establishmentRepository.findById(secondId).orElseThrow().getName())
                 .isEqualTo("Salão second");
 
@@ -258,8 +255,6 @@ class EstablishmentControllerIntegrationTests {
         entityManager.clear();
         Establishment reactivated = establishmentRepository.findById(establishmentId).orElseThrow();
         assertThat(reactivated.isActive()).isTrue();
-        assertThat(reactivated.getOpeningTime()).isEqualTo(establishment.getOpeningTime());
-        assertThat(reactivated.getClosingTime()).isEqualTo(establishment.getClosingTime());
         assertThat(reactivated.getMinimumAdvanceMinutes()).isEqualTo(establishment.getMinimumAdvanceMinutes());
         assertThat(reactivated.getMaximumAdvanceDays()).isEqualTo(establishment.getMaximumAdvanceDays());
         User preservedProfessional = userRepository.findById(professional.getId()).orElseThrow();

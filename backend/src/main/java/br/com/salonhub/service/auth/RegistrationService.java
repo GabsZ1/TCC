@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
+import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.Locale;
 
@@ -101,8 +102,8 @@ public class RegistrationService {
                         .establishment(establishment)
                         .dayOfWeek(day)
                         .closed(false)
-                        .openingTime(establishment.getOpeningTime())
-                        .closingTime(establishment.getClosingTime())
+                        .openingTime(LocalTime.of(9, 0))
+                        .closingTime(LocalTime.of(18, 0))
                         .build())
                 .toList());
     }

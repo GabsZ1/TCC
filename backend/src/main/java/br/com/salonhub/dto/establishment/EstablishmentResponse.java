@@ -1,7 +1,6 @@
 package br.com.salonhub.dto.establishment;
 
 import br.com.salonhub.entity.Establishment;
-import java.time.LocalTime;
 import java.util.List;
 
 public record EstablishmentResponse(
@@ -10,8 +9,6 @@ public record EstablishmentResponse(
         String cnpj,
         String email,
         String phone,
-        LocalTime openingTime,
-        LocalTime closingTime,
         boolean active,
         List<BusinessHourResponse> businessHours,
         Integer minimumAdvanceHours,
@@ -24,8 +21,6 @@ public record EstablishmentResponse(
                 establishment.getCnpj(),
                 establishment.getEmail(),
                 establishment.getPhone(),
-                establishment.getOpeningTime(),
-                establishment.getClosingTime(),
                 establishment.isActive(),
                 businessHours,
                 establishment.getMinimumAdvanceMinutes() / 60,

@@ -6,8 +6,6 @@ export interface Establishment {
   cnpj: string
   email: string | null
   phone: string | null
-  openingTime: string
-  closingTime: string
   active: boolean
   businessHours: BusinessHour[]
   minimumAdvanceHours: number
