@@ -35,7 +35,8 @@ export interface Appointment {
   clientName: string
   startsAt: string
   endsAt: string
-  status: 'CONFIRMED' | 'CANCELLED'
+  status: 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'INVALIDATED'
+  invalidationReason: string | null
 }
 
 export interface ActiveEstablishment {
@@ -71,6 +72,14 @@ export function fetchMyAppointments() {
 
 export function cancelAppointment(appointmentId: number) {
   return api.patch<Appointment>(`/agendamentos/${appointmentId}/cancelamento`).then((response) => response.data)
+}
+
+export function completeAppointment(appointmentId: number) {
+  return api.patch<Appointment>(`/agendamentos/${appointmentId}/conclusao`).then((response) => response.data)
+}
+
+export function invalidateAppointment(appointmentId: number, reason: string) {
+  return api.patch<Appointment>(`/agendamentos/${appointmentId}/invalidacao`, { reason }).then((response) => response.data)
 }
 
 export function updateAppointment(appointmentId: number, serviceId: number, professionalId: number, startsAt: string) {

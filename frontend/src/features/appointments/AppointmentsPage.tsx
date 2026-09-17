@@ -74,7 +74,10 @@ export function AppointmentsPage() {
                     <p className="mt-1 flex items-center gap-2"><Clock3 size={16} /> {formatTime(appointment.startsAt)} às {formatTime(appointment.endsAt)}</p>
                   </div>
                   <div>
-                    {appointment.status === 'CANCELLED' && <StatusBadge>Cancelado</StatusBadge>}
+                    {appointment.status !== 'CONFIRMED' && <StatusBadge status={appointment.status} />}
+                    {appointment.status === 'INVALIDATED' && appointment.invalidationReason && (
+                      <p className="mt-2 max-w-[16rem] text-xs text-amber-700">Motivo: {appointment.invalidationReason}</p>
+                    )}
                     {appointment.status === 'CONFIRMED' && isFuture(appointment.startsAt) && <div className="flex flex-wrap gap-2"><button type="button" onClick={() => setEditing(appointment)} className="rounded-xl border border-brand-200 px-4 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-50">Editar agendamento</button><button type="button" onClick={() => requestCancellation(appointment)} className="rounded-xl border border-danger-500/30 px-4 py-2 text-sm font-semibold text-danger-600 hover:bg-danger-500/5">Cancelar agendamento</button></div>}
                   </div>
                 </div>
@@ -106,7 +109,16 @@ export function AppointmentsPage() {
 
 function Tabs({ section, onChange }: { section: AppointmentSection; onChange: (section: AppointmentSection) => void }) { return <div className="mt-5 flex gap-2 border-b border-brand-100"><TabButton active={section === 'upcoming'} onClick={() => onChange('upcoming')}>Próximos</TabButton><TabButton active={section === 'history'} onClick={() => onChange('history')}>Histórico</TabButton></div> }
 function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) { return <button type="button" onClick={onClick} className={`border-b-2 px-3 py-2 text-sm font-semibold ${active ? 'border-brand-600 text-brand-800' : 'border-transparent text-brand-600 hover:text-brand-800'}`}>{children}</button> }
-function StatusBadge({ children }: { children: React.ReactNode }) { return <span className="rounded-full bg-danger-500/10 px-2.5 py-1 text-xs font-semibold text-danger-600">{children}</span> }
+function StatusBadge({ status }: { status: Appointment['status'] }) {
+  const labels: Record<Appointment['status'], string> = { CONFIRMED: 'Confirmado', CANCELLED: 'Cancelado', COMPLETED: 'Concluído', INVALIDATED: 'Invalidado' }
+  const styles: Record<Appointment['status'], string> = {
+    CONFIRMED: 'bg-sage-50 text-sage-600',
+    CANCELLED: 'bg-danger-500/10 text-danger-600',
+    COMPLETED: 'bg-brand-50 text-brand-700',
+    INVALIDATED: 'bg-amber-100 text-amber-700',
+  }
+  return <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${styles[status]}`}>{labels[status]}</span>
+}
 function isFuture(value: string) { return new Date(value).getTime() > Date.now() }
 function isUpcoming(appointment: Appointment) { return appointment.status === 'CONFIRMED' && isFuture(appointment.startsAt) }
 function EmptyState({ children, error = false }: { children: React.ReactNode; error?: boolean }) { return <div className={`rounded-2xl border bg-white p-8 text-center ${error ? 'border-danger-500/30 text-danger-600' : 'border-brand-100 text-brand-600'}`}>{children}</div> }
