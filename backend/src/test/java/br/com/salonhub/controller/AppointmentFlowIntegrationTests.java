@@ -62,14 +62,16 @@ class AppointmentFlowIntegrationTests {
                         .content("""
                                 {
                                   "name": "Profissional MVP",
-                                  "email": "professional.appointment@salonhub.test",
-                                  "password": "senha123"
+                                  "email": "professional.appointment@salonhub.test"
                                 }
                                 """))
                 .andExpect(status().isCreated())
                 .andReturn();
         Number professionalId = JsonPath.read(professional.getResponse().getContentAsString(), "$.id");
 
+        String firstAccessToken = JsonPath.read(
+                professional.getResponse().getContentAsString(), "$.firstAccessToken");
+        completeFirstAccess(firstAccessToken, "senha123");
         MvcResult service = mockMvc.perform(post("/api/servicos")
                         .header("Authorization", bearer(administratorToken))
                         .contentType(MediaType.APPLICATION_JSON)
@@ -366,6 +368,15 @@ class AppointmentFlowIntegrationTests {
                   "startsAt": "%s"
                 }
                 """.formatted(serviceId.longValue(), professionalId.longValue(), startsAt);
+    }
+
+    private void completeFirstAccess(String token, String password) throws Exception {
+        mockMvc.perform(post("/api/auth/primeiro-acesso")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"token":"%s","password":"%s"}
+                                """.formatted(token, password)))
+                .andExpect(status().isNoContent());
     }
 
     private String bearer(String token) {
