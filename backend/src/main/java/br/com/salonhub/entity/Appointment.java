@@ -78,6 +78,9 @@ public class Appointment {
     @Column(name = "invalidation_reason", length = 500)
     private String invalidationReason;
 
+    @Column(name = "completed_at")
+    private LocalDateTime completedAt;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
@@ -108,8 +111,9 @@ public class Appointment {
         this.status = AppointmentStatus.CANCELLED;
     }
 
-    public void complete() {
+    public void complete(LocalDateTime completedAt) {
         this.status = AppointmentStatus.COMPLETED;
+        this.completedAt = completedAt;
     }
 
     public void invalidate(String reason) {

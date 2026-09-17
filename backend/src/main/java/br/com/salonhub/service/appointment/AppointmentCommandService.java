@@ -100,10 +100,11 @@ public class AppointmentCommandService {
         if (appointment.getStatus() != AppointmentStatus.CONFIRMED) {
             throw new ConflictException("Apenas agendamentos confirmados podem ser concluídos.");
         }
-        if (appointment.getStartsAt().isAfter(LocalDateTime.now(clock))) {
+        LocalDateTime now = LocalDateTime.now(clock);
+        if (appointment.getStartsAt().isAfter(now)) {
             throw new ConflictException("O agendamento só pode ser concluído a partir do horário previsto de início.");
         }
-        appointment.complete();
+        appointment.complete(now);
         return AppointmentResponse.fromEntity(appointment);
     }
 

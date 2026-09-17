@@ -105,4 +105,28 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             @Param("status") AppointmentStatus status,
             @Param("periodStart") LocalDateTime periodStart,
             @Param("periodEnd") LocalDateTime periodEnd);
+
+    @Query("""
+            select
+                professional.id as professionalId,
+                professional.name as professionalName,
+                count(appointment) as completedServicesCount,
+                sum(appointment.agreedPrice) as totalServiceValue,
+                sum(appointment.commissionAmount) as totalCommission
+            from Appointment appointment
+            join appointment.professional professional
+            where appointment.establishment.id = :establishmentId
+              and appointment.status = :status
+              and appointment.completedAt >= :periodStart
+              and appointment.completedAt < :periodEnd
+              and (:professionalId is null or professional.id = :professionalId)
+            group by professional.id, professional.name
+            order by professional.name asc
+            """)
+    List<CommissionReportRow> findCommissionReportRows(
+            @Param("establishmentId") Long establishmentId,
+            @Param("status") AppointmentStatus status,
+            @Param("periodStart") LocalDateTime periodStart,
+            @Param("periodEnd") LocalDateTime periodEnd,
+            @Param("professionalId") Long professionalId);
 }
