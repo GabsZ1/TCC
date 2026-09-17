@@ -89,11 +89,17 @@ class TenantIsolationIntegrationTests {
         String adminToken = registerAndLogin(
                 "admin.five@salonhub.test", "55555555000191", "Estabelecimento Cinco");
 
-        mockMvc.perform(post("/api/funcionarios")
+        MvcResult createdProfessional = mockMvc.perform(post("/api/funcionarios")
                         .header("Authorization", bearer(adminToken))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(employeePayload("Profissional Bloqueado", "professional.blocked@salonhub.test")))
-                .andExpect(status().isCreated());
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.firstAccessToken").isNotEmpty())
+                .andReturn();
+
+        String firstAccessToken = JsonPath.read(
+                createdProfessional.getResponse().getContentAsString(), "$.firstAccessToken");
+        completeFirstAccess(firstAccessToken, "senha123");
 
         String professionalToken = login("professional.blocked@salonhub.test");
 
@@ -146,8 +152,7 @@ class TenantIsolationIntegrationTests {
         return """
                 {
                   "name": "%s",
-                  "email": "%s",
-                  "password": "senha123"
+                  "email": "%s"
                 }
                 """.formatted(name, email);
     }
@@ -162,6 +167,15 @@ class TenantIsolationIntegrationTests {
                   "durationMinutes": 60
                 }
                 """.formatted(name);
+    }
+
+    private void completeFirstAccess(String token, String password) throws Exception {
+        mockMvc.perform(post("/api/auth/primeiro-acesso")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"token":"%s","password":"%s"}
+                                """.formatted(token, password)))
+                .andExpect(status().isNoContent());
     }
 
     private String bearer(String token) {

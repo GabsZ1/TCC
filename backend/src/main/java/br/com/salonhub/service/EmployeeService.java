@@ -2,6 +2,7 @@ package br.com.salonhub.service;
 
 import br.com.salonhub.dto.auth.AuthenticatedUserResponse;
 import br.com.salonhub.dto.employee.EmployeeCreateRequest;
+import br.com.salonhub.dto.employee.EmployeeCreationResponse;
 import br.com.salonhub.dto.employee.EmployeeRemovalResponse;
 import br.com.salonhub.dto.employee.EmployeeUpdateRequest;
 import br.com.salonhub.dto.employee.ProfessionalServicesRequest;
@@ -15,12 +16,14 @@ import br.com.salonhub.repository.AppointmentRepository;
 import br.com.salonhub.repository.UserRepository;
 import br.com.salonhub.repository.EstablishmentServiceRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -31,6 +34,7 @@ public class EmployeeService {
     private final PasswordEncoder passwordEncoder;
     private final TenantAuthorizationService tenantAuthorizationService;
     private final EstablishmentServiceRepository establishmentServiceRepository;
+    private final TokenService tokenService;
 
     @Transactional(readOnly = true)
     public ProfessionalServicesResponse findServices(Long userId, Long employeeId) {
@@ -74,7 +78,7 @@ public class EmployeeService {
     }
 
     @Transactional
-    public AuthenticatedUserResponse create(Long administratorId, EmployeeCreateRequest request) {
+    public EmployeeCreationResponse create(Long administratorId, EmployeeCreateRequest request) {
         User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
 
         String email = request.email().trim().toLowerCase(Locale.ROOT);
@@ -85,13 +89,16 @@ public class EmployeeService {
         User employee = User.builder()
                 .name(request.name().trim())
                 .email(email)
-                .password(passwordEncoder.encode(request.password()))
+                .password(passwordEncoder.encode(UUID.randomUUID().toString()))
+                .passwordInitialized(false)
                 .role(UserRole.PROFESSIONAL)
                 .establishment(administrator.getEstablishment())
                 .active(true)
                 .build();
 
-        return AuthenticatedUserResponse.fromEntity(userRepository.save(employee));
+        User savedEmployee = userRepository.save(employee);
+        TokenService.GeneratedToken token = tokenService.generateFirstAccess(savedEmployee);
+        return EmployeeCreationResponse.fromEntity(savedEmployee, token.value(), token.expiresAt());
     }
 
     @Transactional(readOnly = true)
@@ -137,29 +144,34 @@ public class EmployeeService {
     }
 
     @Transactional
+    public AuthenticatedUserResponse deactivate(Long administratorId, Long employeeId) {
+        User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
+        User employee = findEmployee(employeeId, administrator.getEstablishment().getId());
+        if (!employee.isActive()) {
+            throw new ConflictException("O funcionário já está desativado.");
+        }
+        employee.deactivate();
+        return AuthenticatedUserResponse.fromEntity(employee);
+    }
+
+    @Transactional
     public EmployeeRemovalResponse remove(Long administratorId, Long employeeId) {
         User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
         User employee = findEmployee(employeeId, administrator.getEstablishment().getId());
-
-        boolean hasAppointments = appointmentRepository.existsByProfessionalId(employee.getId());
-
-        // RN 2.3.2: só é possível remover de verdade um funcionário sem atendimentos
-        // vinculados; caso contrário, a remoção é convertida em inativação (CT04).
-        if (!hasAppointments) {
+        // Use the same professional lock as appointment creation.
+        userRepository.findByIdForUpdate(employee.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Funcionário não encontrado."));
+        if (appointmentRepository.existsByProfessionalId(employee.getId())
+                || !employee.getOfferedServices().isEmpty()) {
+            throw new ConflictException("O funcionário possui agendamentos ou serviços vinculados e não pode ser excluído. Utilize a desativação.");
+        }
+        try {
             userRepository.delete(employee);
-            return new EmployeeRemovalResponse(true, "O funcionário foi removido com sucesso.");
+            userRepository.flush();
+        } catch (DataIntegrityViolationException exception) {
+            throw new ConflictException("O funcionário possui vínculos que impedem a exclusão definitiva. Utilize a desativação.");
         }
-
-        if (!employee.isActive()) {
-            // CT05: funcionário já está desativado, nenhuma alteração é realizada.
-            throw new ConflictException("O funcionário já está desativado.");
-        }
-
-        employee.deactivate();
-        return new EmployeeRemovalResponse(
-                false,
-                "O funcionário não pode ser removido pois possui atendimentos vinculados. Ele foi desativado."
-        );
+        return new EmployeeRemovalResponse(true, "O funcionário foi excluído definitivamente.");
     }
 
     private User findEmployee(Long employeeId, Long establishmentId) {

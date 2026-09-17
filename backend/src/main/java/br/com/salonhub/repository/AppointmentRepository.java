@@ -54,7 +54,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             select appointment
             from Appointment appointment
             where appointment.establishment.id = :establishmentId
-              and (:dayStart is null or (
+              and (cast(:dayStart as LocalDateTime) is null or (
                     appointment.startsAt >= :dayStart
                     and appointment.startsAt < :dayEnd))
               and (:professionalId is null or appointment.professional.id = :professionalId)

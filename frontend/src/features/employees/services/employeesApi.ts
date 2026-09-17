@@ -7,7 +7,11 @@ export type Employee = AuthenticatedUser
 export interface EmployeeCreateInput {
   name: string
   email: string
-  password: string
+}
+
+export interface EmployeeCreationResult extends Employee {
+  firstAccessToken: string
+  firstAccessExpiresAt: string
 }
 
 export interface EmployeeUpdateInput {
@@ -31,11 +35,15 @@ export function fetchEmployees() {
 }
 
 export function createEmployee(input: EmployeeCreateInput) {
-  return api.post<Employee>('/funcionarios', input).then((res) => res.data)
+  return api.post<EmployeeCreationResult>('/funcionarios', input).then((res) => res.data)
 }
 
 export function updateEmployee(id: number, input: EmployeeUpdateInput) {
   return api.put<Employee>(`/funcionarios/${id}`, input).then((res) => res.data)
+}
+
+export function deactivateEmployee(id: number) {
+  return api.patch<Employee>(`/funcionarios/${id}/desativacao`).then((res) => res.data)
 }
 
 export function reactivateEmployee(id: number) {
@@ -54,11 +62,7 @@ export function fetchMyProfessionalServices() {
   return api.get<ProfessionalServices>('/funcionarios/me/servicos').then((res) => res.data)
 }
 
-/**
- * Remove um funcionário. Se ele não tiver atendimentos vinculados, é
- * removido permanentemente; caso contrário, o back-end apenas o desativa
- * (RN 2.3.2 do TCC) — o resultado informa qual das duas coisas aconteceu.
- */
+/** Exclui definitivamente; o backend rejeita a operação se houver vínculos. */
 export function removeEmployee(id: number) {
   return api.delete<EmployeeRemovalResult>(`/funcionarios/${id}`).then((res) => res.data)
 }

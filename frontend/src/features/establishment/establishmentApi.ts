@@ -6,8 +6,6 @@ export interface Establishment {
   cnpj: string
   email: string | null
   phone: string | null
-  openingTime: string
-  closingTime: string
   active: boolean
   businessHours: BusinessHour[]
   minimumAdvanceHours: number
@@ -42,4 +40,8 @@ export function updateMyEstablishment(input: EstablishmentUpdateInput) {
 
 export function deactivateMyEstablishment() {
   return api.delete('/estabelecimentos/me')
+}
+
+export function reactivateMyEstablishment() {
+  return api.patch<Establishment>('/estabelecimentos/me/ativacao').then((response) => response.data)
 }

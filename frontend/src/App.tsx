@@ -7,6 +7,7 @@ import { DashboardPage } from '@/features/dashboard/pages/DashboardPage'
 import { EmployeesListPage } from '@/features/employees/pages/EmployeesListPage'
 import { InitialRegistrationPage } from '@/features/auth/pages/InitialRegistrationPage'
 import { ClientRegistrationPage } from '@/features/auth/pages/ClientRegistrationPage'
+import { FirstAccessPage } from '@/features/auth/pages/FirstAccessPage'
 import { ServicesPage } from '@/features/services/ServicesPage'
 import { AppointmentsPage } from '@/features/appointments/AppointmentsPage'
 import { BookingPage } from '@/features/appointments/BookingPage'
@@ -20,6 +21,7 @@ function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/cadastro" element={<InitialRegistrationPage />} />
       <Route path="/cadastro-cliente" element={<ClientRegistrationPage />} />
+      <Route path="/primeiro-acesso" element={<FirstAccessPage />} />
       <Route path="/sem-permissao" element={<ForbiddenPage />} />
 
       {/* Rotas autenticadas, dentro do layout com sidebar */}

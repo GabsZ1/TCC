@@ -34,3 +34,7 @@ export function registerInitial(input: InitialRegistrationInput) {
 export function registerClient(input: ClientRegistrationInput) {
   return api.post<AuthenticatedUser>('/auth/clientes', input).then((response) => response.data)
 }
+
+export function completeFirstAccess(token: string, password: string) {
+  return api.post<void>('/auth/primeiro-acesso', { token, password })
+}

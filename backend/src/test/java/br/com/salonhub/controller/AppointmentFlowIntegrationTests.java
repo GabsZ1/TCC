@@ -62,14 +62,16 @@ class AppointmentFlowIntegrationTests {
                         .content("""
                                 {
                                   "name": "Profissional MVP",
-                                  "email": "professional.appointment@salonhub.test",
-                                  "password": "senha123"
+                                  "email": "professional.appointment@salonhub.test"
                                 }
                                 """))
                 .andExpect(status().isCreated())
                 .andReturn();
         Number professionalId = JsonPath.read(professional.getResponse().getContentAsString(), "$.id");
 
+        String firstAccessToken = JsonPath.read(
+                professional.getResponse().getContentAsString(), "$.firstAccessToken");
+        completeFirstAccess(firstAccessToken, "senha123");
         MvcResult service = mockMvc.perform(post("/api/servicos")
                         .header("Authorization", bearer(administratorToken))
                         .contentType(MediaType.APPLICATION_JSON)
@@ -251,8 +253,8 @@ class AppointmentFlowIntegrationTests {
                         .header("Authorization", bearer(clientToken))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(appointmentPayload(serviceId, professionalId, appointmentDate.atTime(10, 30))))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.status").value("CONFIRMED"));
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Você já possui um agendamento nesse período."));
 
         mockMvc.perform(post("/api/estabelecimentos/{id}/agendamentos", establishmentId.longValue())
                         .header("Authorization", bearer(clientToken))
@@ -264,7 +266,7 @@ class AppointmentFlowIntegrationTests {
         mockMvc.perform(get("/api/agendamentos/me")
                         .header("Authorization", bearer(clientToken)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(4))
+                .andExpect(jsonPath("$.length()").value(3))
                 .andExpect(jsonPath("$[0].serviceName").value("Corte MVP"));
 
         String professionalToken = login("professional.appointment@salonhub.test");
@@ -272,7 +274,7 @@ class AppointmentFlowIntegrationTests {
         mockMvc.perform(get("/api/agendamentos/profissional/me")
                         .header("Authorization", bearer(professionalToken)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].serviceName").value("Corte MVP"))
                 .andExpect(jsonPath("$[0].clientName").value("Cliente MVP"));
 
@@ -366,6 +368,15 @@ class AppointmentFlowIntegrationTests {
                   "startsAt": "%s"
                 }
                 """.formatted(serviceId.longValue(), professionalId.longValue(), startsAt);
+    }
+
+    private void completeFirstAccess(String token, String password) throws Exception {
+        mockMvc.perform(post("/api/auth/primeiro-acesso")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"token":"%s","password":"%s"}
+                                """.formatted(token, password)))
+                .andExpect(status().isNoContent());
     }
 
     private String bearer(String token) {

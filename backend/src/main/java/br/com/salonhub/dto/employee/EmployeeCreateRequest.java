@@ -12,9 +12,5 @@ public record EmployeeCreateRequest(
         @NotBlank(message = "O e-mail é obrigatório")
         @Email(message = "E-mail em formato inválido")
         @Size(max = 150, message = "O e-mail deve ter no máximo 150 caracteres")
-        String email,
-
-        @NotBlank(message = "A senha provisória é obrigatória")
-        @Size(min = 8, message = "A senha deve ter no mínimo 8 caracteres")
-        String password
+        String email
 ) {}

@@ -60,6 +60,16 @@ public class EstablishmentManagementService {
         }
     }
 
+    @Transactional
+    public EstablishmentResponse reactivate(Long administratorId) {
+        Establishment establishment = findEstablishment(administratorId);
+        if (establishment.isActive()) {
+            throw new ConflictException("O estabelecimento já está ativo.");
+        }
+        establishment.reactivate();
+        return response(establishment);
+    }
+
     private Establishment findEstablishment(Long administratorId) {
         return tenantAuthorizationService.requireAdministratorIdentity(administratorId).getEstablishment();
     }

@@ -43,6 +43,10 @@ public class User {
     @Builder.Default
     private boolean active = true;
 
+    @Column(name = "password_initialized", nullable = false)
+    @Builder.Default
+    private boolean passwordInitialized = true;
+
     @Column(name = "offers_all_services", nullable = false)
     @Builder.Default
     private boolean offersAllServices = true;
@@ -67,6 +71,11 @@ public class User {
     public void updateProfile(String name, String email) {
         this.name = name;
         this.email = email;
+    }
+
+    public void initializePassword(String encodedPassword) {
+        this.password = encodedPassword;
+        this.passwordInitialized = true;
     }
 
     public Set<EstablishmentService> getOfferedServices() {

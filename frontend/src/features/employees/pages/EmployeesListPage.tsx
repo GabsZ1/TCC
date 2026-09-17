@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Pencil, Plus, RotateCcw, Scissors, Trash2 } from 'lucide-react'
+import { Pencil, Plus, Power, RotateCcw, Scissors, Trash2 } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { getApiErrorMessage } from '@/lib/apiError'
 import {
   createEmployee,
+  deactivateEmployee,
   fetchEmployees,
   removeEmployee,
   reactivateEmployee,
@@ -26,15 +27,18 @@ export function EmployeesListPage() {
 
   const [modalState, setModalState] = useState<ModalState>(null)
   const [formError, setFormError] = useState<string | null>(null)
-  // Etapa 1: aviso inicial. Etapa 2 (employeeToPermanentlyConfirm): confirmação
-  // reforçada, exigida pela RNF.01.01 antes de qualquer remoção — o back-end
-  // decide se o funcionário será removido de vez ou apenas desativado, então
-  // pedimos essa confirmação extra sempre que não há como saber de antemão.
+  // A exclusão definitiva exige aviso e confirmação pelo nome.
+  const [employeeToDeactivate, setEmployeeToDeactivate] = useState<Employee | null>(null)
   const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null)
   const [employeeToPermanentlyConfirm, setEmployeeToPermanentlyConfirm] = useState<Employee | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [removalMessage, setRemovalMessage] = useState<string | null>(null)
   const [servicesEmployee, setServicesEmployee] = useState<Employee | null>(null)
+  const [firstAccessInvitation, setFirstAccessInvitation] = useState<{
+    employeeName: string
+    link: string
+    expiresAt: string
+  } | null>(null)
 
   const {
     data: employees,
@@ -54,8 +58,13 @@ export function EmployeesListPage() {
 
   const createMutation = useMutation({
     mutationFn: createEmployee,
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: EMPLOYEES_QUERY_KEY })
+      setFirstAccessInvitation({
+        employeeName: result.name,
+        link: `${window.location.origin}/primeiro-acesso?token=${encodeURIComponent(result.firstAccessToken)}`,
+        expiresAt: result.firstAccessExpiresAt,
+      })
       closeFormModal()
     },
     onError: (err) => setFormError(getApiErrorMessage(err, 'Não foi possível criar o funcionário.')),
@@ -79,8 +88,24 @@ export function EmployeesListPage() {
       setEmployeeToPermanentlyConfirm(null)
       setRemovalMessage(result.message)
     },
-    onError: (err) =>
-      setDeleteError(getApiErrorMessage(err, 'Não foi possível remover o funcionário.')),
+    onError: (err) => {
+      setEmployeeToPermanentlyConfirm(null)
+      setDeleteError(getApiErrorMessage(err, 'Não foi possível excluir o funcionário.'))
+    },
+  })
+
+  const deactivateMutation = useMutation({
+    mutationFn: deactivateEmployee,
+    onSuccess: (employee) => {
+      queryClient.invalidateQueries({ queryKey: EMPLOYEES_QUERY_KEY })
+      setEmployeeToDeactivate(null)
+      setDeleteError(null)
+      setRemovalMessage(`${employee.name} foi desativado com sucesso.`)
+    },
+    onError: (err) => {
+      setEmployeeToDeactivate(null)
+      setDeleteError(getApiErrorMessage(err, 'Não foi possível desativar o funcionário.'))
+    },
   })
 
   const reactivateMutation = useMutation({
@@ -107,7 +132,6 @@ export function EmployeesListPage() {
       createMutation.mutate({
         name: values.name,
         email: values.email,
-        password: values.password ?? '',
       })
     }
   }
@@ -134,6 +158,7 @@ export function EmployeesListPage() {
     setEmployeeToPermanentlyConfirm(null)
   }
 
+  const isChangingLifecycle = removeMutation.isPending || deactivateMutation.isPending || reactivateMutation.isPending
   const isSavingForm = createMutation.isPending || updateMutation.isPending
 
   return (
@@ -156,6 +181,19 @@ export function EmployeesListPage() {
         <p role="status" className="mt-4 rounded-xl bg-sage-50 px-3 py-2 text-sm text-sage-600">
           {removalMessage}
         </p>
+      )}
+
+      {firstAccessInvitation && (
+        <div className="mt-4 rounded-xl bg-sage-50 p-4 text-sm text-brand-800">
+          <p className="font-medium">Funcionário cadastrado. Envie este link de primeiro acesso para {firstAccessInvitation.employeeName}:</p>
+          <input
+            aria-label="Link de primeiro acesso"
+            readOnly
+            value={firstAccessInvitation.link}
+            className="mt-2 w-full rounded-lg border border-brand-200 bg-white px-3 py-2"
+          />
+          <p className="mt-2 text-brand-600">O link é exibido apenas neste cadastro e expira em {new Date(firstAccessInvitation.expiresAt).toLocaleString('pt-BR')}.</p>
+        </div>
       )}
 
       <div className="mt-6 overflow-x-auto rounded-2xl border border-brand-100 bg-white shadow-sm">
@@ -233,23 +271,23 @@ export function EmployeesListPage() {
                         Editar
                       </button>
                       {employee.active && (
-                        <button
+                        <button disabled={isChangingLifecycle}
                           onClick={() => {
                             setDeleteError(null)
                             setRemovalMessage(null)
-                            setEmployeeToDelete(employee)
+                            setEmployeeToDeactivate(employee)
                           }}
                           className="flex items-center gap-1 text-danger-600 hover:text-danger-500"
-                          aria-label={`Remover ${employee.name}`}
+                          aria-label={`Desativar ${employee.name}`}
                         >
-                          <Trash2 size={16} />
-                          Remover
+                          <Power size={16} />
+                          Desativar
                         </button>
                       )}
                       {!employee.active && (
                         <button
                           type="button"
-                          disabled={reactivateMutation.isPending}
+                          disabled={isChangingLifecycle}
                           onClick={() => {
                             setDeleteError(null)
                             setRemovalMessage(null)
@@ -262,6 +300,20 @@ export function EmployeesListPage() {
                           Reativar
                         </button>
                       )}
+                      <button
+                        type="button"
+                        disabled={isChangingLifecycle}
+                        onClick={() => {
+                          setDeleteError(null)
+                          setRemovalMessage(null)
+                          setEmployeeToDelete(employee)
+                        }}
+                        className="flex items-center gap-1 text-danger-600 hover:text-danger-500 disabled:opacity-60"
+                        aria-label={`Excluir definitivamente ${employee.name}`}
+                      >
+                        <Trash2 size={16} />
+                        Excluir definitivamente
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -282,10 +334,21 @@ export function EmployeesListPage() {
 
       {servicesEmployee && <ProfessionalServicesModal employee={servicesEmployee} onClose={() => setServicesEmployee(null)} />}
 
+      {employeeToDeactivate && (
+        <ConfirmDialog
+          title="Desativar funcionário"
+          message={`Desativar "${employeeToDeactivate.name}"? O cadastro, os agendamentos e os serviços vinculados serão preservados. Você poderá reativá-lo depois.`}
+          confirmLabel="Desativar"
+          isLoading={deactivateMutation.isPending}
+          onConfirm={() => deactivateMutation.mutate(employeeToDeactivate.id)}
+          onCancel={() => setEmployeeToDeactivate(null)}
+        />
+      )}
+
       {employeeToDelete && (
         <ConfirmDialog
-          title="Remover funcionário"
-          message={`Tem certeza que deseja remover "${employeeToDelete.name}"? Se ele tiver atendimentos vinculados, o sistema vai apenas desativá-lo em vez de remover — o histórico é sempre preservado. Caso contrário, a remoção é definitiva.`}
+          title="Excluir funcionário definitivamente"
+          message={`Excluir "${employeeToDelete.name}" definitivamente? A exclusão será recusada se houver agendamentos ou serviços vinculados. Para apenas suspender o cadastro, use Desativar.`}
           confirmLabel="Continuar"
           onConfirm={handleFirstConfirmDelete}
           onCancel={cancelRemoval}
@@ -295,8 +358,8 @@ export function EmployeesListPage() {
       {employeeToPermanentlyConfirm && (
         <ConfirmDialog
           title="Confirmar remoção definitiva"
-          message={`Atenção: esta ação pode ser irreversível. Se "${employeeToPermanentlyConfirm.name}" não tiver nenhum atendimento vinculado, o cadastro será apagado permanentemente do sistema e não poderá ser recuperado. Para confirmar, digite o nome completo do funcionário abaixo.`}
-          confirmLabel="Remover definitivamente"
+          message={`Esta ação é irreversível: o cadastro de "${employeeToPermanentlyConfirm.name}" será excluído definitivamente se não houver vínculos. Digite o nome completo para confirmar.`}
+          confirmLabel="Excluir definitivamente"
           confirmationText={employeeToPermanentlyConfirm.name}
           confirmationLabel="Digite o nome exato do funcionário para confirmar"
           isLoading={removeMutation.isPending}
