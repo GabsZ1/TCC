@@ -3,11 +3,16 @@ package br.com.salonhub.security;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtTimestampValidator;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -32,10 +37,25 @@ public class JwtConfig {
                 .build();
     }
 
-    @Bean
-    JwtDecoder jwtDecoder(SecretKey secretKey) {
+    @Bean("firstAccessJwtDecoder")
+    JwtDecoder firstAccessJwtDecoder(SecretKey secretKey) {
         return NimbusJwtDecoder.withSecretKey(secretKey)
                 .macAlgorithm(MacAlgorithm.HS256)
                 .build();
+    }
+
+    @Bean("authenticationJwtDecoder")
+    @Primary
+    JwtDecoder authenticationJwtDecoder(SecretKey secretKey) {
+        NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(secretKey)
+                .macAlgorithm(MacAlgorithm.HS256)
+                .build();
+        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
+                new JwtTimestampValidator(),
+                jwt -> jwt.hasClaim("purpose")
+                        ? OAuth2TokenValidatorResult.failure(new OAuth2Error(
+                                "invalid_token", "Token não pode autenticar requisições", null))
+                        : OAuth2TokenValidatorResult.success()));
+        return decoder;
     }
 }

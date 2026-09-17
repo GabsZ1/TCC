@@ -4,30 +4,16 @@ import { z } from 'zod'
 import { Modal } from '@/components/ui/Modal'
 import type { Employee } from '@/features/employees/services/employeesApi'
 
-function buildEmployeeSchema(isEditing: boolean) {
-  return z
-    .object({
-      name: z.string().trim().min(1, 'O nome é obrigatório'),
-      email: z
-        .string()
-        .trim()
-        .min(1, 'O e-mail é obrigatório')
-        .email('E-mail em formato inválido'),
-      password: z.string().optional(),
-    })
-    .superRefine((data, ctx) => {
-      // A senha só é exigida na criação; na edição não é possível alterá-la por aqui.
-      if (!isEditing && (!data.password || data.password.length < 8)) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['password'],
-          message: 'A senha deve ter no mínimo 8 caracteres',
-        })
-      }
-    })
-}
+const employeeSchema = z.object({
+  name: z.string().trim().min(1, 'O nome é obrigatório'),
+  email: z
+    .string()
+    .trim()
+    .min(1, 'O e-mail é obrigatório')
+    .email('E-mail em formato inválido'),
+})
 
-export type EmployeeFormValues = z.infer<ReturnType<typeof buildEmployeeSchema>>
+export type EmployeeFormValues = z.infer<typeof employeeSchema>
 
 interface EmployeeFormModalProps {
   /** Quando informado, o formulário abre em modo de edição. */
@@ -52,11 +38,10 @@ export function EmployeeFormModal({
     handleSubmit,
     formState: { errors },
   } = useForm<EmployeeFormValues>({
-    resolver: zodResolver(buildEmployeeSchema(isEditing)),
+    resolver: zodResolver(employeeSchema),
     defaultValues: {
       name: employee?.name ?? '',
       email: employee?.email ?? '',
-      password: '',
     },
   })
 
@@ -85,27 +70,6 @@ export function EmployeeFormModal({
           className="mt-1 w-full rounded-lg border border-brand-200 px-3 py-2 text-brand-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
         />
         {errors.email && <p className="mt-1 text-sm text-danger-600">{errors.email.message}</p>}
-
-        {!isEditing && (
-          <>
-            <label
-              className="mt-4 block text-sm font-medium text-brand-800"
-              htmlFor="employee-password"
-            >
-              Senha provisória
-            </label>
-            <input
-              id="employee-password"
-              type="password"
-              autoComplete="new-password"
-              {...register('password')}
-              className="mt-1 w-full rounded-lg border border-brand-200 px-3 py-2 text-brand-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-            />
-            {errors.password && (
-              <p className="mt-1 text-sm text-danger-600">{errors.password.message}</p>
-            )}
-          </>
-        )}
 
         {errorMessage && (
           <p role="alert" className="mt-4 text-sm text-danger-600">

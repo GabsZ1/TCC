@@ -2,6 +2,7 @@ package br.com.salonhub.service;
 
 import br.com.salonhub.dto.auth.AuthenticatedUserResponse;
 import br.com.salonhub.dto.employee.EmployeeCreateRequest;
+import br.com.salonhub.dto.employee.EmployeeCreationResponse;
 import br.com.salonhub.dto.employee.EmployeeRemovalResponse;
 import br.com.salonhub.dto.employee.EmployeeUpdateRequest;
 import br.com.salonhub.dto.employee.ProfessionalServicesRequest;
@@ -22,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -32,6 +34,7 @@ public class EmployeeService {
     private final PasswordEncoder passwordEncoder;
     private final TenantAuthorizationService tenantAuthorizationService;
     private final EstablishmentServiceRepository establishmentServiceRepository;
+    private final TokenService tokenService;
 
     @Transactional(readOnly = true)
     public ProfessionalServicesResponse findServices(Long userId, Long employeeId) {
@@ -75,7 +78,7 @@ public class EmployeeService {
     }
 
     @Transactional
-    public AuthenticatedUserResponse create(Long administratorId, EmployeeCreateRequest request) {
+    public EmployeeCreationResponse create(Long administratorId, EmployeeCreateRequest request) {
         User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
 
         String email = request.email().trim().toLowerCase(Locale.ROOT);
@@ -86,13 +89,16 @@ public class EmployeeService {
         User employee = User.builder()
                 .name(request.name().trim())
                 .email(email)
-                .password(passwordEncoder.encode(request.password()))
+                .password(passwordEncoder.encode(UUID.randomUUID().toString()))
+                .passwordInitialized(false)
                 .role(UserRole.PROFESSIONAL)
                 .establishment(administrator.getEstablishment())
                 .active(true)
                 .build();
 
-        return AuthenticatedUserResponse.fromEntity(userRepository.save(employee));
+        User savedEmployee = userRepository.save(employee);
+        TokenService.GeneratedToken token = tokenService.generateFirstAccess(savedEmployee);
+        return EmployeeCreationResponse.fromEntity(savedEmployee, token.value(), token.expiresAt());
     }
 
     @Transactional(readOnly = true)

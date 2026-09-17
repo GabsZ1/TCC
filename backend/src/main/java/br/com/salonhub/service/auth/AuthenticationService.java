@@ -1,10 +1,13 @@
 package br.com.salonhub.service.auth;
 
 import br.com.salonhub.dto.auth.AuthenticatedUserResponse;
+import br.com.salonhub.dto.auth.FirstAccessRequest;
 import br.com.salonhub.dto.auth.LoginRequest;
 import br.com.salonhub.dto.auth.LoginResponse;
 import br.com.salonhub.entity.User;
+import br.com.salonhub.entity.UserRole;
 import br.com.salonhub.exception.UnauthorizedException;
+import br.com.salonhub.exception.InvalidRequestException;
 import br.com.salonhub.repository.UserRepository;
 import br.com.salonhub.service.TokenService;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +30,7 @@ public class AuthenticationService {
         String email = request.email().trim().toLowerCase(Locale.ROOT);
         User user = userRepository.findByEmailIgnoreCase(email)
                 .filter(User::isActive)
+                .filter(User::isPasswordInitialized)
                 .orElseThrow(() -> new UnauthorizedException("E-mail ou senha inválidos"));
 
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
@@ -39,6 +43,21 @@ public class AuthenticationService {
                 "Bearer",
                 token.expiresAt(),
                 AuthenticatedUserResponse.fromEntity(user));
+    }
+
+    @Transactional
+    public void completeFirstAccess(FirstAccessRequest request) {
+        Long userId = tokenService.validateFirstAccess(request.token());
+        if (userId == null) {
+            throw new InvalidRequestException("Token de primeiro acesso inválido ou expirado.");
+        }
+        User user = userRepository.findByIdForUpdate(userId)
+                .filter(User::isActive)
+                .filter(candidate -> candidate.getRole() == UserRole.PROFESSIONAL)
+                .filter(candidate -> !candidate.isPasswordInitialized())
+                .orElseThrow(() -> new InvalidRequestException(
+                        "Token de primeiro acesso inválido, expirado ou já utilizado."));
+        user.initializePassword(passwordEncoder.encode(request.password()));
     }
 
     @Transactional(readOnly = true)

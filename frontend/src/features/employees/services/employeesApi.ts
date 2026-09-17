@@ -7,7 +7,11 @@ export type Employee = AuthenticatedUser
 export interface EmployeeCreateInput {
   name: string
   email: string
-  password: string
+}
+
+export interface EmployeeCreationResult extends Employee {
+  firstAccessToken: string
+  firstAccessExpiresAt: string
 }
 
 export interface EmployeeUpdateInput {
@@ -31,7 +35,7 @@ export function fetchEmployees() {
 }
 
 export function createEmployee(input: EmployeeCreateInput) {
-  return api.post<Employee>('/funcionarios', input).then((res) => res.data)
+  return api.post<EmployeeCreationResult>('/funcionarios', input).then((res) => res.data)
 }
 
 export function updateEmployee(id: number, input: EmployeeUpdateInput) {

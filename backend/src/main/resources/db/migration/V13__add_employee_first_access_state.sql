@@ -1,0 +1,2 @@
+ALTER TABLE users
+    ADD COLUMN password_initialized BOOLEAN NOT NULL DEFAULT TRUE;

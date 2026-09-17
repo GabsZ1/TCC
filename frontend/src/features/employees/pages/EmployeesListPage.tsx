@@ -34,6 +34,11 @@ export function EmployeesListPage() {
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [removalMessage, setRemovalMessage] = useState<string | null>(null)
   const [servicesEmployee, setServicesEmployee] = useState<Employee | null>(null)
+  const [firstAccessInvitation, setFirstAccessInvitation] = useState<{
+    employeeName: string
+    link: string
+    expiresAt: string
+  } | null>(null)
 
   const {
     data: employees,
@@ -53,8 +58,13 @@ export function EmployeesListPage() {
 
   const createMutation = useMutation({
     mutationFn: createEmployee,
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: EMPLOYEES_QUERY_KEY })
+      setFirstAccessInvitation({
+        employeeName: result.name,
+        link: `${window.location.origin}/primeiro-acesso?token=${encodeURIComponent(result.firstAccessToken)}`,
+        expiresAt: result.firstAccessExpiresAt,
+      })
       closeFormModal()
     },
     onError: (err) => setFormError(getApiErrorMessage(err, 'Não foi possível criar o funcionário.')),
@@ -122,7 +132,6 @@ export function EmployeesListPage() {
       createMutation.mutate({
         name: values.name,
         email: values.email,
-        password: values.password ?? '',
       })
     }
   }
@@ -172,6 +181,19 @@ export function EmployeesListPage() {
         <p role="status" className="mt-4 rounded-xl bg-sage-50 px-3 py-2 text-sm text-sage-600">
           {removalMessage}
         </p>
+      )}
+
+      {firstAccessInvitation && (
+        <div className="mt-4 rounded-xl bg-sage-50 p-4 text-sm text-brand-800">
+          <p className="font-medium">Funcionário cadastrado. Envie este link de primeiro acesso para {firstAccessInvitation.employeeName}:</p>
+          <input
+            aria-label="Link de primeiro acesso"
+            readOnly
+            value={firstAccessInvitation.link}
+            className="mt-2 w-full rounded-lg border border-brand-200 bg-white px-3 py-2"
+          />
+          <p className="mt-2 text-brand-600">O link é exibido apenas neste cadastro e expira em {new Date(firstAccessInvitation.expiresAt).toLocaleString('pt-BR')}.</p>
+        </div>
       )}
 
       <div className="mt-6 overflow-x-auto rounded-2xl border border-brand-100 bg-white shadow-sm">

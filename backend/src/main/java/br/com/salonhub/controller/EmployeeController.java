@@ -2,6 +2,7 @@ package br.com.salonhub.controller;
 
 import br.com.salonhub.dto.auth.AuthenticatedUserResponse;
 import br.com.salonhub.dto.employee.EmployeeCreateRequest;
+import br.com.salonhub.dto.employee.EmployeeCreationResponse;
 import br.com.salonhub.dto.employee.EmployeeRemovalResponse;
 import br.com.salonhub.dto.employee.EmployeeUpdateRequest;
 import br.com.salonhub.dto.employee.ProfessionalServicesRequest;
@@ -25,7 +26,7 @@ public class EmployeeController {
     private final EmployeeService employeeService;
 
     @PostMapping
-    public ResponseEntity<AuthenticatedUserResponse> create(
+    public ResponseEntity<EmployeeCreationResponse> create(
             @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody EmployeeCreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)

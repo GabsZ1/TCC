@@ -6,6 +6,7 @@ import br.com.salonhub.dto.auth.LoginRequest;
 import br.com.salonhub.dto.auth.LoginResponse;
 import br.com.salonhub.dto.auth.AuthenticatedUserResponse;
 import br.com.salonhub.dto.auth.ClientRegistrationRequest;
+import br.com.salonhub.dto.auth.FirstAccessRequest;
 import br.com.salonhub.service.auth.AuthenticationService;
 import br.com.salonhub.service.auth.RegistrationService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -65,6 +66,16 @@ public class AuthController {
     @SecurityRequirements
     public LoginResponse login(@Valid @RequestBody LoginRequest request) {
         return authenticationService.authenticate(request);
+    }
+
+    @PostMapping("/primeiro-acesso")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Definir senha no primeiro acesso")
+    @ApiResponse(responseCode = "204", description = "Senha definida")
+    @ApiResponse(responseCode = "400", description = "Token inválido, expirado ou já utilizado")
+    @SecurityRequirements
+    public void completeFirstAccess(@Valid @RequestBody FirstAccessRequest request) {
+        authenticationService.completeFirstAccess(request);
     }
 
     @GetMapping("/me")
