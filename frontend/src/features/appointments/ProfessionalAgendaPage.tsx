@@ -11,7 +11,7 @@ import { Modal } from '@/components/ui/Modal'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { getApiErrorMessage } from '@/lib/apiError'
 import { completeAppointment } from '@/features/appointments/appointmentsApi'
-import { createCalendarEvent, deleteCalendarEvent, fetchProfessionalAgenda, fetchProfessionalSchedule, updateCalendarEvent, updateProfessionalSchedule, type CalendarEventInput, type ProfessionalAgendaItem, type ProfessionalHour } from '@/features/appointments/professionalAgendaApi'
+import { createCalendarEvent, deleteCalendarEvent, fetchProfessionalAgenda, fetchProfessionalSchedule, updateCalendarEvent, updateProfessionalSchedule, type CalendarEventInput, type ProfessionalAgendaItem, type ProfessionalHour, type ProfessionalHourInput } from '@/features/appointments/professionalAgendaApi'
 
 const AGENDA_KEY = ['professional-agenda']
 interface VisibleRange { startsAt: string; endsAt: string }
@@ -89,11 +89,85 @@ function ScheduleEditor({ onClose }: { onClose: () => void }) {
   return <ScheduleForm initial={schedule.data} onClose={onClose} onSaved={() => { queryClient.invalidateQueries({ queryKey: ['professional-schedule'] }); queryClient.invalidateQueries({ queryKey: AGENDA_KEY }); onClose() }} />
 }
 
+type ScheduleMode = 'inherit' | 'custom' | 'closed'
+
+function modeOf(hour: ProfessionalHour): ScheduleMode {
+  if (hour.inheritedFromEstablishment) return 'inherit'
+  return hour.closed ? 'closed' : 'custom'
+}
+
 function ScheduleForm({ initial, onClose, onSaved }: { initial: ProfessionalHour[]; onClose: () => void; onSaved: () => void }) {
   const [hours, setHours] = useState(initial)
-  const mutation = useMutation({ mutationFn: () => updateProfessionalSchedule(hours.map((hour) => ({ dayOfWeek: hour.dayOfWeek, closed: hour.closed, openingTime: hour.openingTime, closingTime: hour.closingTime }))), onSuccess: onSaved })
-  function change(index: number, changes: Partial<ProfessionalHour>) { setHours((current) => current.map((hour, itemIndex) => itemIndex === index ? { ...hour, ...changes } : hour)) }
-  return <Modal title="Minha jornada semanal" onClose={onClose}><p className="mb-4 text-sm text-brand-600">A jornada começa com o expediente do salão. Você pode reduzi-la ou fechar dias específicos.</p><div className="max-h-[60vh] space-y-2 overflow-y-auto pr-1">{hours.map((hour, index) => <div key={hour.dayOfWeek} className="rounded-xl bg-sand-50 p-3"><div className="flex items-center justify-between"><span className="text-sm font-semibold text-brand-800">{DAY_LABELS[hour.dayOfWeek]}</span><label className="flex items-center gap-2 text-xs text-brand-600"><input type="checkbox" checked={hour.closed} onChange={(event) => change(index, { closed: event.target.checked, openingTime: event.target.checked ? null : (hour.openingTime ?? '09:00'), closingTime: event.target.checked ? null : (hour.closingTime ?? '18:00') })} /> Fechado</label></div>{!hour.closed && <div className="mt-2 grid grid-cols-2 gap-2"><input aria-label={`Início de ${DAY_LABELS[hour.dayOfWeek]}`} type="time" value={hour.openingTime?.slice(0, 5) ?? ''} onChange={(event) => change(index, { openingTime: event.target.value })} className="rounded-lg border border-brand-200 px-2 py-1.5 text-sm" /><input aria-label={`Término de ${DAY_LABELS[hour.dayOfWeek]}`} type="time" value={hour.closingTime?.slice(0, 5) ?? ''} onChange={(event) => change(index, { closingTime: event.target.value })} className="rounded-lg border border-brand-200 px-2 py-1.5 text-sm" /></div>}</div>)}</div>{mutation.isError && <p className="mt-3 text-sm text-danger-600">{getApiErrorMessage(mutation.error, 'Não foi possível salvar sua jornada.')}</p>}<div className="mt-5 flex justify-end gap-2"><button type="button" onClick={onClose} className="rounded-lg border border-brand-200 px-4 py-2 text-sm text-brand-700">Cancelar</button><button type="button" onClick={() => mutation.mutate()} disabled={mutation.isPending} className="primary-button disabled:opacity-60">Salvar jornada</button></div></Modal>
+  const inputs = useMemo<ProfessionalHourInput[]>(() => hours.map((hour) => {
+    const mode = modeOf(hour)
+    return {
+      dayOfWeek: hour.dayOfWeek,
+      useEstablishmentHours: mode === 'inherit',
+      closed: mode === 'closed',
+      openingTime: mode === 'custom' ? hour.openingTime : null,
+      closingTime: mode === 'custom' ? hour.closingTime : null,
+    }
+  }), [hours])
+  const invalidDay = hours.find((hour) => modeOf(hour) === 'custom'
+    && (!hour.openingTime || !hour.closingTime || hour.openingTime >= hour.closingTime))
+  const mutation = useMutation({ mutationFn: () => updateProfessionalSchedule(inputs), onSuccess: onSaved })
+
+  function selectMode(index: number, mode: ScheduleMode) {
+    setHours((current) => current.map((hour, itemIndex) => {
+      if (itemIndex !== index) return hour
+      if (mode === 'inherit') return { ...hour, inheritedFromEstablishment: true, closed: false }
+      if (mode === 'closed') return { ...hour, inheritedFromEstablishment: false, closed: true, openingTime: null, closingTime: null }
+      return {
+        ...hour,
+        inheritedFromEstablishment: false,
+        closed: false,
+        openingTime: hour.openingTime ?? hour.establishmentOpeningTime ?? '09:00',
+        closingTime: hour.closingTime ?? hour.establishmentClosingTime ?? '18:00',
+      }
+    }))
+  }
+  function changeTime(index: number, changes: { openingTime?: string; closingTime?: string }) {
+    setHours((current) => current.map((hour, itemIndex) => itemIndex === index ? { ...hour, ...changes } : hour))
+  }
+
+  return <Modal title="Minha jornada semanal" onClose={onClose}>
+    <p className="mb-4 text-sm text-brand-600">Por padrão, você acompanha o horário do salão — inclusive quando o administrador mudar o expediente depois. Personalize apenas os dias em que sua jornada for diferente.</p>
+    <div className="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
+      {hours.map((hour, index) => {
+        const mode = modeOf(hour)
+        const establishmentLabel = hour.establishmentClosed
+          ? 'Salão fechado neste dia'
+          : `${hour.establishmentOpeningTime?.slice(0, 5)} — ${hour.establishmentClosingTime?.slice(0, 5)}`
+        return <div key={hour.dayOfWeek} className="rounded-xl bg-sand-50 p-3">
+          <span className="text-sm font-semibold text-brand-800">{DAY_LABELS[hour.dayOfWeek]}</span>
+          <div className="mt-2 space-y-1.5 text-sm text-brand-700">
+            <label className="flex items-center gap-2">
+              <input type="radio" name={`mode-${hour.dayOfWeek}`} checked={mode === 'inherit'} onChange={() => selectMode(index, 'inherit')} />
+              Usar horário do salão <span className="text-xs text-brand-500">({establishmentLabel})</span>
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="radio" name={`mode-${hour.dayOfWeek}`} checked={mode === 'custom'} onChange={() => selectMode(index, 'custom')} />
+              Personalizar
+            </label>
+            {mode === 'custom' && <div className="ml-6 grid grid-cols-2 gap-2">
+              <input aria-label={`Início de ${DAY_LABELS[hour.dayOfWeek]}`} type="time" value={hour.openingTime?.slice(0, 5) ?? ''} onChange={(event) => changeTime(index, { openingTime: event.target.value })} className="rounded-lg border border-brand-200 px-2 py-1.5 text-sm" />
+              <input aria-label={`Término de ${DAY_LABELS[hour.dayOfWeek]}`} type="time" value={hour.closingTime?.slice(0, 5) ?? ''} onChange={(event) => changeTime(index, { closingTime: event.target.value })} className="rounded-lg border border-brand-200 px-2 py-1.5 text-sm" />
+            </div>}
+            <label className="flex items-center gap-2">
+              <input type="radio" name={`mode-${hour.dayOfWeek}`} checked={mode === 'closed'} onChange={() => selectMode(index, 'closed')} />
+              Não trabalho neste dia
+            </label>
+          </div>
+        </div>
+      })}
+    </div>
+    {invalidDay && <p className="mt-3 text-sm text-danger-600">Em {DAY_LABELS[invalidDay.dayOfWeek]}, o horário inicial deve ser anterior ao horário final.</p>}
+    {mutation.isError && <p className="mt-3 text-sm text-danger-600">{getApiErrorMessage(mutation.error, 'Não foi possível salvar sua jornada.')}</p>}
+    <div className="mt-5 flex justify-end gap-2">
+      <button type="button" onClick={onClose} className="rounded-lg border border-brand-200 px-4 py-2 text-sm text-brand-700">Cancelar</button>
+      <button type="button" onClick={() => mutation.mutate()} disabled={mutation.isPending || Boolean(invalidDay)} className="primary-button disabled:opacity-60">Salvar jornada</button>
+    </div>
+  </Modal>
 }
 
 function AppointmentDetails({ item, onClose, onCompleted }: { item: ProfessionalAgendaItem; onClose: () => void; onCompleted: () => void }) {

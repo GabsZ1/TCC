@@ -5,7 +5,6 @@ import br.com.salonhub.dto.appointment.AppointmentResponse;
 import br.com.salonhub.entity.Appointment;
 import br.com.salonhub.entity.AppointmentStatus;
 import br.com.salonhub.entity.Establishment;
-import br.com.salonhub.entity.EstablishmentBusinessHour;
 import br.com.salonhub.entity.EstablishmentService;
 import br.com.salonhub.entity.User;
 import br.com.salonhub.entity.UserRole;
@@ -14,7 +13,6 @@ import br.com.salonhub.exception.ResourceNotFoundException;
 import br.com.salonhub.exception.UnauthorizedException;
 import org.springframework.security.access.AccessDeniedException;
 import br.com.salonhub.repository.AppointmentRepository;
-import br.com.salonhub.repository.EstablishmentBusinessHourRepository;
 import br.com.salonhub.repository.EstablishmentRepository;
 import br.com.salonhub.repository.EstablishmentServiceRepository;
 import br.com.salonhub.repository.UserRepository;
@@ -25,7 +23,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Service
@@ -37,7 +34,6 @@ public class AppointmentCommandService {
     private final EstablishmentServiceRepository serviceRepository;
     private final UserRepository userRepository;
     private final TenantAuthorizationService tenantAuthorizationService;
-    private final EstablishmentBusinessHourRepository businessHourRepository;
     private final ProfessionalAvailabilityService professionalAvailabilityService;
     private final Clock clock;
 
@@ -148,7 +144,10 @@ public class AppointmentCommandService {
             Long ignoredAppointmentId) {
         validateSlotAlignment(startsAt);
         validateAdvanceWindow(establishment, startsAt);
-        validateBusinessHours(establishment, startsAt, endsAt);
+        // O horário de funcionamento do estabelecimento já é considerado por
+        // professionalAvailabilityService.validateAvailable(), que calcula a interseção entre
+        // o expediente do salão e a jornada própria do profissional (quando houver). Isso evita
+        // ter duas fontes independentes de verdade sobre o horário de atendimento.
         professionalAvailabilityService.validateAvailable(professional, startsAt, endsAt);
         validateProfessionalAvailability(professional.getId(), startsAt, endsAt, ignoredAppointmentId);
         validateClientAvailability(client.getId(), startsAt, endsAt, ignoredAppointmentId);
@@ -216,17 +215,6 @@ public class AppointmentCommandService {
         }
     }
 
-    private void validateBusinessHours(
-            Establishment establishment, LocalDateTime startsAt, LocalDateTime endsAt) {
-        EstablishmentBusinessHour businessHour = requireOpenBusinessHour(establishment, startsAt.toLocalDate());
-        boolean changesDay = !startsAt.toLocalDate().equals(endsAt.toLocalDate());
-        boolean startsBeforeOpening = startsAt.toLocalTime().isBefore(businessHour.getOpeningTime());
-        boolean endsAfterClosing = endsAt.toLocalTime().isAfter(businessHour.getClosingTime());
-        if (changesDay || startsBeforeOpening || endsAfterClosing) {
-            throw new ConflictException("O horário está fora do funcionamento do estabelecimento.");
-        }
-    }
-
     private void validateAdvanceWindow(Establishment establishment, LocalDateTime startsAt) {
         LocalDateTime now = LocalDateTime.now(clock);
         if (startsAt.isBefore(now.plusMinutes(establishment.getMinimumAdvanceMinutes()))) {
@@ -246,9 +234,4 @@ public class AppointmentCommandService {
         return minutes + " minutos";
     }
 
-    private EstablishmentBusinessHour requireOpenBusinessHour(Establishment establishment, LocalDate date) {
-        return businessHourRepository.findByEstablishmentIdAndDayOfWeek(establishment.getId(), date.getDayOfWeek())
-                .filter(hour -> !hour.isClosed())
-                .orElseThrow(() -> new ConflictException("O estabelecimento está fechado nesta data."));
-    }
 }

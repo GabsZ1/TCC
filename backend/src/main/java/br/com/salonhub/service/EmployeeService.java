@@ -7,6 +7,8 @@ import br.com.salonhub.dto.employee.EmployeeRemovalResponse;
 import br.com.salonhub.dto.employee.EmployeeUpdateRequest;
 import br.com.salonhub.dto.employee.ProfessionalServicesRequest;
 import br.com.salonhub.dto.employee.ProfessionalServicesResponse;
+import br.com.salonhub.entity.Appointment;
+import br.com.salonhub.entity.AppointmentStatus;
 import br.com.salonhub.entity.EstablishmentService;
 import br.com.salonhub.entity.User;
 import br.com.salonhub.entity.UserRole;
@@ -21,6 +23,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -35,6 +39,7 @@ public class EmployeeService {
     private final TenantAuthorizationService tenantAuthorizationService;
     private final EstablishmentServiceRepository establishmentServiceRepository;
     private final TokenService tokenService;
+    private final Clock clock;
 
     @Transactional(readOnly = true)
     public ProfessionalServicesResponse findServices(Long userId, Long employeeId) {
@@ -150,8 +155,27 @@ public class EmployeeService {
         if (!employee.isActive()) {
             throw new ConflictException("O funcionário já está desativado.");
         }
+        requireNoFutureConfirmedAppointments(employee);
         employee.deactivate();
         return AuthenticatedUserResponse.fromEntity(employee);
+    }
+
+    /**
+     * Impede desativar um funcionário que ainda possui atendimentos futuros confirmados:
+     * sem isso, o agendamento continuava CONFIRMED mesmo com o profissional impedido de
+     * acessar o sistema, e não havia fluxo de reatribuição. Para o MVP, o administrador
+     * precisa cancelar ou aguardar a conclusão desses atendimentos antes de desativar.
+     */
+    private void requireNoFutureConfirmedAppointments(User employee) {
+        List<Appointment> futureConfirmed = appointmentRepository
+                .findByProfessionalIdAndStatusAndStartsAtGreaterThanOrderByStartsAt(
+                        employee.getId(), AppointmentStatus.CONFIRMED, LocalDateTime.now(clock));
+        if (!futureConfirmed.isEmpty()) {
+            throw new ConflictException(
+                    "Este funcionário possui " + futureConfirmed.size()
+                            + " agendamento(s) futuro(s) confirmado(s). Cancele ou aguarde a conclusão "
+                            + "desses agendamentos antes de desativar o funcionário.");
+        }
     }
 
     @Transactional

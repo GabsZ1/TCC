@@ -158,7 +158,7 @@ class EmployeeRemovalIntegrationTests {
         String clientToken = login("cliente.removal@salonhub.test");
 
         LocalDateTime startsAt = LocalDate.now().plusDays(1).atTime(10, 0);
-        mockMvc.perform(post("/api/estabelecimentos/{id}/agendamentos", establishmentId.longValue())
+        MvcResult appointmentResult = mockMvc.perform(post("/api/estabelecimentos/{id}/agendamentos", establishmentId.longValue())
                         .header("Authorization", bearer(clientToken))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -168,13 +168,28 @@ class EmployeeRemovalIntegrationTests {
                                   "startsAt": "%s"
                                 }
                                 """.formatted(serviceId.longValue(), employeeId.longValue(), startsAt)))
-                .andExpect(status().isCreated());
+                .andExpect(status().isCreated())
+                .andReturn();
+        Number appointmentId = JsonPath.read(appointmentResult.getResponse().getContentAsString(), "$.id");
 
         mockMvc.perform(delete("/api/funcionarios/{id}", employeeId.longValue())
                         .header("Authorization", bearer(adminToken)))
                 .andExpect(status().isConflict());
         assertThat(userRepository.findById(employeeId.longValue()).orElseThrow().isActive()).isTrue();
 
+        // Não é possível desativar um funcionário com agendamento futuro confirmado:
+        // isso deixaria o agendamento "órfão" (confirmado, mas o profissional não consegue
+        // mais acessar o sistema para atendê-lo).
+        mockMvc.perform(patch("/api/funcionarios/{id}/desativacao", employeeId.longValue())
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isConflict());
+        assertThat(userRepository.findById(employeeId.longValue()).orElseThrow().isActive()).isTrue();
+
+        mockMvc.perform(patch("/api/agendamentos/{id}/cancelamento", appointmentId.longValue())
+                        .header("Authorization", bearer(clientToken)))
+                .andExpect(status().isOk());
+
+        // Sem agendamentos futuros confirmados pendentes, a desativação passa a ser permitida.
         mockMvc.perform(patch("/api/funcionarios/{id}/desativacao", employeeId.longValue())
                         .header("Authorization", bearer(adminToken)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.active").value(false));

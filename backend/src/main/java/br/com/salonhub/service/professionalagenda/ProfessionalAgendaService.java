@@ -11,8 +11,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -30,6 +32,7 @@ public class ProfessionalAgendaService {
     private final ProfessionalBusinessHourRepository professionalHourRepository;
     private final ProfessionalCalendarEventRepository eventRepository;
     private final AppointmentRepository appointmentRepository;
+    private final Clock clock;
 
     @Transactional(readOnly = true)
     public List<ProfessionalHourResponse> findSchedule(Long professionalId) {
@@ -42,15 +45,18 @@ public class ProfessionalAgendaService {
                 .collect(Collectors.toMap(EstablishmentBusinessHour::getDayOfWeek, Function.identity()));
 
         return Arrays.stream(DayOfWeek.values()).map(day -> {
+            EstablishmentBusinessHour establishmentHour = establishmentHours.get(day);
+            boolean establishmentClosed = establishmentHour == null || establishmentHour.isClosed();
+            LocalTime establishmentOpeningTime = establishmentClosed ? null : establishmentHour.getOpeningTime();
+            LocalTime establishmentClosingTime = establishmentClosed ? null : establishmentHour.getClosingTime();
+
             ProfessionalBusinessHour own = ownHours.get(day);
             if (own != null) {
-                return new ProfessionalHourResponse(day, own.isClosed(), own.getOpeningTime(), own.getClosingTime(), false);
+                return new ProfessionalHourResponse(day, own.isClosed(), own.getOpeningTime(), own.getClosingTime(),
+                        false, establishmentClosed, establishmentOpeningTime, establishmentClosingTime);
             }
-            EstablishmentBusinessHour inherited = establishmentHours.get(day);
-            if (inherited == null) {
-                return new ProfessionalHourResponse(day, true, null, null, true);
-            }
-            return new ProfessionalHourResponse(day, inherited.isClosed(), inherited.getOpeningTime(), inherited.getClosingTime(), true);
+            return new ProfessionalHourResponse(day, establishmentClosed, establishmentOpeningTime, establishmentClosingTime,
+                    true, establishmentClosed, establishmentOpeningTime, establishmentClosingTime);
         }).toList();
     }
 
@@ -65,10 +71,28 @@ public class ProfessionalAgendaService {
         Map<DayOfWeek, ProfessionalBusinessHour> current = professionalHourRepository
                 .findByProfessionalIdOrderByDayOfWeek(professional.getId()).stream()
                 .collect(Collectors.toMap(ProfessionalBusinessHour::getDayOfWeek, Function.identity()));
+        Map<DayOfWeek, ProfessionalHourRequest> requestByDay = request.businessHours().stream()
+                .collect(Collectors.toMap(ProfessionalHourRequest::dayOfWeek, Function.identity()));
 
         for (ProfessionalHourRequest hour : request.businessHours()) {
-            validateWithinEstablishment(hour, establishmentHours.get(hour.dayOfWeek()));
+            if (!hour.useEstablishmentHours()) {
+                validateWithinEstablishment(hour, establishmentHours.get(hour.dayOfWeek()));
+            }
+        }
+        requireNoConflictingFutureAppointments(professional, establishmentHours, requestByDay);
+
+        // Modelo de override: só existe ProfessionalBusinessHour quando o dia é realmente
+        // personalizado. Quando o funcionário opta por "usar horário do salão", qualquer
+        // override existente é removido e o dia volta a herdar o horário do estabelecimento
+        // automaticamente — inclusive em mudanças futuras feitas pelo administrador.
+        for (ProfessionalHourRequest hour : request.businessHours()) {
             ProfessionalBusinessHour entity = current.get(hour.dayOfWeek());
+            if (hour.useEstablishmentHours()) {
+                if (entity != null) {
+                    professionalHourRepository.delete(entity);
+                }
+                continue;
+            }
             if (entity == null) {
                 entity = ProfessionalBusinessHour.create(professional, hour.dayOfWeek(), hour.closed(),
                         hour.openingTime(), hour.closingTime());
@@ -77,11 +101,66 @@ public class ProfessionalAgendaService {
                 entity.update(hour.closed(), hour.openingTime(), hour.closingTime());
             }
         }
-        return request.businessHours().stream()
-                .sorted(Comparator.comparing(ProfessionalHourRequest::dayOfWeek))
-                .map(hour -> new ProfessionalHourResponse(hour.dayOfWeek(), hour.closed(),
-                        hour.closed() ? null : hour.openingTime(), hour.closed() ? null : hour.closingTime(), false))
-                .toList();
+        return findSchedule(professionalId);
+    }
+
+    /**
+     * Impede salvar uma jornada que tornaria agendamentos futuros já confirmados incompatíveis
+     * com o novo horário (ex.: fechar um dia ou reduzir o expediente exatamente no horário de
+     * um atendimento já marcado). Sem essa checagem, a agenda ficava contraditória: um
+     * atendimento CONFIRMED existindo num horário em que o profissional formalmente "não
+     * trabalha mais".
+     */
+    private void requireNoConflictingFutureAppointments(
+            User professional,
+            Map<DayOfWeek, EstablishmentBusinessHour> establishmentHours,
+            Map<DayOfWeek, ProfessionalHourRequest> requestByDay) {
+        List<Appointment> futureConfirmed = appointmentRepository
+                .findByProfessionalIdAndStatusAndStartsAtGreaterThanOrderByStartsAt(
+                        professional.getId(), AppointmentStatus.CONFIRMED, LocalDateTime.now(clock));
+        if (futureConfirmed.isEmpty()) {
+            return;
+        }
+        long conflicting = futureConfirmed.stream()
+                .filter(appointment -> fallsOutsideNewSchedule(appointment, establishmentHours, requestByDay))
+                .count();
+        if (conflicting > 0) {
+            throw new ConflictException(
+                    "Não foi possível alterar a jornada: " + conflicting
+                            + " agendamento(s) confirmado(s) ficariam fora do novo horário. Cancele-os, "
+                            + "aguarde a conclusão ou ajuste a jornada para mantê-los dentro do expediente.");
+        }
+    }
+
+    private boolean fallsOutsideNewSchedule(
+            Appointment appointment,
+            Map<DayOfWeek, EstablishmentBusinessHour> establishmentHours,
+            Map<DayOfWeek, ProfessionalHourRequest> requestByDay) {
+        DayOfWeek day = appointment.getStartsAt().getDayOfWeek();
+        ProfessionalHourRequest hour = requestByDay.get(day);
+        if (hour == null) {
+            return false;
+        }
+        boolean closed;
+        LocalTime opening;
+        LocalTime closing;
+        if (hour.useEstablishmentHours()) {
+            EstablishmentBusinessHour establishmentHour = establishmentHours.get(day);
+            closed = establishmentHour == null || establishmentHour.isClosed();
+            opening = closed ? null : establishmentHour.getOpeningTime();
+            closing = closed ? null : establishmentHour.getClosingTime();
+        } else {
+            closed = hour.closed();
+            opening = hour.openingTime();
+            closing = hour.closingTime();
+        }
+        if (closed) {
+            return true;
+        }
+        boolean changesDay = !appointment.getStartsAt().toLocalDate().equals(appointment.getEndsAt().toLocalDate());
+        return changesDay
+                || appointment.getStartsAt().toLocalTime().isBefore(opening)
+                || appointment.getEndsAt().toLocalTime().isAfter(closing);
     }
 
     @Transactional

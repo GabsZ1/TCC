@@ -176,13 +176,13 @@ class ProfessionalAgendaIntegrationTests {
     private String weeklySchedule() {
         return """
                 {"businessHours":[
-                  {"dayOfWeek":"MONDAY","closed":false,"openingTime":"09:00","closingTime":"17:00"},
-                  {"dayOfWeek":"TUESDAY","closed":false,"openingTime":"09:00","closingTime":"17:00"},
-                  {"dayOfWeek":"WEDNESDAY","closed":false,"openingTime":"09:00","closingTime":"17:00"},
-                  {"dayOfWeek":"THURSDAY","closed":false,"openingTime":"09:00","closingTime":"17:00"},
-                  {"dayOfWeek":"FRIDAY","closed":false,"openingTime":"09:00","closingTime":"17:00"},
-                  {"dayOfWeek":"SATURDAY","closed":false,"openingTime":"09:00","closingTime":"17:00"},
-                  {"dayOfWeek":"SUNDAY","closed":false,"openingTime":"09:00","closingTime":"17:00"}
+                  {"dayOfWeek":"MONDAY","useEstablishmentHours":false,"closed":false,"openingTime":"09:00","closingTime":"17:00"},
+                  {"dayOfWeek":"TUESDAY","useEstablishmentHours":false,"closed":false,"openingTime":"09:00","closingTime":"17:00"},
+                  {"dayOfWeek":"WEDNESDAY","useEstablishmentHours":false,"closed":false,"openingTime":"09:00","closingTime":"17:00"},
+                  {"dayOfWeek":"THURSDAY","useEstablishmentHours":false,"closed":false,"openingTime":"09:00","closingTime":"17:00"},
+                  {"dayOfWeek":"FRIDAY","useEstablishmentHours":false,"closed":false,"openingTime":"09:00","closingTime":"17:00"},
+                  {"dayOfWeek":"SATURDAY","useEstablishmentHours":false,"closed":false,"openingTime":"09:00","closingTime":"17:00"},
+                  {"dayOfWeek":"SUNDAY","useEstablishmentHours":false,"closed":false,"openingTime":"09:00","closingTime":"17:00"}
                 ]}
                 """;
     }

@@ -139,8 +139,8 @@ public class AppointmentQueryService {
             LocalDateTime latestStart,
             Long ignoredAppointmentId) {
         List<LocalTime> availableTimes = new ArrayList<>();
-        LocalDateTime candidate = date.atTime(workingHours.openingTime());
         LocalDateTime closing = date.atTime(workingHours.closingTime());
+        LocalDateTime candidate = alignToSlotGrid(date.atTime(workingHours.openingTime()));
         while (!candidate.plusMinutes(service.getDurationMinutes()).isAfter(closing)) {
             LocalDateTime slotStart = candidate;
             LocalDateTime slotEnd = slotStart.plusMinutes(service.getDurationMinutes());
@@ -155,6 +155,20 @@ public class AppointmentQueryService {
             candidate = candidate.plusMinutes(AppointmentSlotPolicy.SLOT_INTERVAL_MINUTES);
         }
         return availableTimes;
+    }
+
+    /**
+     * Garante que o primeiro horário candidato já esteja alinhado à grade de slots de
+     * {@link AppointmentSlotPolicy#SLOT_INTERVAL_MINUTES} minutos, mesmo quando a jornada
+     * (do estabelecimento ou do profissional) abre em um minuto que não é múltiplo do
+     * intervalo. Sem isso, a disponibilidade podia oferecer horários (ex.: 09:15) que a
+     * criação do agendamento rejeitava em seguida, por não estarem alinhados aos slots.
+     */
+    private LocalDateTime alignToSlotGrid(LocalDateTime time) {
+        int slot = AppointmentSlotPolicy.SLOT_INTERVAL_MINUTES;
+        LocalDateTime truncated = time.withSecond(0).withNano(0);
+        int remainder = truncated.getMinute() % slot;
+        return remainder == 0 ? truncated : truncated.plusMinutes(slot - remainder);
     }
 
     private boolean overlaps(
