@@ -40,7 +40,7 @@ public class AppointmentCommandService {
     @Transactional
     public AppointmentResponse create(Long clientId, Long establishmentId, AppointmentCreateRequest request) {
         User client = lockClient(clientId);
-        Establishment establishment = findActiveEstablishment(establishmentId);
+        Establishment establishment = findActiveEstablishmentForUpdate(establishmentId);
         EstablishmentService service = findActiveService(request.serviceId(), establishmentId);
         User professional = findAndLockProfessional(request.professionalId(), establishmentId);
         requireProfessionalOffersService(professional, service);
@@ -64,7 +64,7 @@ public class AppointmentCommandService {
         }
 
         Long establishmentId = appointment.getEstablishment().getId();
-        Establishment establishment = findActiveEstablishment(establishmentId);
+        Establishment establishment = findActiveEstablishmentForUpdate(establishmentId);
         EstablishmentService service = findActiveService(request.serviceId(), establishmentId);
         User professional = findAndLockProfessional(request.professionalId(), establishmentId);
         requireProfessionalOffersService(professional, service);
@@ -90,6 +90,18 @@ public class AppointmentCommandService {
         return AppointmentResponse.fromEntity(appointment);
     }
 
+    @Transactional
+    public AppointmentResponse cancelAsAdministrator(Long administratorId, Long appointmentId, String reason) {
+        User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
+        Appointment appointment = appointmentRepository
+                .findByIdAndEstablishmentId(appointmentId, administrator.getEstablishment().getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Agendamento não encontrado."));
+        if (appointment.getStatus() != AppointmentStatus.CONFIRMED) {
+            throw new ConflictException("Apenas agendamentos confirmados podem ser cancelados.");
+        }
+        appointment.cancelByAdministrator(reason.trim(), administrator, LocalDateTime.now(clock));
+        return AppointmentResponse.fromEntity(appointment);
+    }
     @Transactional
     public AppointmentResponse complete(Long userId, Long appointmentId) {
         Appointment appointment = appointmentRepository.findById(appointmentId)
@@ -133,6 +145,9 @@ public class AppointmentCommandService {
         if (!isOwningProfessional && !isEstablishmentAdministrator) {
             throw new AccessDeniedException("Você não tem permissão para concluir este agendamento.");
         }
+        if (!appointment.getEstablishment().isActive()) {
+            throw new AccessDeniedException("O estabelecimento está inativo. A conclusão de atendimentos está bloqueada.");
+        }
     }
 
     private void validateSchedule(
@@ -159,6 +174,11 @@ public class AppointmentCommandService {
         }
     }
 
+    private Establishment findActiveEstablishmentForUpdate(Long establishmentId) {
+        return establishmentRepository.findByIdForUpdate(establishmentId)
+                .filter(Establishment::isActive)
+                .orElseThrow(() -> new ResourceNotFoundException("Estabelecimento não encontrado."));
+    }
     private Establishment findActiveEstablishment(Long establishmentId) {
         return establishmentRepository.findById(establishmentId)
                 .filter(Establishment::isActive)

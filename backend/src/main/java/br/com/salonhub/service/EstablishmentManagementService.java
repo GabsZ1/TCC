@@ -6,13 +6,18 @@ import br.com.salonhub.dto.establishment.BusinessHourRequest;
 import br.com.salonhub.dto.establishment.BusinessHourResponse;
 import br.com.salonhub.entity.Establishment;
 import br.com.salonhub.entity.EstablishmentBusinessHour;
+import br.com.salonhub.entity.AppointmentStatus;
 import br.com.salonhub.exception.ConflictException;
 import br.com.salonhub.exception.InvalidRequestException;
 import br.com.salonhub.repository.EstablishmentRepository;
 import br.com.salonhub.repository.EstablishmentBusinessHourRepository;
+import br.com.salonhub.repository.AppointmentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Clock;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -21,6 +26,8 @@ public class EstablishmentManagementService {
     private final EstablishmentRepository establishmentRepository;
     private final TenantAuthorizationService tenantAuthorizationService;
     private final EstablishmentBusinessHourRepository businessHourRepository;
+    private final AppointmentRepository appointmentRepository;
+    private final Clock clock;
 
     @Transactional(readOnly = true)
     public EstablishmentResponse findMine(Long administratorId) {
@@ -54,10 +61,19 @@ public class EstablishmentManagementService {
 
     @Transactional
     public void deactivate(Long administratorId) {
-        Establishment establishment = findEstablishment(administratorId);
-        if (establishment.isActive()) {
-            establishment.deactivate();
+        Establishment identityEstablishment = findEstablishment(administratorId);
+        Establishment establishment = establishmentRepository.findByIdForUpdate(identityEstablishment.getId())
+                .orElseThrow(() -> new IllegalStateException("Estabelecimento do administrador não encontrado."));
+        if (!establishment.isActive()) {
+            return;
         }
+        if (appointmentRepository.existsByEstablishmentIdAndStatusAndEndsAtGreaterThan(
+                establishment.getId(), AppointmentStatus.CONFIRMED, LocalDateTime.now(clock))) {
+            throw new ConflictException(
+                    "O estabelecimento possui atendimentos confirmados futuros ou em andamento. "
+                            + "Cancele ou conclua os atendimentos pendentes antes de desativar.");
+        }
+        establishment.deactivate();
     }
 
     @Transactional

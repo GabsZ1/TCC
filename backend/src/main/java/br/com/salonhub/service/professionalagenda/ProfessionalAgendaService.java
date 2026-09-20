@@ -185,7 +185,7 @@ public class ProfessionalAgendaService {
 
     @Transactional
     public void deleteEvent(Long professionalId, Long eventId) {
-        User professional = requireProfessionalWithEstablishment(professionalId);
+        User professional = requireActiveProfessionalWithEstablishment(professionalId);
         ProfessionalCalendarEvent event = eventRepository.findByIdAndProfessionalId(eventId, professional.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Evento não encontrado."));
         eventRepository.delete(event);
@@ -268,13 +268,20 @@ public class ProfessionalAgendaService {
     }
 
     private User lockProfessional(Long professionalId) {
-        authorizationService.requireProfessional(professionalId);
+        authorizationService.requireProfessionalAtActiveEstablishment(professionalId);
         return userRepository.findByIdForUpdate(professionalId)
                 .filter(User::isActive)
                 .filter(user -> user.getRole() == UserRole.PROFESSIONAL && user.getEstablishment() != null)
                 .orElseThrow(() -> new ResourceNotFoundException("Profissional não encontrado."));
     }
 
+    private User requireActiveProfessionalWithEstablishment(Long professionalId) {
+        User professional = authorizationService.requireProfessionalAtActiveEstablishment(professionalId);
+        if (professional.getEstablishment() == null) {
+            throw new ResourceNotFoundException("Profissional não possui estabelecimento vinculado.");
+        }
+        return professional;
+    }
     private User requireProfessionalWithEstablishment(Long professionalId) {
         User professional = authorizationService.requireProfessional(professionalId);
         if (professional.getEstablishment() == null) {

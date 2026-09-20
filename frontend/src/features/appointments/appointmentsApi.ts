@@ -37,6 +37,11 @@ export interface Appointment {
   endsAt: string
   status: 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'INVALIDATED'
   invalidationReason: string | null
+  completedAt: string | null
+  cancellationReason: string | null
+  cancelledAt: string | null
+  cancelledByUserId: number | null
+  cancelledByUserName: string | null
 }
 
 export interface ActiveEstablishment {
@@ -72,6 +77,10 @@ export function fetchMyAppointments() {
 
 export function cancelAppointment(appointmentId: number) {
   return api.patch<Appointment>(`/agendamentos/${appointmentId}/cancelamento`).then((response) => response.data)
+}
+
+export function cancelAppointmentAsAdministrator(appointmentId: number, reason: string) {
+  return api.patch<Appointment>(`/agendamentos/${appointmentId}/cancelamento-administrativo`, { reason }).then((response) => response.data)
 }
 
 export function completeAppointment(appointmentId: number) {

@@ -24,7 +24,11 @@ public record AppointmentResponse(
         LocalDateTime endsAt,
         AppointmentStatus status,
         String invalidationReason,
-        LocalDateTime completedAt
+        LocalDateTime completedAt,
+        String cancellationReason,
+        LocalDateTime cancelledAt,
+        Long cancelledByUserId,
+        String cancelledByUserName
 ) {
     public static AppointmentResponse fromEntity(Appointment appointment) {
         return new AppointmentResponse(
@@ -45,7 +49,11 @@ public record AppointmentResponse(
                 appointment.getEndsAt(),
                 appointment.getStatus(),
                 appointment.getInvalidationReason(),
-                appointment.getCompletedAt()
+                appointment.getCompletedAt(),
+                appointment.getCancellationReason(),
+                appointment.getCancelledAt(),
+                appointment.getCancelledBy() == null ? null : appointment.getCancelledBy().getId(),
+                appointment.getCancelledBy() == null ? null : appointment.getCancelledBy().getName()
         );
     }
 }

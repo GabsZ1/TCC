@@ -81,6 +81,16 @@ public class Appointment {
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
 
+    @Column(name = "cancellation_reason", length = 500)
+    private String cancellationReason;
+
+    @Column(name = "cancelled_at")
+    private LocalDateTime cancelledAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cancelled_by_user_id")
+    private User cancelledBy;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
@@ -109,6 +119,13 @@ public class Appointment {
 
     public void cancel() {
         this.status = AppointmentStatus.CANCELLED;
+    }
+
+    public void cancelByAdministrator(String reason, User administrator, LocalDateTime cancelledAt) {
+        this.status = AppointmentStatus.CANCELLED;
+        this.cancellationReason = reason;
+        this.cancelledBy = administrator;
+        this.cancelledAt = cancelledAt;
     }
 
     public void complete(LocalDateTime completedAt) {

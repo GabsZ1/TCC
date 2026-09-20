@@ -1,6 +1,7 @@
 package br.com.salonhub.controller;
 
 import br.com.salonhub.dto.appointment.AppointmentCreateRequest;
+import br.com.salonhub.dto.appointment.AppointmentCancellationRequest;
 import br.com.salonhub.dto.appointment.AppointmentInvalidationRequest;
 import br.com.salonhub.dto.appointment.AppointmentResponse;
 import br.com.salonhub.dto.appointment.AvailabilityResponse;
@@ -64,6 +65,13 @@ public class AppointmentController {
         return commandService.cancel(currentUserId(jwt), appointmentId);
     }
 
+    @PatchMapping("/agendamentos/{appointmentId}/cancelamento-administrativo")
+    public AppointmentResponse cancelAsAdministrator(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long appointmentId,
+            @Valid @RequestBody AppointmentCancellationRequest request) {
+        return commandService.cancelAsAdministrator(currentUserId(jwt), appointmentId, request.reason());
+    }
     @PatchMapping("/agendamentos/{appointmentId}/conclusao")
     public AppointmentResponse complete(
             @AuthenticationPrincipal Jwt jwt,
