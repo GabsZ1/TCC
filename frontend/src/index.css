@@ -57,6 +57,61 @@ button:disabled {
   cursor: default;
 }
 
+.professional-calendar {
+  --fc-border-color: var(--color-brand-100);
+  --fc-button-bg-color: var(--color-brand-600);
+  --fc-button-border-color: var(--color-brand-600);
+  --fc-button-hover-bg-color: var(--color-brand-700);
+  --fc-button-hover-border-color: var(--color-brand-700);
+  --fc-button-active-bg-color: var(--color-brand-800);
+  --fc-button-active-border-color: var(--color-brand-800);
+  --fc-today-bg-color: color-mix(in srgb, var(--color-brand-100) 55%, transparent);
+  --fc-now-indicator-color: var(--color-danger-500);
+  --fc-page-bg-color: white;
+  --fc-neutral-bg-color: var(--color-sand-50);
+}
+
+.professional-calendar .fc .fc-toolbar-title {
+  font-family: var(--font-display);
+  color: var(--color-brand-900);
+  font-size: 1.5rem;
+}
+
+.professional-calendar .fc .fc-col-header-cell-cushion,
+.professional-calendar .fc .fc-daygrid-day-number {
+  color: var(--color-brand-800);
+  font-weight: 600;
+}
+
+.professional-calendar .fc .fc-daygrid-day-frame {
+  min-height: 7.5rem;
+}
+
+.professional-calendar .fc .fc-event {
+  border-radius: 0.4rem;
+  padding: 1px 3px;
+  cursor: pointer;
+}
+
+.professional-calendar .fc .fc-daygrid-day {
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .professional-calendar .fc .fc-toolbar {
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .professional-calendar .fc .fc-toolbar-title {
+    font-size: 1.1rem;
+  }
+
+  .professional-calendar .fc .fc-daygrid-day-frame {
+    min-height: 5.5rem;
+  }
+}
+
 @layer components {
   .page-title {
     @apply font-[var(--font-display)] text-3xl text-brand-900;

@@ -19,8 +19,8 @@ export function AppLayout() {
         : [{ to: '/', label: 'Início', icon: House }]
 
   return (
-    <div className="min-h-screen bg-sand-50 md:flex">
-      <aside className="hidden w-64 shrink-0 flex-col border-r border-brand-100 bg-white md:flex">
+    <div className="min-h-screen bg-sand-50 md:flex md:h-screen md:overflow-hidden">
+      <aside className="hidden w-64 shrink-0 flex-col border-r border-brand-100 bg-white md:sticky md:top-0 md:flex md:h-screen">
         <div className="border-b border-brand-100 px-5 py-5">
           <span className="font-[var(--font-display)] text-lg text-brand-900">SalonHub</span>
         </div>
@@ -55,7 +55,7 @@ export function AppLayout() {
         </div>
       </aside>
 
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 md:h-screen md:overflow-y-auto">
         <header className="border-b border-brand-100 bg-white px-4 py-3 md:hidden">
           <div className="flex items-center justify-between"><span className="font-[var(--font-display)] text-lg text-brand-900">SalonHub</span><button onClick={logout} className="text-sm font-medium text-brand-600">Sair</button></div>
           <nav className="mt-3 flex gap-2 overflow-x-auto">
