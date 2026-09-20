@@ -51,6 +51,12 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             LocalDateTime after
     );
 
+    List<Appointment> findByProfessionalIdAndStatusAndEndsAtGreaterThanOrderByStartsAt(
+            Long professionalId,
+            AppointmentStatus status,
+            LocalDateTime after
+    );
+
     List<Appointment> findByClientIdOrderByStartsAtDesc(Long clientId);
 
     Optional<Appointment> findByIdAndClientId(Long id, Long clientId);

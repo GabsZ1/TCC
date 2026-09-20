@@ -155,25 +155,25 @@ public class EmployeeService {
         if (!employee.isActive()) {
             throw new ConflictException("O funcionário já está desativado.");
         }
-        requireNoFutureConfirmedAppointments(employee);
+        requireNoRelevantConfirmedAppointments(employee);
         employee.deactivate();
         return AuthenticatedUserResponse.fromEntity(employee);
     }
 
     /**
-     * Impede desativar um funcionário que ainda possui atendimentos futuros confirmados:
+     * Impede desativar um funcionário que ainda possui atendimentos confirmados futuros ou em andamento:
      * sem isso, o agendamento continuava CONFIRMED mesmo com o profissional impedido de
      * acessar o sistema, e não havia fluxo de reatribuição. Para o MVP, o administrador
-     * precisa cancelar ou aguardar a conclusão desses atendimentos antes de desativar.
+     * precisa cancelar, concluir ou aguardar o término desses atendimentos antes de desativar.
      */
-    private void requireNoFutureConfirmedAppointments(User employee) {
-        List<Appointment> futureConfirmed = appointmentRepository
-                .findByProfessionalIdAndStatusAndStartsAtGreaterThanOrderByStartsAt(
+    private void requireNoRelevantConfirmedAppointments(User employee) {
+        List<Appointment> relevantConfirmed = appointmentRepository
+                .findByProfessionalIdAndStatusAndEndsAtGreaterThanOrderByStartsAt(
                         employee.getId(), AppointmentStatus.CONFIRMED, LocalDateTime.now(clock));
-        if (!futureConfirmed.isEmpty()) {
+        if (!relevantConfirmed.isEmpty()) {
             throw new ConflictException(
-                    "Este funcionário possui " + futureConfirmed.size()
-                            + " agendamento(s) futuro(s) confirmado(s). Cancele ou aguarde a conclusão "
+                    "Este funcionário possui " + relevantConfirmed.size()
+                            + " agendamento(s) confirmado(s) futuro(s) ou em andamento. Cancele, conclua ou aguarde o término "
                             + "desses agendamentos antes de desativar o funcionário.");
         }
     }
