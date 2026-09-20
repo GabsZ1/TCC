@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Building2, CalendarClock, Save, Power, RotateCcw } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
@@ -12,25 +12,28 @@ const WEEK_DAYS: { value: WeekDay; label: string }[] = [
   { value: 'FRIDAY', label: 'Sexta-feira' }, { value: 'SATURDAY', label: 'Sábado' },
   { value: 'SUNDAY', label: 'Domingo' },
 ]
-const EMPTY_FORM: EstablishmentUpdateInput = { name: '', email: '', phone: '', businessHours: [], minimumAdvanceHours: 2, maximumAdvanceDays: 60 }
-
 export function EstablishmentPage() {
-  const queryClient = useQueryClient()
-  const [form, setForm] = useState<EstablishmentUpdateInput>(EMPTY_FORM)
-  const [message, setMessage] = useState<string | null>(null)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [isConfirmingDeactivation, setIsConfirmingDeactivation] = useState(false)
   const establishmentQuery = useQuery({ queryKey: QUERY_KEY, queryFn: fetchMyEstablishment })
   const establishment = establishmentQuery.data
 
-  useEffect(() => {
-    if (establishment) setForm({ name: establishment.name, email: establishment.email ?? '', phone: establishment.phone ?? '', businessHours: orderBusinessHours(establishment.businessHours), minimumAdvanceHours: establishment.minimumAdvanceHours, maximumAdvanceDays: establishment.maximumAdvanceDays })
-  }, [establishment])
+  if (establishmentQuery.isLoading) return <PageContainer><StateCard>Carregando dados do estabelecimento...</StateCard></PageContainer>
+  if (establishmentQuery.isError || !establishment) return <PageContainer><StateCard error>{getApiErrorMessage(establishmentQuery.error, 'Não foi possível carregar o estabelecimento.')}</StateCard></PageContainer>
+
+  return <EstablishmentContent establishment={establishment} />
+}
+
+function EstablishmentContent({ establishment }: { establishment: Awaited<ReturnType<typeof fetchMyEstablishment>> }) {
+  const queryClient = useQueryClient()
+  const [form, setForm] = useState<EstablishmentUpdateInput>(() => toForm(establishment))
+  const [message, setMessage] = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [isConfirmingDeactivation, setIsConfirmingDeactivation] = useState(false)
 
   const updateMutation = useMutation({
     mutationFn: updateMyEstablishment,
     onSuccess: (updated) => {
       queryClient.setQueryData(QUERY_KEY, updated)
+      setForm(toForm(updated))
       setMessage('Dados do estabelecimento atualizados com sucesso.')
       setErrorMessage(null)
     },
@@ -80,9 +83,6 @@ export function EstablishmentPage() {
     setErrorMessage(null)
     updateMutation.mutate(form)
   }
-
-  if (establishmentQuery.isLoading) return <PageContainer><StateCard>Carregando dados do estabelecimento...</StateCard></PageContainer>
-  if (establishmentQuery.isError || !establishment) return <PageContainer><StateCard error>{getApiErrorMessage(establishmentQuery.error, 'Não foi possível carregar o estabelecimento.')}</StateCard></PageContainer>
 
   const isInactive = !establishment.active
   return (
@@ -146,3 +146,4 @@ function PageContainer({ children }: { children: React.ReactNode }) { return <di
 function StateCard({ children, error = false }: { children: React.ReactNode; error?: boolean }) { return <div className={`rounded-2xl border bg-white p-8 text-center ${error ? 'border-danger-500/30 text-danger-600' : 'border-brand-100 text-brand-600'}`}>{children}</div> }
 function formatCnpj(value: string) { return value.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') }
 function orderBusinessHours(hours: BusinessHour[]) { return WEEK_DAYS.map((day) => hours.find((hour) => hour.dayOfWeek === day.value) ?? { dayOfWeek: day.value, closed: false, openingTime: '09:00', closingTime: '18:00' }) }
+function toForm(establishment: Awaited<ReturnType<typeof fetchMyEstablishment>>): EstablishmentUpdateInput { return { name: establishment.name, email: establishment.email ?? '', phone: establishment.phone ?? '', businessHours: orderBusinessHours(establishment.businessHours), minimumAdvanceHours: establishment.minimumAdvanceHours, maximumAdvanceDays: establishment.maximumAdvanceDays } }

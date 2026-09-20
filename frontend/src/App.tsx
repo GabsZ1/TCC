@@ -1,23 +1,26 @@
+import { lazy, Suspense } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { ProtectedRoute } from '@/routes/ProtectedRoute'
 import { AppLayout } from '@/components/layout/AppLayout'
-import { LoginPage } from '@/features/auth/pages/LoginPage'
-import { ForbiddenPage } from '@/features/auth/pages/ForbiddenPage'
-import { DashboardPage } from '@/features/dashboard/pages/DashboardPage'
-import { EmployeesListPage } from '@/features/employees/pages/EmployeesListPage'
-import { InitialRegistrationPage } from '@/features/auth/pages/InitialRegistrationPage'
-import { ClientRegistrationPage } from '@/features/auth/pages/ClientRegistrationPage'
-import { FirstAccessPage } from '@/features/auth/pages/FirstAccessPage'
-import { ServicesPage } from '@/features/services/ServicesPage'
-import { AppointmentsPage } from '@/features/appointments/AppointmentsPage'
-import { BookingPage } from '@/features/appointments/BookingPage'
-import { ProfessionalAgendaPage } from '@/features/appointments/ProfessionalAgendaPage'
-import { EstablishmentPage } from '@/features/establishment/EstablishmentPage'
-import { AdminAgendaPage } from '@/features/appointments/AdminAgendaPage'
+
+const LoginPage = lazy(() => import('@/features/auth/pages/LoginPage').then((module) => ({ default: module.LoginPage })))
+const ForbiddenPage = lazy(() => import('@/features/auth/pages/ForbiddenPage').then((module) => ({ default: module.ForbiddenPage })))
+const DashboardPage = lazy(() => import('@/features/dashboard/pages/DashboardPage').then((module) => ({ default: module.DashboardPage })))
+const EmployeesListPage = lazy(() => import('@/features/employees/pages/EmployeesListPage').then((module) => ({ default: module.EmployeesListPage })))
+const InitialRegistrationPage = lazy(() => import('@/features/auth/pages/InitialRegistrationPage').then((module) => ({ default: module.InitialRegistrationPage })))
+const ClientRegistrationPage = lazy(() => import('@/features/auth/pages/ClientRegistrationPage').then((module) => ({ default: module.ClientRegistrationPage })))
+const FirstAccessPage = lazy(() => import('@/features/auth/pages/FirstAccessPage').then((module) => ({ default: module.FirstAccessPage })))
+const ServicesPage = lazy(() => import('@/features/services/ServicesPage').then((module) => ({ default: module.ServicesPage })))
+const AppointmentsPage = lazy(() => import('@/features/appointments/AppointmentsPage').then((module) => ({ default: module.AppointmentsPage })))
+const BookingPage = lazy(() => import('@/features/appointments/BookingPage').then((module) => ({ default: module.BookingPage })))
+const ProfessionalAgendaPage = lazy(() => import('@/features/appointments/ProfessionalAgendaPage').then((module) => ({ default: module.ProfessionalAgendaPage })))
+const EstablishmentPage = lazy(() => import('@/features/establishment/EstablishmentPage').then((module) => ({ default: module.EstablishmentPage })))
+const AdminAgendaPage = lazy(() => import('@/features/appointments/AdminAgendaPage').then((module) => ({ default: module.AdminAgendaPage })))
 
 function App() {
   return (
-    <Routes>
+    <Suspense fallback={<RouteLoading />}>
+      <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/cadastro" element={<InitialRegistrationPage />} />
       <Route path="/cadastro-cliente" element={<ClientRegistrationPage />} />
@@ -47,8 +50,13 @@ function App() {
           </Route>
         </Route>
       </Route>
-    </Routes>
+      </Routes>
+    </Suspense>
   )
+}
+
+function RouteLoading() {
+  return <div className="grid min-h-screen place-items-center bg-sand-50 text-sm font-medium text-brand-600">Carregando página...</div>
 }
 
 export default App
