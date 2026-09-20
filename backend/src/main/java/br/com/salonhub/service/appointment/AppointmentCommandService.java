@@ -19,6 +19,7 @@ import br.com.salonhub.repository.EstablishmentRepository;
 import br.com.salonhub.repository.EstablishmentServiceRepository;
 import br.com.salonhub.repository.UserRepository;
 import br.com.salonhub.service.TenantAuthorizationService;
+import br.com.salonhub.service.professionalagenda.ProfessionalAvailabilityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +38,7 @@ public class AppointmentCommandService {
     private final UserRepository userRepository;
     private final TenantAuthorizationService tenantAuthorizationService;
     private final EstablishmentBusinessHourRepository businessHourRepository;
+    private final ProfessionalAvailabilityService professionalAvailabilityService;
     private final Clock clock;
 
     @Transactional
@@ -147,6 +149,7 @@ public class AppointmentCommandService {
         validateSlotAlignment(startsAt);
         validateAdvanceWindow(establishment, startsAt);
         validateBusinessHours(establishment, startsAt, endsAt);
+        professionalAvailabilityService.validateAvailable(professional, startsAt, endsAt);
         validateProfessionalAvailability(professional.getId(), startsAt, endsAt, ignoredAppointmentId);
         validateClientAvailability(client.getId(), startsAt, endsAt, ignoredAppointmentId);
     }

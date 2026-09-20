@@ -5,7 +5,6 @@ import br.com.salonhub.dto.appointment.AvailabilityResponse;
 import br.com.salonhub.entity.Appointment;
 import br.com.salonhub.entity.AppointmentStatus;
 import br.com.salonhub.entity.Establishment;
-import br.com.salonhub.entity.EstablishmentBusinessHour;
 import br.com.salonhub.entity.EstablishmentService;
 import br.com.salonhub.entity.User;
 import br.com.salonhub.entity.UserRole;
@@ -13,11 +12,13 @@ import br.com.salonhub.exception.ConflictException;
 import br.com.salonhub.exception.InvalidRequestException;
 import br.com.salonhub.exception.ResourceNotFoundException;
 import br.com.salonhub.repository.AppointmentRepository;
-import br.com.salonhub.repository.EstablishmentBusinessHourRepository;
 import br.com.salonhub.repository.EstablishmentRepository;
 import br.com.salonhub.repository.EstablishmentServiceRepository;
 import br.com.salonhub.repository.UserRepository;
 import br.com.salonhub.service.TenantAuthorizationService;
+import br.com.salonhub.service.professionalagenda.ProfessionalAvailabilityService;
+import br.com.salonhub.entity.ProfessionalCalendarEvent;
+import br.com.salonhub.repository.ProfessionalCalendarEventRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,8 +39,9 @@ public class AppointmentQueryService {
     private final EstablishmentServiceRepository serviceRepository;
     private final UserRepository userRepository;
     private final TenantAuthorizationService tenantAuthorizationService;
-    private final EstablishmentBusinessHourRepository businessHourRepository;
     private final Clock clock;
+    private final ProfessionalAvailabilityService professionalAvailabilityService;
+    private final ProfessionalCalendarEventRepository calendarEventRepository;
 
     @Transactional(readOnly = true)
     public List<AppointmentResponse> findMine(Long clientId) {
@@ -114,10 +116,14 @@ public class AppointmentQueryService {
         List<Appointment> clientAppointments = appointmentRepository
                 .findByClientIdAndStatusAndStartsAtLessThanAndEndsAtGreaterThanOrderByStartsAt(
                         client.getId(), AppointmentStatus.CONFIRMED, dayEnd, dayStart);
+        List<ProfessionalCalendarEvent> calendarEvents = calendarEventRepository
+                .findByProfessionalIdAndStartsAtLessThanAndEndsAtGreaterThanOrderByStartsAt(
+                        professionalId, dayEnd, dayStart);
 
-        EstablishmentBusinessHour businessHour = requireOpenBusinessHour(establishment, date);
+        ProfessionalAvailabilityService.WorkingHours workingHours =
+                professionalAvailabilityService.requireWorkingHours(professional, date);
         List<LocalTime> availableTimes = calculateAvailableTimes(
-                date, service, businessHour, professionalAppointments, clientAppointments,
+                date, service, workingHours, professionalAppointments, clientAppointments, calendarEvents,
                 earliestStart, latestStart, appointmentId);
         return new AvailabilityResponse(date, service.getDurationMinutes(), availableTimes);
     }
@@ -125,22 +131,25 @@ public class AppointmentQueryService {
     private List<LocalTime> calculateAvailableTimes(
             LocalDate date,
             EstablishmentService service,
-            EstablishmentBusinessHour businessHour,
+            ProfessionalAvailabilityService.WorkingHours workingHours,
             List<Appointment> professionalAppointments,
             List<Appointment> clientAppointments,
+            List<ProfessionalCalendarEvent> calendarEvents,
             LocalDateTime earliestStart,
             LocalDateTime latestStart,
             Long ignoredAppointmentId) {
         List<LocalTime> availableTimes = new ArrayList<>();
-        LocalDateTime candidate = date.atTime(businessHour.getOpeningTime());
-        LocalDateTime closing = date.atTime(businessHour.getClosingTime());
+        LocalDateTime candidate = date.atTime(workingHours.openingTime());
+        LocalDateTime closing = date.atTime(workingHours.closingTime());
         while (!candidate.plusMinutes(service.getDurationMinutes()).isAfter(closing)) {
             LocalDateTime slotStart = candidate;
             LocalDateTime slotEnd = slotStart.plusMinutes(service.getDurationMinutes());
             boolean withinAdvanceWindow = !slotStart.isBefore(earliestStart) && !slotStart.isAfter(latestStart);
             boolean professionalOverlaps = overlaps(professionalAppointments, slotStart, slotEnd, ignoredAppointmentId);
             boolean clientOverlaps = overlaps(clientAppointments, slotStart, slotEnd, ignoredAppointmentId);
-            if (withinAdvanceWindow && !professionalOverlaps && !clientOverlaps) {
+            boolean calendarEventOverlaps = calendarEvents.stream().anyMatch(event ->
+                    event.getStartsAt().isBefore(slotEnd) && event.getEndsAt().isAfter(slotStart));
+            if (withinAdvanceWindow && !professionalOverlaps && !clientOverlaps && !calendarEventOverlaps) {
                 availableTimes.add(slotStart.toLocalTime());
             }
             candidate = candidate.plusMinutes(AppointmentSlotPolicy.SLOT_INTERVAL_MINUTES);
@@ -173,9 +182,4 @@ public class AppointmentQueryService {
         }
     }
 
-    private EstablishmentBusinessHour requireOpenBusinessHour(Establishment establishment, LocalDate date) {
-        return businessHourRepository.findByEstablishmentIdAndDayOfWeek(establishment.getId(), date.getDayOfWeek())
-                .filter(hour -> !hour.isClosed())
-                .orElseThrow(() -> new ConflictException("O estabelecimento está fechado nesta data."));
-    }
 }

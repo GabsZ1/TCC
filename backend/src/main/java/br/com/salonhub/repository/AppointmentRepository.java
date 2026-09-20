@@ -53,6 +53,9 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     List<Appointment> findByProfessionalIdOrderByStartsAtDesc(Long professionalId);
 
+    List<Appointment> findByProfessionalIdAndStartsAtLessThanAndEndsAtGreaterThanOrderByStartsAt(
+            Long professionalId, LocalDateTime periodEnd, LocalDateTime periodStart);
+
     @Query("""
             select appointment
             from Appointment appointment
