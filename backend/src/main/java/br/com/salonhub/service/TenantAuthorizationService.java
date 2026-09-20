@@ -54,6 +54,15 @@ public class TenantAuthorizationService {
     }
 
     @Transactional(readOnly = true)
+    public User requireProfessionalAtActiveEstablishment(Long userId) {
+        User user = requireProfessional(userId);
+        if (user.getEstablishment() == null || !user.getEstablishment().isActive()) {
+            throw new AccessDeniedException("O estabelecimento está inativo. As operações profissionais estão bloqueadas.");
+        }
+        return user;
+    }
+
+    @Transactional(readOnly = true)
     public User requireProfessional(Long userId) {
         User user = userRepository.findById(userId)
                 .filter(User::isActive)

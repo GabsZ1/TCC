@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CalendarDays, Clock3, Scissors, User } from 'lucide-react'
 import { InvalidateAppointmentModal } from '@/features/appointments/InvalidateAppointmentModal'
+import { AdminCancelAppointmentModal } from '@/features/appointments/AdminCancelAppointmentModal'
 import { completeAppointment, fetchEstablishmentAgenda, type Appointment } from '@/features/appointments/appointmentsApi'
 import { fetchEmployees } from '@/features/employees/services/employeesApi'
 import { getApiErrorMessage } from '@/lib/apiError'
@@ -16,6 +17,7 @@ export function AdminAgendaPage() {
   const [professionalId, setProfessionalId] = useState('')
   const [status, setStatus] = useState<StatusFilter>('')
   const [invalidating, setInvalidating] = useState<Appointment | null>(null)
+  const [cancelling, setCancelling] = useState<Appointment | null>(null)
   const employees = useQuery({ queryKey: ['employees'], queryFn: fetchEmployees })
   const agenda = useQuery({
     queryKey: [AGENDA_QUERY_KEY, date, professionalId, status],
@@ -31,8 +33,12 @@ export function AdminAgendaPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [AGENDA_QUERY_KEY] }),
   })
 
-  function handleInvalidated() {
+  function refreshAgenda() {
     queryClient.invalidateQueries({ queryKey: [AGENDA_QUERY_KEY] })
+  }
+
+  function handleInvalidated() {
+    refreshAgenda()
     setInvalidating(null)
   }
 
@@ -65,10 +71,18 @@ export function AdminAgendaPage() {
             onComplete={() => completeMutation.mutate(appointment.id)}
             isCompleting={completeMutation.isPending && completeMutation.variables === appointment.id}
             onInvalidate={() => setInvalidating(appointment)}
+            onCancel={() => setCancelling(appointment)}
           />
         ))}
       </div>
 
+      {cancelling && (
+        <AdminCancelAppointmentModal
+          appointment={cancelling}
+          onCancelled={() => { refreshAgenda(); setCancelling(null) }}
+          onClose={() => setCancelling(null)}
+        />
+      )}
       {invalidating && (
         <InvalidateAppointmentModal
           appointment={invalidating}
@@ -85,14 +99,17 @@ function AppointmentCard({
   onComplete,
   isCompleting,
   onInvalidate,
+  onCancel,
 }: {
   appointment: Appointment
   onComplete: () => void
   isCompleting: boolean
   onInvalidate: () => void
+  onCancel: () => void
 }) {
   const canComplete = appointment.status === 'CONFIRMED' && hasStarted(appointment)
   const canInvalidate = appointment.status === 'COMPLETED'
+  const canCancel = appointment.status === 'CONFIRMED'
 
   return (
     <article className="rounded-2xl border border-brand-100 bg-white p-5 shadow-sm">
@@ -101,6 +118,12 @@ function AppointmentCard({
           <div className="flex items-center gap-2"><Scissors size={18} className="text-brand-500" /><h2 className="text-lg font-semibold text-brand-900">{appointment.serviceName}</h2></div>
           <p className="mt-2 flex items-center gap-2 text-sm text-brand-600"><User size={16} /> Cliente: {appointment.clientName}</p>
           <p className="mt-1 text-sm text-brand-600">Profissional: {appointment.professionalName}</p>
+          {appointment.status === 'CANCELLED' && appointment.cancellationReason && (
+            <p className="mt-2 max-w-sm text-sm text-danger-600">
+              Motivo: {appointment.cancellationReason}
+              {appointment.cancelledByUserName && ` · Cancelado por ${appointment.cancelledByUserName}`}
+            </p>
+          )}
           {appointment.status === 'INVALIDATED' && appointment.invalidationReason && (
             <p className="mt-2 max-w-sm text-sm text-amber-700">Motivo: {appointment.invalidationReason}</p>
           )}
@@ -113,8 +136,13 @@ function AppointmentCard({
           <StatusBadge status={appointment.status} />
           <p className="mt-2 font-semibold text-brand-900">{formatMoney(appointment.agreedPrice)}</p>
           <p className="text-brand-600">Comissão: {formatMoney(appointment.commissionAmount)}</p>
-          {(canComplete || canInvalidate) && (
+          {(canComplete || canInvalidate || canCancel) && (
             <div className="mt-3 flex flex-wrap justify-end gap-2">
+              {canCancel && (
+                <button type="button" onClick={onCancel} className="rounded-lg border border-danger-500/30 px-3 py-1.5 text-xs font-semibold text-danger-600 hover:bg-danger-500/5">
+                  Cancelar
+                </button>
+              )}
               {canComplete && (
                 <button
                   type="button"

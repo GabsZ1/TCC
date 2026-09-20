@@ -2,6 +2,7 @@ package br.com.salonhub.controller;
 
 import br.com.salonhub.entity.User;
 import br.com.salonhub.entity.Appointment;
+import br.com.salonhub.entity.AppointmentStatus;
 import br.com.salonhub.entity.EstablishmentService;
 import br.com.salonhub.repository.AppointmentRepository;
 import br.com.salonhub.repository.EstablishmentServiceRepository;
@@ -22,6 +23,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -47,6 +49,7 @@ class EmployeeRemovalIntegrationTests {
     @Autowired private EstablishmentServiceRepository serviceRepository;
     @Autowired private AppointmentRepository appointmentRepository;
     @Autowired private EntityManager entityManager;
+    @Autowired private Clock clock;
 
     @Test
     void shouldReactivateOnlyAnEmployeeFromTheAdministratorsEstablishment() throws Exception {
@@ -207,6 +210,60 @@ class EmployeeRemovalIntegrationTests {
     }
 
     @Test
+    void shouldBlockDeactivationWithFutureConfirmedAppointment() throws Exception {
+        String token = registerAndLogin("future.confirmed@employee.test", "30303030000138", "Future Confirmed");
+        User admin = userRepository.findByEmailIgnoreCase("future.confirmed@employee.test").orElseThrow();
+        User employee = employee(admin, "future-confirmed");
+        appointment(employee, "future-confirmed", LocalDateTime.now(clock).plusDays(1), AppointmentStatus.CONFIRMED);
+
+        mockMvc.perform(patch("/api/funcionarios/{id}/desativacao", employee.getId())
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isConflict());
+        assertThat(userRepository.findById(employee.getId()).orElseThrow().isActive()).isTrue();
+    }
+
+    @Test
+    void shouldBlockDeactivationWithConfirmedAppointmentInProgress() throws Exception {
+        String token = registerAndLogin("ongoing.confirmed@employee.test", "30303030000138", "Ongoing Confirmed");
+        User admin = userRepository.findByEmailIgnoreCase("ongoing.confirmed@employee.test").orElseThrow();
+        User employee = employee(admin, "ongoing-confirmed");
+        appointment(employee, "ongoing-confirmed", LocalDateTime.now(clock).minusMinutes(30), AppointmentStatus.CONFIRMED);
+
+        mockMvc.perform(patch("/api/funcionarios/{id}/desativacao", employee.getId())
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isConflict());
+        assertThat(userRepository.findById(employee.getId()).orElseThrow().isActive()).isTrue();
+    }
+
+    @Test
+    void shouldAllowDeactivationWhenConfirmedAppointmentHasEnded() throws Exception {
+        String token = registerAndLogin("ended.confirmed@employee.test", "30303030000138", "Ended Confirmed");
+        User admin = userRepository.findByEmailIgnoreCase("ended.confirmed@employee.test").orElseThrow();
+        User employee = employee(admin, "ended-confirmed");
+        appointment(employee, "ended-confirmed", LocalDateTime.now(clock).minusHours(2), AppointmentStatus.CONFIRMED);
+
+        mockMvc.perform(patch("/api/funcionarios/{id}/desativacao", employee.getId())
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.active").value(false));
+    }
+
+    @Test
+    void shouldAllowDeactivationWithOnlyNonConfirmedAppointments() throws Exception {
+        String token = registerAndLogin("terminal.statuses@employee.test", "30303030000138", "Terminal Statuses");
+        User admin = userRepository.findByEmailIgnoreCase("terminal.statuses@employee.test").orElseThrow();
+        User employee = employee(admin, "terminal-statuses");
+        LocalDateTime future = LocalDateTime.now(clock).plusDays(1);
+        appointment(employee, "cancelled", future, AppointmentStatus.CANCELLED);
+        appointment(employee, "completed", future.plusHours(2), AppointmentStatus.COMPLETED);
+        appointment(employee, "invalidated", future.plusHours(4), AppointmentStatus.INVALIDATED);
+
+        mockMvc.perform(patch("/api/funcionarios/{id}/desativacao", employee.getId())
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.active").value(false));
+    }
+    @Test
     void shouldDeactivateWithoutAppointmentsKeepVisibleReactivateAndDeleteSafely() throws Exception {
         String token = registerAndLogin("lifecycle@employee.test", "51515151000113", "Lifecycle");
         User admin = userRepository.findByEmailIgnoreCase("lifecycle@employee.test").orElseThrow();
@@ -322,6 +379,31 @@ class EmployeeRemovalIntegrationTests {
         assertThat(employee.isActive()).isTrue();
     }
 
+    private Appointment appointment(
+            User employee, String suffix, LocalDateTime startsAt, AppointmentStatus status) {
+        User client = userRepository.saveAndFlush(User.builder()
+                .name("Client " + suffix)
+                .email("client." + suffix + "@employee.test")
+                .password("test")
+                .role(UserRole.CLIENT)
+                .build());
+        EstablishmentService service = serviceRepository.saveAndFlush(EstablishmentService.builder()
+                .establishment(employee.getEstablishment())
+                .name("Service " + suffix)
+                .price(new BigDecimal("40.00"))
+                .commissionPercentage(BigDecimal.TEN)
+                .durationMinutes(60)
+                .build());
+        Appointment appointment = Appointment.schedule(
+                employee.getEstablishment(), client, employee, service, startsAt.withNano(0));
+        switch (status) {
+            case CANCELLED -> appointment.cancel();
+            case COMPLETED -> appointment.complete(startsAt.plusMinutes(30));
+            case INVALIDATED -> appointment.invalidate("Teste de desativação");
+            case CONFIRMED -> { }
+        }
+        return appointmentRepository.saveAndFlush(appointment);
+    }
     private User employee(User admin, String name) {
         return userRepository.saveAndFlush(User.builder().name(name).email(name + "@fixture.test")
                 .password("test").role(UserRole.PROFESSIONAL).establishment(admin.getEstablishment()).build());

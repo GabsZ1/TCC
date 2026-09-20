@@ -16,6 +16,7 @@ const BookingPage = lazy(() => import('@/features/appointments/BookingPage').the
 const ProfessionalAgendaPage = lazy(() => import('@/features/appointments/ProfessionalAgendaPage').then((module) => ({ default: module.ProfessionalAgendaPage })))
 const EstablishmentPage = lazy(() => import('@/features/establishment/EstablishmentPage').then((module) => ({ default: module.EstablishmentPage })))
 const AdminAgendaPage = lazy(() => import('@/features/appointments/AdminAgendaPage').then((module) => ({ default: module.AdminAgendaPage })))
+const CommissionReportPage = lazy(() => import('@/features/commissions/CommissionReportPage').then((module) => ({ default: module.CommissionReportPage })))
 
 function App() {
   return (
@@ -38,6 +39,7 @@ function App() {
             <Route path="/servicos" element={<ServicesPage />} />
             <Route path="/estabelecimento" element={<EstablishmentPage />} />
             <Route path="/agenda" element={<AdminAgendaPage />} />
+            <Route path="/relatorio-comissoes" element={<CommissionReportPage />} />
           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={['CLIENT']} />}>

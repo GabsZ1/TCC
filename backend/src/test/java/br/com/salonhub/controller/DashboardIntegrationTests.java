@@ -70,8 +70,10 @@ class DashboardIntegrationTests {
     void shouldCountOnlyTodaysCompletedServicesAndSumCurrentMonthCommission() throws Exception {
         Fixture fixture = setUp("dashboard-activity", "43000100010193");
 
-        completeAppointment(fixture, LocalDateTime.now().minusHours(2));
-        completeAppointment(fixture, LocalDateTime.now().minusDays(1));
+        createCompletedAppointment(
+                fixture, LocalDateTime.now().minusMonths(2), LocalDateTime.now().minusHours(2));
+        createCompletedAppointment(
+                fixture, LocalDateTime.now().minusHours(2), LocalDateTime.now().minusMonths(2));
         createAppointment(fixture, LocalDateTime.now().plusHours(1));
         Long toCancel = createAppointment(fixture, LocalDateTime.now().plusHours(2));
         cancelAsClient(fixture, toCancel);
@@ -80,14 +82,15 @@ class DashboardIntegrationTests {
                         .header("Authorization", bearer(fixture.administratorToken())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.todaysCompletedServices").value(1))
-                .andExpect(jsonPath("$.monthlyCommissionTotal").value(40.0))
+                .andExpect(jsonPath("$.monthlyCommissionTotal").value(20.0))
                 .andExpect(jsonPath("$.activeEmployees").value(1));
     }
 
     @Test
     void shouldExcludeCommissionFromAppointmentsCompletedInAPreviousMonth() throws Exception {
         Fixture fixture = setUp("dashboard-previous-month", "43000200010209");
-        completeAppointment(fixture, LocalDateTime.now().minusMonths(2));
+        createCompletedAppointment(
+                fixture, LocalDateTime.now().minusHours(1), LocalDateTime.now().minusMonths(2));
 
         mockMvc.perform(get("/api/estabelecimentos/me/dashboard")
                         .header("Authorization", bearer(fixture.administratorToken())))
@@ -157,6 +160,14 @@ class DashboardIntegrationTests {
         mockMvc.perform(patch("/api/agendamentos/{id}/conclusao", appointmentId)
                         .header("Authorization", bearer(fixture.professionalToken())))
                 .andExpect(status().isOk());
+    }
+
+    private void createCompletedAppointment(
+            Fixture fixture, LocalDateTime startsAt, LocalDateTime completedAt) {
+        Appointment appointment = Appointment.schedule(
+                fixture.establishment(), fixture.client(), fixture.professional(), fixture.service(), startsAt);
+        appointment.complete(completedAt);
+        appointmentRepository.saveAndFlush(appointment);
     }
 
     private Long createAppointment(Fixture fixture, LocalDateTime startsAt) {

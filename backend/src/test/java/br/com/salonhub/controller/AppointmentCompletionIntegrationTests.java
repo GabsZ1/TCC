@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -227,6 +228,90 @@ class AppointmentCompletionIntegrationTests {
                 .andExpect(status().isNotFound());
     }
 
+    @Test
+    void shouldAllowAdministratorToCancelConfirmedAppointmentAndPersistAudit() throws Exception {
+        Fixture fixture = setUp("admin-cancel", "12345678000195");
+        Appointment appointment = appointmentRepository.saveAndFlush(Appointment.schedule(
+                fixture.establishment(), fixture.client(), fixture.professional(), fixture.service(),
+                LocalDateTime.now().plusDays(2)));
+
+        mockMvc.perform(patch("/api/agendamentos/{id}/cancelamento-administrativo", appointment.getId())
+                        .header("Authorization", bearer(fixture.administratorToken()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"reason":"Profissional indisponível para o atendimento."}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CANCELLED"))
+                .andExpect(jsonPath("$.cancellationReason")
+                        .value("Profissional indisponível para o atendimento."))
+                .andExpect(jsonPath("$.cancelledAt").isNotEmpty())
+                .andExpect(jsonPath("$.cancelledByUserId").isNumber())
+                .andExpect(jsonPath("$.cancelledByUserName").value("Administrador admin-cancel"));
+
+        appointmentRepository.flush();
+        Appointment cancelled = appointmentRepository.findById(appointment.getId()).orElseThrow();
+        assertThat(cancelled.getCancellationReason()).isEqualTo("Profissional indisponível para o atendimento.");
+        assertThat(cancelled.getCancelledAt()).isNotNull();
+        assertThat(cancelled.getCancelledBy().getEmail()).isEqualTo("admin.admin-cancel@salonhub.test");
+        assertThat(cancelled.getServiceName()).isEqualTo(appointment.getServiceName());
+        assertThat(cancelled.getAgreedPrice()).isEqualByComparingTo(appointment.getAgreedPrice());
+        assertThat(cancelled.getCommissionAmount()).isEqualByComparingTo(appointment.getCommissionAmount());
+    }
+
+    @Test
+    void shouldRejectAdministrativeCancellationWithoutReason() throws Exception {
+        Fixture fixture = setUp("admin-cancel-blank", "12345678000195");
+        Appointment appointment = appointmentRepository.saveAndFlush(Appointment.schedule(
+                fixture.establishment(), fixture.client(), fixture.professional(), fixture.service(),
+                LocalDateTime.now().plusDays(2)));
+
+        mockMvc.perform(patch("/api/agendamentos/{id}/cancelamento-administrativo", appointment.getId())
+                        .header("Authorization", bearer(fixture.administratorToken()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"reason":"   "}
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void shouldKeepCompletedAppointmentForInvalidationInsteadOfAdministrativeCancellation() throws Exception {
+        Fixture fixture = setUp("admin-cancel-completed", "12345678000195");
+        Long appointmentId = createPastAppointment(fixture);
+        completeAsProfessional(fixture, appointmentId);
+
+        mockMvc.perform(patch("/api/agendamentos/{id}/cancelamento-administrativo", appointmentId)
+                        .header("Authorization", bearer(fixture.administratorToken()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"reason":"Tentativa sobre atendimento concluído."}
+                                """))
+                .andExpect(status().isConflict());
+
+        assertThat(appointmentRepository.findById(appointmentId).orElseThrow().getStatus())
+                .isEqualTo(br.com.salonhub.entity.AppointmentStatus.COMPLETED);
+    }
+    @Test
+    void shouldHideAppointmentFromAdministratorOfAnotherEstablishmentOnCancellation() throws Exception {
+        Fixture fixture = setUp("admin-cancel-isolation", "12345678000195");
+        Appointment appointment = appointmentRepository.saveAndFlush(Appointment.schedule(
+                fixture.establishment(), fixture.client(), fixture.professional(), fixture.service(),
+                LocalDateTime.now().plusDays(2)));
+        setUp("other-admin-cancel", "22345678000149");
+        String otherAdministratorToken = login("admin.other-admin-cancel@salonhub.test");
+
+        mockMvc.perform(patch("/api/agendamentos/{id}/cancelamento-administrativo", appointment.getId())
+                        .header("Authorization", bearer(otherAdministratorToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"reason":"Tentativa entre estabelecimentos."}
+                                """))
+                .andExpect(status().isNotFound());
+
+        assertThat(appointmentRepository.findById(appointment.getId()).orElseThrow().getStatus())
+                .isEqualTo(br.com.salonhub.entity.AppointmentStatus.CONFIRMED);
+    }
     private void completeAsProfessional(Fixture fixture, Long appointmentId) throws Exception {
         mockMvc.perform(patch("/api/agendamentos/{id}/conclusao", appointmentId)
                         .header("Authorization", bearer(fixture.professionalToken())))
