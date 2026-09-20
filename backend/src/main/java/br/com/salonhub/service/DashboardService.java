@@ -39,11 +39,11 @@ public class DashboardService {
         LocalDateTime monthEnd = currentMonth.plusMonths(1).atDay(1).atStartOfDay();
 
         long todaysCompletedServices = appointmentRepository
-                .countByEstablishmentIdAndStatusAndStartsAtGreaterThanEqualAndStartsAtLessThan(
+                .countByEstablishmentIdAndStatusAndCompletedAtGreaterThanEqualAndCompletedAtLessThan(
                         establishmentId, AppointmentStatus.COMPLETED, todayStart, todayEnd);
 
         BigDecimal monthlyCommissionTotal = appointmentRepository
-                .sumCommissionByEstablishmentIdAndStatusAndStartsAtBetween(
+                .sumCommissionByEstablishmentIdAndStatusAndCompletedAtBetween(
                         establishmentId, AppointmentStatus.COMPLETED, monthStart, monthEnd);
 
         long activeEmployees = userRepository

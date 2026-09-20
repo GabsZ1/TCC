@@ -94,7 +94,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             LocalDateTime periodStart
     );
 
-    long countByEstablishmentIdAndStatusAndStartsAtGreaterThanEqualAndStartsAtLessThan(
+    long countByEstablishmentIdAndStatusAndCompletedAtGreaterThanEqualAndCompletedAtLessThan(
             Long establishmentId,
             AppointmentStatus status,
             LocalDateTime periodStart,
@@ -106,10 +106,10 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             from Appointment appointment
             where appointment.establishment.id = :establishmentId
               and appointment.status = :status
-              and appointment.startsAt >= :periodStart
-              and appointment.startsAt < :periodEnd
+              and appointment.completedAt >= :periodStart
+              and appointment.completedAt < :periodEnd
             """)
-    BigDecimal sumCommissionByEstablishmentIdAndStatusAndStartsAtBetween(
+    BigDecimal sumCommissionByEstablishmentIdAndStatusAndCompletedAtBetween(
             @Param("establishmentId") Long establishmentId,
             @Param("status") AppointmentStatus status,
             @Param("periodStart") LocalDateTime periodStart,
