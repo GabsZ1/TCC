@@ -105,6 +105,19 @@ export interface EstablishmentAgendaFilters {
   status?: Appointment['status']
 }
 
+export interface TeamAvailability {
+  professionalId: number
+  professionalName: string
+  working: boolean
+  openingTime: string | null
+  closingTime: string | null
+  blocks: Array<{ id: number; startsAt: string; endsAt: string; allDay: boolean }>
+}
+
 export function fetchEstablishmentAgenda(filters: EstablishmentAgendaFilters) {
   return api.get<Appointment[]>('/agendamentos/estabelecimento/me', { params: filters }).then((response) => response.data)
+}
+
+export function fetchTeamAvailability(date: string, professionalId?: number) {
+  return api.get<TeamAvailability[]>('/agendamentos/estabelecimento/me/disponibilidade-equipe', { params: { date, professionalId } }).then((response) => response.data)
 }

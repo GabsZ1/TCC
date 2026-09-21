@@ -16,6 +16,7 @@ interface ConfirmDialogProps {
    */
   confirmationText?: string
   confirmationLabel?: string
+  errorMessage?: string | null
 }
 
 export function ConfirmDialog({
@@ -27,6 +28,7 @@ export function ConfirmDialog({
   onCancel,
   confirmationText,
   confirmationLabel,
+  errorMessage,
 }: ConfirmDialogProps) {
   const [typedValue, setTypedValue] = useState('')
   const requiresTypedConfirmation = Boolean(confirmationText)
@@ -51,6 +53,12 @@ export function ConfirmDialog({
             placeholder={confirmationText}
           />
         </div>
+      )}
+
+      {errorMessage && (
+        <p role="alert" className="mt-4 rounded-lg border border-danger-500/30 bg-danger-500/5 px-3 py-2 text-sm text-danger-600">
+          {errorMessage}
+        </p>
       )}
 
       <div className="mt-6 flex justify-end gap-3">

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
@@ -26,8 +26,11 @@ export function ProfessionalAgendaPage() {
   const [selectedAppointment, setSelectedAppointment] = useState<ProfessionalAgendaItem | null>(null)
   const [deletingEvent, setDeletingEvent] = useState<ProfessionalAgendaItem | null>(null)
   const [scheduleOpen, setScheduleOpen] = useState(false)
-  const agenda = useQuery({ queryKey: [...AGENDA_KEY, range?.startsAt, range?.endsAt], queryFn: () => fetchProfessionalAgenda(range!.startsAt, range!.endsAt), enabled: Boolean(range) })
+  const agenda = useQuery({ queryKey: [...AGENDA_KEY, range?.startsAt, range?.endsAt], queryFn: () => fetchProfessionalAgenda(range!.startsAt, range!.endsAt), enabled: Boolean(range), refetchInterval: 30_000 })
+  const schedule = useQuery({ queryKey: ['professional-schedule'], queryFn: fetchProfessionalSchedule, staleTime: 60_000, refetchInterval: 5 * 60_000 })
   const events = useMemo(() => (agenda.data ?? []).map((item) => toCalendarEvent(item, view)), [agenda.data, view])
+  const visibleHours = useMemo(() => calendarVisibleHours(agenda.data ?? [], schedule.data ?? []), [agenda.data, schedule.data])
+  const businessHours = useMemo(() => (schedule.data ?? []).filter((hour) => !hour.closed && hour.openingTime && hour.closingTime).map((hour) => ({ daysOfWeek: [FULL_CALENDAR_DAYS[hour.dayOfWeek]], startTime: hour.openingTime!, endTime: hour.closingTime! })), [schedule.data])
 
   function openWeek(date: Date) { setView('week'); calendarRef.current?.getApi().changeView('timeGridWeek', date) }
   function openMonth() { setView('month'); calendarRef.current?.getApi().changeView('dayGridMonth') }
@@ -47,8 +50,9 @@ export function ProfessionalAgendaPage() {
     </div>
     {agenda.isError && <p role="alert" className="mb-4 rounded-xl border border-danger-500/30 bg-danger-500/5 px-4 py-3 text-sm text-danger-600">{getApiErrorMessage(agenda.error, 'Não foi possível carregar sua agenda.')}</p>}
     <section className={`professional-calendar rounded-2xl border border-brand-100 bg-white p-3 shadow-sm sm:p-5 ${agenda.isFetching ? 'opacity-70' : ''}`}>
-      <FullCalendar ref={calendarRef} plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]} initialView="timeGridWeek" locale={ptBrLocale} firstDay={0} headerToolbar={{ left: 'prev,next today', center: 'title', right: '' }} buttonText={{ today: 'Hoje' }} height="auto" dayMaxEvents={3} nowIndicator selectable selectMirror select={handleSelect} dateClick={handleDateClick} eventClick={handleEventClick} datesSet={(info: DatesSetArg) => setRange({ startsAt: toLocalDateTime(info.start), endsAt: toLocalDateTime(info.end) })} events={events} eventTimeFormat={{ hour: '2-digit', minute: '2-digit', hour12: false }} slotLabelFormat={{ hour: '2-digit', minute: '2-digit', hour12: false }} slotMinTime="06:00:00" slotMaxTime="23:00:00" allDaySlot={false} noEventsText="Nenhum item" />
+      <FullCalendar ref={calendarRef} plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]} initialView="timeGridWeek" locale={ptBrLocale} firstDay={0} headerToolbar={{ left: 'prev,next today', center: 'title', right: '' }} buttonText={{ today: 'Hoje' }} height="auto" dayMaxEvents={3} nowIndicator selectable selectMirror select={handleSelect} dateClick={handleDateClick} eventClick={handleEventClick} datesSet={(info: DatesSetArg) => setRange({ startsAt: toLocalDateTime(info.start), endsAt: toLocalDateTime(info.end) })} events={events} businessHours={businessHours} eventTimeFormat={{ hour: '2-digit', minute: '2-digit', hour12: false }} slotLabelFormat={{ hour: '2-digit', minute: '2-digit', hour12: false }} slotMinTime={visibleHours.min} slotMaxTime={visibleHours.max} scrollTime={visibleHours.scroll} allDaySlot={false} noEventsText="Nenhum item" />
     </section>
+    <p className="mt-2 text-xs text-brand-500">As áreas sombreadas ficam fora da sua jornada. A agenda é atualizada automaticamente.</p>
     <div className="mt-4 flex flex-wrap gap-4 text-xs text-brand-600"><Legend color="bg-brand-600" label="Atendimento confirmado" /><Legend color="bg-sage-500" label="Compromisso pessoal" /><Legend color="bg-brand-300" label="Atendimento concluído" /><Legend color="bg-danger-600" label="Atendimento cancelado" /><Legend color="bg-amber-700" label="Atendimento invalidado" /></div>
     {editor && <EventEditor initial={editor} onClose={() => setEditor(null)} onSaved={() => { setEditor(null); queryClient.invalidateQueries({ queryKey: AGENDA_KEY }) }} onDelete={editor.event ? () => { setEditor(null); setDeletingEvent(editor.event) } : undefined} />}
     {selectedAppointment && <AppointmentDetails item={selectedAppointment} onClose={() => setSelectedAppointment(null)} onCompleted={() => { setSelectedAppointment(null); queryClient.invalidateQueries({ queryKey: AGENDA_KEY }) }} />}
@@ -60,8 +64,8 @@ export function ProfessionalAgendaPage() {
 function EventEditor({ initial, onClose, onSaved, onDelete }: { initial: EventEditorState; onClose: () => void; onSaved: () => void; onDelete?: () => void }) {
   const [title, setTitle] = useState(initial.event?.title ?? '')
   const [description, setDescription] = useState(initial.event?.description ?? '')
-  const [startsAt, setStartsAt] = useState(initial.startsAt)
-  const [endsAt, setEndsAt] = useState(initial.endsAt)
+  const [startsAt, setStartsAt] = useState(() => initial.allDay ? initial.startsAt : alignLocalInputToFiveMinutes(initial.startsAt))
+  const [endsAt, setEndsAt] = useState(() => initial.allDay ? initial.endsAt : alignLocalInputToFiveMinutes(initial.endsAt))
   const [allDay, setAllDay] = useState(initial.allDay)
   const mutation = useMutation({ mutationFn: (input: CalendarEventInput) => initial.event ? updateCalendarEvent(initial.event.id, input) : createCalendarEvent(input), onSuccess: onSaved })
   const minimumEnd = minimumEndValue(startsAt, allDay)
@@ -78,7 +82,7 @@ function EventEditor({ initial, onClose, onSaved, onDelete }: { initial: EventEd
     if (!endsAt || endsAt < nextMinimum || checked) setEndsAt(nextMinimum)
   }
   function submit(event: React.FormEvent) { event.preventDefault(); mutation.mutate(normalizeEventInput({ title, description: description || null, startsAt, endsAt, allDay })) }
-  return <Modal title={initial.event ? 'Editar compromisso' : 'Novo compromisso'} onClose={onClose}><form onSubmit={submit} className="space-y-4"><Field label="Título" value={title} onChange={setTitle} required placeholder="Ex.: Consulta médica" /><label className="flex items-center gap-2 text-sm font-medium text-brand-800"><input type="checkbox" checked={allDay} onChange={(event) => changeAllDay(event.target.checked)} /> Ocupar o dia inteiro</label><div className="grid gap-4 sm:grid-cols-2"><DateTimeField label="Início" value={startsAt} onChange={changeStart} allDay={allDay} /><EndDateTimeField value={endsAt} onChange={setEndsAt} startsAt={startsAt} allDay={allDay} min={minimumEnd} /></div><p className="-mt-2 text-xs text-brand-500">{allDay ? 'O término indica o primeiro dia livre após o compromisso.' : 'No mesmo dia, aparecem somente horários posteriores ao início.'}</p><label className="block"><span className="text-sm font-medium text-brand-800">Descrição</span><textarea value={description} maxLength={500} onChange={(event) => setDescription(event.target.value)} rows={3} className="filter-input resize-none" /></label>{mutation.isError && <p role="alert" className="text-sm text-danger-600">{getApiErrorMessage(mutation.error, 'Não foi possível salvar o compromisso.')}</p>}<div className="flex items-center justify-between gap-3 pt-2">{onDelete ? <button type="button" onClick={onDelete} className="inline-flex items-center gap-2 text-sm font-semibold text-danger-600"><Trash2 size={16} /> Excluir</button> : <span />}<div className="flex gap-2"><button type="button" onClick={onClose} className="rounded-lg border border-brand-200 px-4 py-2 text-sm font-medium text-brand-700">Cancelar</button><button type="submit" disabled={mutation.isPending} className="primary-button disabled:opacity-60">{mutation.isPending ? 'Salvando...' : 'Salvar'}</button></div></div></form></Modal>
+  return <Modal title={initial.event ? 'Editar compromisso' : 'Novo compromisso'} onClose={onClose} size="lg"><form onSubmit={submit} className="space-y-4"><Field label="Título" value={title} onChange={setTitle} required placeholder="Ex.: Consulta médica" /><label className="flex items-center gap-2 text-sm font-medium text-brand-800"><input type="checkbox" checked={allDay} onChange={(event) => changeAllDay(event.target.checked)} /> Ocupar o dia inteiro</label><div className="grid gap-5 lg:grid-cols-2"><DateTimeField label="Início" value={startsAt} onChange={changeStart} allDay={allDay} /><EndDateTimeField value={endsAt} onChange={setEndsAt} startsAt={startsAt} allDay={allDay} min={minimumEnd} /></div><p className="-mt-2 text-xs text-brand-500">{allDay ? 'O término indica o primeiro dia livre após o compromisso.' : 'No mesmo dia, aparecem somente horários posteriores ao início.'}</p><label className="block"><span className="text-sm font-medium text-brand-800">Descrição</span><textarea value={description} maxLength={500} onChange={(event) => setDescription(event.target.value)} rows={3} className="filter-input resize-none" /></label>{mutation.isError && <p role="alert" className="text-sm text-danger-600">{getApiErrorMessage(mutation.error, 'Não foi possível salvar o compromisso.')}</p>}<div className="flex flex-wrap items-center justify-between gap-3 pt-2">{onDelete ? <button type="button" onClick={onDelete} className="inline-flex items-center gap-2 text-sm font-semibold text-danger-600"><Trash2 size={16} /> Excluir</button> : <span />}<div className="ml-auto flex gap-2"><button type="button" onClick={onClose} className="rounded-lg border border-brand-200 px-4 py-2 text-sm font-medium text-brand-700">Cancelar</button><button type="submit" disabled={mutation.isPending} className="primary-button disabled:opacity-60">{mutation.isPending ? 'Salvando...' : 'Salvar'}</button></div></div></form></Modal>
 }
 
 function ScheduleEditor({ onClose }: { onClose: () => void }) {
@@ -108,8 +112,7 @@ function ScheduleForm({ initial, onClose, onSaved }: { initial: ProfessionalHour
       closingTime: mode === 'custom' ? hour.closingTime : null,
     }
   }), [hours])
-  const invalidDay = hours.find((hour) => modeOf(hour) === 'custom'
-    && (!hour.openingTime || !hour.closingTime || hour.openingTime >= hour.closingTime))
+  const invalidDay = hours.find((hour) => modeOf(hour) === 'custom' && customHourError(hour))
   const mutation = useMutation({ mutationFn: () => updateProfessionalSchedule(inputs), onSuccess: onSaved })
 
   function selectMode(index: number, mode: ScheduleMode) {
@@ -146,12 +149,12 @@ function ScheduleForm({ initial, onClose, onSaved }: { initial: ProfessionalHour
               Usar horário do salão <span className="text-xs text-brand-500">({establishmentLabel})</span>
             </label>
             <label className="flex items-center gap-2">
-              <input type="radio" name={`mode-${hour.dayOfWeek}`} checked={mode === 'custom'} onChange={() => selectMode(index, 'custom')} />
-              Personalizar
+              <input type="radio" name={`mode-${hour.dayOfWeek}`} checked={mode === 'custom'} disabled={hour.establishmentClosed} onChange={() => selectMode(index, 'custom')} />
+              Personalizar {hour.establishmentClosed && <span className="text-xs text-brand-500">(indisponível com o salão fechado)</span>}
             </label>
             {mode === 'custom' && <div className="ml-6 grid grid-cols-2 gap-2">
-              <input aria-label={`Início de ${DAY_LABELS[hour.dayOfWeek]}`} type="time" value={hour.openingTime?.slice(0, 5) ?? ''} onChange={(event) => changeTime(index, { openingTime: event.target.value })} className="rounded-lg border border-brand-200 px-2 py-1.5 text-sm" />
-              <input aria-label={`Término de ${DAY_LABELS[hour.dayOfWeek]}`} type="time" value={hour.closingTime?.slice(0, 5) ?? ''} onChange={(event) => changeTime(index, { closingTime: event.target.value })} className="rounded-lg border border-brand-200 px-2 py-1.5 text-sm" />
+              <input aria-label={`Início de ${DAY_LABELS[hour.dayOfWeek]}`} type="time" step={300} min={hour.establishmentOpeningTime?.slice(0, 5)} max={hour.establishmentClosingTime?.slice(0, 5)} value={hour.openingTime?.slice(0, 5) ?? ''} onChange={(event) => changeTime(index, { openingTime: event.target.value })} className="rounded-lg border border-brand-200 px-2 py-1.5 text-sm" />
+              <input aria-label={`Término de ${DAY_LABELS[hour.dayOfWeek]}`} type="time" step={300} min={hour.establishmentOpeningTime?.slice(0, 5)} max={hour.establishmentClosingTime?.slice(0, 5)} value={hour.closingTime?.slice(0, 5) ?? ''} onChange={(event) => changeTime(index, { closingTime: event.target.value })} className="rounded-lg border border-brand-200 px-2 py-1.5 text-sm" />
             </div>}
             <label className="flex items-center gap-2">
               <input type="radio" name={`mode-${hour.dayOfWeek}`} checked={mode === 'closed'} onChange={() => selectMode(index, 'closed')} />
@@ -161,7 +164,7 @@ function ScheduleForm({ initial, onClose, onSaved }: { initial: ProfessionalHour
         </div>
       })}
     </div>
-    {invalidDay && <p className="mt-3 text-sm text-danger-600">Em {DAY_LABELS[invalidDay.dayOfWeek]}, o horário inicial deve ser anterior ao horário final.</p>}
+    {invalidDay && <p role="alert" className="mt-3 text-sm text-danger-600">Em {DAY_LABELS[invalidDay.dayOfWeek]}, {customHourError(invalidDay)}</p>}
     {mutation.isError && <p className="mt-3 text-sm text-danger-600">{getApiErrorMessage(mutation.error, 'Não foi possível salvar sua jornada.')}</p>}
     <div className="mt-5 flex justify-end gap-2">
       <button type="button" onClick={onClose} className="rounded-lg border border-brand-200 px-4 py-2 text-sm text-brand-700">Cancelar</button>
@@ -171,9 +174,9 @@ function ScheduleForm({ initial, onClose, onSaved }: { initial: ProfessionalHour
 }
 
 function AppointmentDetails({ item, onClose, onCompleted }: { item: ProfessionalAgendaItem; onClose: () => void; onCompleted: () => void }) {
-  const [openedAt] = useState(() => Date.now())
+  const now = useCurrentTimeUntil(item.startsAt, item.status === 'CONFIRMED')
   const [confirming, setConfirming] = useState(false)
-  const canComplete = item.status === 'CONFIRMED' && new Date(item.startsAt).getTime() <= openedAt
+  const canComplete = item.status === 'CONFIRMED' && new Date(item.startsAt).getTime() <= now
   const mutation = useMutation({ mutationFn: () => completeAppointment(item.id), onSuccess: onCompleted })
   if (confirming) {
     return <ConfirmDialog
@@ -181,6 +184,7 @@ function AppointmentDetails({ item, onClose, onCompleted }: { item: Professional
       message={`Confirmar a conclusão do atendimento de ${item.clientName ?? 'cliente'}? Essa ação não pode ser desfeita.`}
       confirmLabel={mutation.isPending ? 'Concluindo...' : 'Concluir atendimento'}
       isLoading={mutation.isPending}
+      errorMessage={mutation.isError ? getApiErrorMessage(mutation.error, 'Não foi possível concluir o atendimento.') : null}
       onConfirm={() => mutation.mutate()}
       onCancel={() => setConfirming(false)}
     />
@@ -188,7 +192,7 @@ function AppointmentDetails({ item, onClose, onCompleted }: { item: Professional
   return <Modal title={item.serviceName ?? item.title} onClose={onClose}><div className="space-y-3 text-sm text-brand-700"><p className="flex items-center gap-2"><User size={16} /> {item.clientName}</p><p className="flex items-center gap-2"><CalendarDays size={16} /> {formatDate(item.startsAt)}</p><p className="flex items-center gap-2"><Clock3 size={16} /> {formatTime(item.startsAt)} às {formatTime(item.endsAt)}</p><p>Status: <strong>{statusLabel(item.status)}</strong></p>{mutation.isError && <p className="text-danger-600">{getApiErrorMessage(mutation.error, 'Não foi possível concluir o atendimento.')}</p>}{canComplete && <button type="button" onClick={() => setConfirming(true)} className="primary-button">Concluir atendimento</button>}</div></Modal>
 }
 
-function DeleteEventDialog({ event, onClose, onDeleted }: { event: ProfessionalAgendaItem; onClose: () => void; onDeleted: () => void }) { const mutation = useMutation({ mutationFn: () => deleteCalendarEvent(event.id), onSuccess: onDeleted }); return <ConfirmDialog title="Excluir compromisso" message={`Deseja excluir “${event.title}”?`} confirmLabel="Excluir compromisso" isLoading={mutation.isPending} onConfirm={() => mutation.mutate()} onCancel={onClose} /> }
+function DeleteEventDialog({ event, onClose, onDeleted }: { event: ProfessionalAgendaItem; onClose: () => void; onDeleted: () => void }) { const mutation = useMutation({ mutationFn: () => deleteCalendarEvent(event.id), onSuccess: onDeleted }); return <ConfirmDialog title="Excluir compromisso" message={`Deseja excluir “${event.title}”?`} confirmLabel="Excluir compromisso" isLoading={mutation.isPending} errorMessage={mutation.isError ? getApiErrorMessage(mutation.error, 'Não foi possível excluir o compromisso.') : null} onConfirm={() => mutation.mutate()} onCancel={onClose} /> }
 function toCalendarEvent(item: ProfessionalAgendaItem, view: 'month' | 'week'): EventInput {
   const appointment = item.type === 'APPOINTMENT'
   const fillsDayColumn = view === 'week' && item.allDay
@@ -224,24 +228,42 @@ function normalizeEventInput(input: CalendarEventInput): CalendarEventInput {
   return { ...input, startsAt: `${startDate}T00:00:00`, endsAt: `${endDate}T00:00:00` }
 }
 function Field({ label, value, onChange, required, placeholder }: { label: string; value: string; onChange: (value: string) => void; required?: boolean; placeholder?: string }) { return <label className="block"><span className="text-sm font-medium text-brand-800">{label}</span><input value={value} onChange={(event) => onChange(event.target.value)} required={required} maxLength={120} placeholder={placeholder} className="filter-input" /></label> }
-function DateTimeField({ label, value, onChange, allDay, min }: { label: string; value: string; onChange: (value: string) => void; allDay: boolean; min?: string }) { return <label className="block min-w-0"><span className="text-sm font-medium text-brand-800">{label}</span><input type={allDay ? 'date' : 'datetime-local'} value={allDay ? value.slice(0, 10) : value} min={min ? (allDay ? min.slice(0, 10) : min) : undefined} onChange={(event) => onChange(allDay ? `${event.target.value}T00:00` : event.target.value)} required className="filter-input min-w-0" /></label> }
+function DateTimeField({ label, value, onChange, allDay, min }: { label: string; value: string; onChange: (value: string) => void; allDay: boolean; min?: string }) {
+  if (allDay) return <label className="block min-w-0"><span className="text-sm font-medium text-brand-800">{label}</span><input type="date" value={value.slice(0, 10)} min={min?.slice(0, 10)} onChange={(event) => onChange(`${event.target.value}T00:00`)} required className="filter-input min-w-0" /></label>
+  const date = value.slice(0, 10)
+  const time = alignTimeToFiveMinutes(value.slice(11, 16))
+  return <div className="min-w-0"><span className="text-sm font-medium text-brand-800">{label}</span><div className="mt-2 grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto]"><input aria-label={`Data de ${label.toLowerCase()}`} type="date" value={date} min={min?.slice(0, 10)} onChange={(event) => onChange(`${event.target.value}T${time}`)} required className="min-w-0 w-full rounded-xl border border-brand-200 bg-white px-3 py-2.5 text-sm text-brand-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" /><TimeSelect label={label} value={time} onChange={(nextTime) => onChange(`${date}T${nextTime}`)} /></div></div>
+}
 function EndDateTimeField({ value, onChange, startsAt, allDay, min }: { value: string; onChange: (value: string) => void; startsAt: string; allDay: boolean; min: string }) {
   if (allDay) return <DateTimeField label="Término" value={value} onChange={onChange} allDay min={min} />
   const startDate = startsAt.slice(0, 10)
   const startTime = startsAt.slice(11, 16)
   const endDate = value.slice(0, 10)
-  const currentTime = value.slice(11, 16)
+  const currentTime = alignTimeToFiveMinutes(value.slice(11, 16))
   const sameDay = endDate === startDate
-  const minTime = sameDay ? addOneMinute(startTime) : undefined
+  const minTime = sameDay ? addMinutesToTime(startTime, 5) : undefined
   function changeDate(date: string) {
     const nextSameDay = date === startDate
-    const time = nextSameDay && currentTime <= startTime ? addOneMinute(startTime) : currentTime
+    const time = nextSameDay && currentTime < addMinutesToTime(startTime, 5) ? addMinutesToTime(startTime, 5) : currentTime
     onChange(`${date}T${time}`)
   }
   function changeTime(time: string) {
-    onChange(`${endDate}T${time}`)
+    onChange(`${endDate}T${sameDay && time < minTime! ? minTime : time}`)
   }
-  return <div className="min-w-0"><span className="text-sm font-medium text-brand-800">Término</span><div className="mt-2 grid min-w-0 grid-cols-2 gap-2"><input aria-label="Data de término" type="date" value={endDate} min={startDate} onChange={(event) => changeDate(event.target.value)} required className="min-w-0 w-full rounded-xl border border-brand-200 bg-white px-2 py-2.5 text-sm text-brand-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" /><input aria-label="Horário de término" type="time" value={currentTime} min={minTime} onChange={(event) => changeTime(event.target.value)} required className="min-w-0 w-full rounded-xl border border-brand-200 bg-white px-2 py-2.5 text-sm text-brand-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" /></div></div>
+  return <div className="min-w-0"><span className="text-sm font-medium text-brand-800">Término</span><div className="mt-2 grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto]"><input aria-label="Data de término" type="date" value={endDate} min={startDate} onChange={(event) => changeDate(event.target.value)} required className="min-w-0 w-full rounded-xl border border-brand-200 bg-white px-3 py-2.5 text-sm text-brand-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" /><TimeSelect label="Término" value={currentTime} min={minTime} onChange={changeTime} /></div></div>
+}
+function TimeSelect({ label, value, min, onChange }: { label: string; value: string; min?: string; onChange: (value: string) => void }) {
+  const alignedValue = alignTimeToFiveMinutes(value)
+  const [hour, minute] = alignedValue.split(':')
+  function update(nextHour: string, nextMinute: string) {
+    const next = `${nextHour}:${nextMinute}`
+    onChange(min && next < min ? min : next)
+  }
+  return <div className="flex w-full items-center gap-1 sm:w-auto" aria-label={`Horário de ${label.toLowerCase()}`}>
+    <select aria-label={`Hora de ${label.toLowerCase()}`} value={hour} onChange={(event) => update(event.target.value, minute)} className="min-w-0 flex-1 rounded-xl border border-brand-200 bg-white px-3 py-2.5 text-sm text-brand-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 sm:flex-none">{HOUR_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}</select>
+    <span aria-hidden className="font-semibold text-brand-500">:</span>
+    <select aria-label={`Minutos de ${label.toLowerCase()}`} value={minute} onChange={(event) => update(hour, event.target.value)} className="min-w-0 flex-1 rounded-xl border border-brand-200 bg-white px-3 py-2.5 text-sm text-brand-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 sm:flex-none">{MINUTE_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}</select>
+  </div>
 }
 function Legend({ color, label }: { color: string; label: string }) { return <span className="inline-flex items-center gap-2"><span className={`h-3 w-3 rounded ${color}`} /> {label}</span> }
 function toLocalInput(date: Date) { return toLocalDateTime(date).slice(0, 16) }
@@ -253,15 +275,57 @@ function addDaysToDate(value: string, days: number) { const date = new Date(`${v
 function minimumEndValue(startsAt: string, allDay: boolean) {
   if (!startsAt) return ''
   if (allDay) return `${addDaysToDate(startsAt.slice(0, 10), 1)}T00:00`
-  return toLocalInput(addMinutesFromLocalInput(startsAt, 1))
+  return toLocalInput(addMinutesFromLocalInput(startsAt, 5))
 }
 function addMinutesFromLocalInput(value: string, minutes: number) { const date = new Date(value); date.setMinutes(date.getMinutes() + minutes); return date }
-function addOneMinute(time: string) {
+function addMinutesToTime(time: string, amount: number) {
   const [hours, minutes] = time.split(':').map(Number)
-  const total = (hours * 60 + minutes + 1) % 1440
+  const total = Math.min(hours * 60 + minutes + amount, 1435)
   return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
 }
+function alignTimeToFiveMinutes(time: string) {
+  const [hours = 0, minutes = 0] = time.split(':').map(Number)
+  const total = Math.min(hours * 60 + Math.ceil(minutes / 5) * 5, 1435)
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
+}
+function alignLocalInputToFiveMinutes(value: string) { return `${value.slice(0, 10)}T${alignTimeToFiveMinutes(value.slice(11, 16))}` }
+function customHourError(hour: ProfessionalHour) {
+  if (hour.establishmentClosed) return 'não é possível personalizar porque o salão está fechado.'
+  if (!hour.openingTime || !hour.closingTime || hour.openingTime >= hour.closingTime) return 'o horário inicial deve ser anterior ao horário final.'
+  if (hour.establishmentOpeningTime && hour.openingTime.slice(0, 5) < hour.establishmentOpeningTime.slice(0, 5)) return `o início não pode ser anterior a ${hour.establishmentOpeningTime.slice(0, 5)}.`
+  if (hour.establishmentClosingTime && hour.closingTime.slice(0, 5) > hour.establishmentClosingTime.slice(0, 5)) return `o término não pode ser posterior a ${hour.establishmentClosingTime.slice(0, 5)}.`
+  return null
+}
+function useCurrentTimeUntil(startsAt: string, enabled: boolean) {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    if (!enabled) return
+    const start = new Date(startsAt).getTime()
+    if (start <= now) return
+    const timeout = window.setTimeout(() => setNow(Date.now()), Math.min(start - now + 50, 30_000))
+    return () => window.clearTimeout(timeout)
+  }, [enabled, now, startsAt])
+  return now
+}
+function calendarVisibleHours(items: ProfessionalAgendaItem[], hours: ProfessionalHour[]) {
+  const ranges: Array<[number, number]> = []
+  hours.filter((hour) => !hour.closed && hour.openingTime && hour.closingTime).forEach((hour) => {
+    ranges.push([timeToMinutes(hour.openingTime!), timeToMinutes(hour.closingTime!)])
+  })
+  items.forEach((item) => {
+    if (!item.allDay) ranges.push([timeToMinutes(item.startsAt.slice(11, 16)), item.startsAt.slice(0, 10) === item.endsAt.slice(0, 10) ? timeToMinutes(item.endsAt.slice(11, 16)) : 1440])
+  })
+  if (ranges.length === 0) return { min: '06:00:00', max: '23:00:00', scroll: '08:00:00' }
+  const minimum = Math.max(0, Math.floor((Math.min(...ranges.map(([start]) => start)) - 60) / 60) * 60)
+  const maximum = Math.min(1440, Math.ceil((Math.max(...ranges.map(([, end]) => end)) + 60) / 60) * 60)
+  return { min: minutesToCalendarTime(minimum), max: minutesToCalendarTime(Math.max(maximum, minimum + 60)), scroll: minutesToCalendarTime(Math.min(Math.max(minimum, 8 * 60), maximum - 60)) }
+}
+function timeToMinutes(value: string) { const [hour, minute] = value.split(':').map(Number); return hour * 60 + minute }
+function minutesToCalendarTime(value: number) { if (value >= 1440) return '24:00:00'; return `${String(Math.floor(value / 60)).padStart(2, '0')}:${String(value % 60).padStart(2, '0')}:00` }
 function formatDate(value: string) { return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' }).format(new Date(value)) }
 function formatTime(value: string) { return value.slice(11, 16) }
 function statusLabel(status: ProfessionalAgendaItem['status']) { return ({ CONFIRMED: 'Confirmado', CANCELLED: 'Cancelado', COMPLETED: 'Concluído', INVALIDATED: 'Invalidado' } as const)[status ?? 'CONFIRMED'] }
 const DAY_LABELS = { MONDAY: 'Segunda-feira', TUESDAY: 'Terça-feira', WEDNESDAY: 'Quarta-feira', THURSDAY: 'Quinta-feira', FRIDAY: 'Sexta-feira', SATURDAY: 'Sábado', SUNDAY: 'Domingo' } as const
+const FULL_CALENDAR_DAYS: Record<ProfessionalHour['dayOfWeek'], number> = { SUNDAY: 0, MONDAY: 1, TUESDAY: 2, WEDNESDAY: 3, THURSDAY: 4, FRIDAY: 5, SATURDAY: 6 }
+const HOUR_OPTIONS = Array.from({ length: 24 }, (_, hour) => String(hour).padStart(2, '0'))
+const MINUTE_OPTIONS = Array.from({ length: 12 }, (_, index) => String(index * 5).padStart(2, '0'))
