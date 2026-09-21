@@ -227,15 +227,21 @@ function Field({ label, value, onChange, required, placeholder }: { label: strin
 function DateTimeField({ label, value, onChange, allDay, min }: { label: string; value: string; onChange: (value: string) => void; allDay: boolean; min?: string }) { return <label className="block min-w-0"><span className="text-sm font-medium text-brand-800">{label}</span><input type={allDay ? 'date' : 'datetime-local'} value={allDay ? value.slice(0, 10) : value} min={min ? (allDay ? min.slice(0, 10) : min) : undefined} onChange={(event) => onChange(allDay ? `${event.target.value}T00:00` : event.target.value)} required className="filter-input min-w-0" /></label> }
 function EndDateTimeField({ value, onChange, startsAt, allDay, min }: { value: string; onChange: (value: string) => void; startsAt: string; allDay: boolean; min: string }) {
   if (allDay) return <DateTimeField label="Término" value={value} onChange={onChange} allDay min={min} />
+  const startDate = startsAt.slice(0, 10)
+  const startTime = startsAt.slice(11, 16)
   const endDate = value.slice(0, 10)
   const currentTime = value.slice(11, 16)
-  const availableTimes = endTimeOptions(startsAt, endDate, currentTime)
+  const sameDay = endDate === startDate
+  const minTime = sameDay ? addOneMinute(startTime) : undefined
   function changeDate(date: string) {
-    const times = endTimeOptions(startsAt, date, currentTime)
-    const time = times.includes(currentTime) ? currentTime : (times[0] ?? '00:00')
+    const nextSameDay = date === startDate
+    const time = nextSameDay && currentTime <= startTime ? addOneMinute(startTime) : currentTime
     onChange(`${date}T${time}`)
   }
-  return <div className="min-w-0"><span className="text-sm font-medium text-brand-800">Término</span><div className="mt-2 grid min-w-0 grid-cols-2 gap-2"><input aria-label="Data de término" type="date" value={endDate} min={startsAt.slice(0, 10)} onChange={(event) => changeDate(event.target.value)} required className="min-w-0 w-full rounded-xl border border-brand-200 bg-white px-2 py-2.5 text-sm text-brand-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" /><select aria-label="Horário de término" value={currentTime} onChange={(event) => onChange(`${endDate}T${event.target.value}`)} required className="min-w-0 w-full rounded-xl border border-brand-200 bg-white px-2 py-2.5 text-sm text-brand-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">{availableTimes.map((time) => <option key={time} value={time}>{time}</option>)}</select></div></div>
+  function changeTime(time: string) {
+    onChange(`${endDate}T${time}`)
+  }
+  return <div className="min-w-0"><span className="text-sm font-medium text-brand-800">Término</span><div className="mt-2 grid min-w-0 grid-cols-2 gap-2"><input aria-label="Data de término" type="date" value={endDate} min={startDate} onChange={(event) => changeDate(event.target.value)} required className="min-w-0 w-full rounded-xl border border-brand-200 bg-white px-2 py-2.5 text-sm text-brand-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" /><input aria-label="Horário de término" type="time" value={currentTime} min={minTime} onChange={(event) => changeTime(event.target.value)} required className="min-w-0 w-full rounded-xl border border-brand-200 bg-white px-2 py-2.5 text-sm text-brand-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" /></div></div>
 }
 function Legend({ color, label }: { color: string; label: string }) { return <span className="inline-flex items-center gap-2"><span className={`h-3 w-3 rounded ${color}`} /> {label}</span> }
 function toLocalInput(date: Date) { return toLocalDateTime(date).slice(0, 16) }
@@ -250,13 +256,10 @@ function minimumEndValue(startsAt: string, allDay: boolean) {
   return toLocalInput(addMinutesFromLocalInput(startsAt, 1))
 }
 function addMinutesFromLocalInput(value: string, minutes: number) { const date = new Date(value); date.setMinutes(date.getMinutes() + minutes); return date }
-function endTimeOptions(startsAt: string, endDate: string, currentTime: string) {
-  const startDate = startsAt.slice(0, 10)
-  const startTime = startsAt.slice(11, 16)
-  const times = Array.from({ length: 1440 }, (_, index) => `${String(Math.floor(index / 60)).padStart(2, '0')}:${String(index % 60).padStart(2, '0')}`)
-  const validTimes = endDate === startDate ? times.filter((time) => time > startTime) : times
-  if (currentTime && !validTimes.includes(currentTime) && (`${endDate}T${currentTime}` > startsAt)) validTimes.push(currentTime)
-  return validTimes.sort()
+function addOneMinute(time: string) {
+  const [hours, minutes] = time.split(':').map(Number)
+  const total = (hours * 60 + minutes + 1) % 1440
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
 }
 function formatDate(value: string) { return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' }).format(new Date(value)) }
 function formatTime(value: string) { return value.slice(11, 16) }

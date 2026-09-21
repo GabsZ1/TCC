@@ -14,6 +14,7 @@ const ServicesPage = lazy(() => import('@/features/services/ServicesPage').then(
 const AppointmentsPage = lazy(() => import('@/features/appointments/AppointmentsPage').then((module) => ({ default: module.AppointmentsPage })))
 const BookingPage = lazy(() => import('@/features/appointments/BookingPage').then((module) => ({ default: module.BookingPage })))
 const ProfessionalAgendaPage = lazy(() => import('@/features/appointments/ProfessionalAgendaPage').then((module) => ({ default: module.ProfessionalAgendaPage })))
+const MyServicesPage = lazy(() => import('@/features/services/MyServicesPage').then((module) => ({ default: module.MyServicesPage })))
 const EstablishmentPage = lazy(() => import('@/features/establishment/EstablishmentPage').then((module) => ({ default: module.EstablishmentPage })))
 const AdminAgendaPage = lazy(() => import('@/features/appointments/AdminAgendaPage').then((module) => ({ default: module.AdminAgendaPage })))
 const CommissionReportPage = lazy(() => import('@/features/commissions/CommissionReportPage').then((module) => ({ default: module.CommissionReportPage })))
@@ -49,6 +50,7 @@ function App() {
 
           <Route element={<ProtectedRoute allowedRoles={['PROFESSIONAL']} />}>
             <Route path="/minha-agenda" element={<ProfessionalAgendaPage />} />
+            <Route path="/meus-servicos" element={<MyServicesPage />} />
           </Route>
         </Route>
       </Route>

@@ -16,7 +16,10 @@ export function AppLayout() {
     : user?.role === 'CLIENT'
       ? [{ to: '/agendamentos', label: 'Agendamentos', icon: CalendarDays }]
       : user?.role === 'PROFESSIONAL'
-        ? [{ to: '/minha-agenda', label: 'Minha agenda', icon: CalendarDays }]
+        ? [
+            { to: '/minha-agenda', label: 'Minha agenda', icon: CalendarDays },
+            { to: '/meus-servicos', label: 'Meus serviços', icon: Scissors },
+          ]
         : [{ to: '/', label: 'Início', icon: House }]
 
   return (
