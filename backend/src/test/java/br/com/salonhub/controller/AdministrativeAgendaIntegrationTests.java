@@ -34,6 +34,8 @@ class AdministrativeAgendaIntegrationTests {
     @Autowired UserRepository users;
     @Autowired EstablishmentServiceRepository services;
     @Autowired AppointmentRepository appointments;
+    @Autowired EstablishmentBusinessHourRepository establishmentHours;
+    @Autowired ProfessionalCalendarEventRepository calendarEvents;
 
     private User admin;
     private User professional;
@@ -102,6 +104,41 @@ class AdministrativeAgendaIntegrationTests {
         mvc.perform(get(ENDPOINT).with(jwt().jwt(token -> token.subject(admin.getId().toString())))
                         .param("professionalId", otherProfessional.getId().toString()))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void shouldShowEffectiveWorkingHoursAndRedactedPersonalBlocksToAdministrator() throws Exception {
+        establishmentHours.saveAndFlush(EstablishmentBusinessHour.builder()
+                .establishment(admin.getEstablishment()).dayOfWeek(DATE.getDayOfWeek())
+                .closed(false).openingTime(java.time.LocalTime.of(8, 0))
+                .closingTime(java.time.LocalTime.of(18, 0)).build());
+        calendarEvents.saveAndFlush(ProfessionalCalendarEvent.create(
+                admin.getEstablishment(), professional, "Consulta médica", "Informação privada",
+                DATE.atTime(11, 0), DATE.atTime(12, 0), false));
+
+        mvc.perform(get(ENDPOINT + "/disponibilidade-equipe")
+                        .with(jwt().jwt(token -> token.subject(admin.getId().toString())))
+                        .param("date", DATE.toString())
+                        .param("professionalId", professional.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].professionalId").value(professional.getId()))
+                .andExpect(jsonPath("$[0].working").value(true))
+                .andExpect(jsonPath("$[0].openingTime").value("08:00:00"))
+                .andExpect(jsonPath("$[0].closingTime").value("18:00:00"))
+                .andExpect(jsonPath("$[0].blocks.length()").value(1))
+                .andExpect(jsonPath("$[0].blocks[0].startsAt").value("2026-09-16T11:00:00"))
+                .andExpect(jsonPath("$[0].blocks[0].title").doesNotExist())
+                .andExpect(jsonPath("$[0].blocks[0].description").doesNotExist());
+    }
+
+    @Test
+    void shouldRejectForeignProfessionalInTeamAvailability() throws Exception {
+        mvc.perform(get(ENDPOINT + "/disponibilidade-equipe")
+                        .with(jwt().jwt(token -> token.subject(admin.getId().toString())))
+                        .param("date", DATE.toString())
+                        .param("professionalId", otherProfessional.getId().toString()))
+                .andExpect(status().isNotFound());
     }
 
     private User user(String name, UserRole role, Establishment establishment) {

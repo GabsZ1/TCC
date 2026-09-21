@@ -14,6 +14,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -115,6 +116,60 @@ class EstablishmentControllerIntegrationTests {
                 .andExpect(jsonPath("$.fields.name").value("O nome do estabelecimento é obrigatório"))
                 .andExpect(jsonPath("$.fields.email").value("E-mail em formato inválido"))
                 .andExpect(jsonPath("$.fields.phone").value("O telefone deve ter no máximo 20 caracteres"));
+    }
+
+    @Test
+    void shouldBlockBusinessHourChangeThatWouldOrphanFutureConfirmedAppointment() throws Exception {
+        User admin = administrator("hours-future", "12345678000195");
+        Establishment establishment = admin.getEstablishment();
+        User professional = user("professional-hours-future", UserRole.PROFESSIONAL, establishment);
+        User client = user("client-hours-future", UserRole.CLIENT, null);
+        EstablishmentService service = serviceRepository.saveAndFlush(EstablishmentService.builder()
+                .establishment(establishment).name("Corte no fim do dia").price(new BigDecimal("50.00"))
+                .commissionPercentage(BigDecimal.ZERO).durationMinutes(30).active(true).build());
+        LocalDateTime startsAt = LocalDate.now().plusDays(2).atTime(17, 0);
+        appointmentRepository.saveAndFlush(Appointment.schedule(
+                establishment, client, professional, service, startsAt));
+
+        mockMvc.perform(put(ENDPOINT).header("Authorization", bearer(admin))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(businessHoursPayload("Expediente reduzido", "09:00", "16:00")))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value(
+                        "Não foi possível alterar o expediente: 1 agendamento(s) confirmado(s) futuro(s) "
+                                + "ou em andamento ficariam fora do novo horário. Cancele-os, aguarde a conclusão "
+                                + "ou ajuste o expediente para mantê-los dentro do horário."));
+
+        entityManager.clear();
+        assertThat(establishmentRepository.findById(establishment.getId()).orElseThrow().getName())
+                .isEqualTo("Salão hours-future");
+
+        mockMvc.perform(put(ENDPOINT).header("Authorization", bearer(admin))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(businessHoursPayload("Expediente compatível", "09:00", "18:00")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Expediente compatível"));
+    }
+
+    @Test
+    void shouldBlockClosingCurrentDayWhileConfirmedAppointmentIsInProgress() throws Exception {
+        User admin = administrator("hours-in-progress", "12345678000195");
+        Establishment establishment = admin.getEstablishment();
+        User professional = user("professional-hours-in-progress", UserRole.PROFESSIONAL, establishment);
+        User client = user("client-hours-in-progress", UserRole.CLIENT, null);
+        EstablishmentService service = serviceRepository.saveAndFlush(EstablishmentService.builder()
+                .establishment(establishment).name("Atendimento em andamento").price(new BigDecimal("50.00"))
+                .commissionPercentage(BigDecimal.ZERO).durationMinutes(60).active(true).build());
+        LocalDateTime startsAt = LocalDateTime.now().minusMinutes(10);
+        appointmentRepository.saveAndFlush(Appointment.schedule(
+                establishment, client, professional, service, startsAt));
+
+        mockMvc.perform(put(ENDPOINT).header("Authorization", bearer(admin))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(businessHoursWithClosedDayPayload(
+                                "Tentativa de fechamento", startsAt.getDayOfWeek())))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("em andamento")));
     }
 
     @Test
@@ -381,6 +436,36 @@ class EstablishmentControllerIntegrationTests {
     private List<MockHttpServletRequestBuilder> establishmentRequests() {
         return List.of(get(ENDPOINT), delete(ENDPOINT), patch(ENDPOINT + "/ativacao"),
                 put(ENDPOINT).contentType(MediaType.APPLICATION_JSON).content(VALID_UPDATE));
+    }
+
+    private String businessHoursPayload(String name, String openingTime, String closingTime) {
+        StringBuilder builder = new StringBuilder("{\"name\":\"").append(name)
+                .append("\",\"businessHours\":[");
+        DayOfWeek[] days = DayOfWeek.values();
+        for (int i = 0; i < days.length; i++) {
+            builder.append("{\"dayOfWeek\":\"").append(days[i])
+                    .append("\",\"closed\":false,\"openingTime\":\"").append(openingTime)
+                    .append("\",\"closingTime\":\"").append(closingTime).append("\"}");
+            if (i < days.length - 1) builder.append(",");
+        }
+        return builder.append("]}").toString();
+    }
+
+    private String businessHoursWithClosedDayPayload(String name, DayOfWeek closedDay) {
+        StringBuilder builder = new StringBuilder("{\"name\":\"").append(name)
+                .append("\",\"businessHours\":[");
+        DayOfWeek[] days = DayOfWeek.values();
+        for (int i = 0; i < days.length; i++) {
+            DayOfWeek day = days[i];
+            builder.append("{\"dayOfWeek\":\"").append(day).append("\"");
+            if (day == closedDay) {
+                builder.append(",\"closed\":true,\"openingTime\":null,\"closingTime\":null}");
+            } else {
+                builder.append(",\"closed\":false,\"openingTime\":\"00:00\",\"closingTime\":\"23:59\"}");
+            }
+            if (i < days.length - 1) builder.append(",");
+        }
+        return builder.append("]}").toString();
     }
 
     private User administrator(String key, String cnpj) {

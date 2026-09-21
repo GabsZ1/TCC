@@ -5,6 +5,7 @@ import br.com.salonhub.dto.appointment.AppointmentCancellationRequest;
 import br.com.salonhub.dto.appointment.AppointmentInvalidationRequest;
 import br.com.salonhub.dto.appointment.AppointmentResponse;
 import br.com.salonhub.dto.appointment.AvailabilityResponse;
+import br.com.salonhub.dto.appointment.AdministrativeProfessionalAvailabilityResponse;
 import br.com.salonhub.entity.AppointmentStatus;
 import br.com.salonhub.service.appointment.AppointmentCommandService;
 import br.com.salonhub.service.appointment.AppointmentQueryService;
@@ -100,6 +101,14 @@ public class AppointmentController {
             @RequestParam(required = false) AppointmentStatus status) {
         return queryService.findEstablishmentAgenda(
                 currentUserId(jwt), date, professionalId, status);
+    }
+
+    @GetMapping("/agendamentos/estabelecimento/me/disponibilidade-equipe")
+    public List<AdministrativeProfessionalAvailabilityResponse> findTeamAvailability(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam(required = false) Long professionalId) {
+        return queryService.findTeamAvailability(currentUserId(jwt), date, professionalId);
     }
 
     @GetMapping("/estabelecimentos/{establishmentId}/agendamentos/disponibilidade")

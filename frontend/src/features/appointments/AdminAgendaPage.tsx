@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CalendarDays, Clock3, Scissors, User } from 'lucide-react'
+import { CalendarDays, Clock3, LockKeyhole, Scissors, User } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { InvalidateAppointmentModal } from '@/features/appointments/InvalidateAppointmentModal'
 import { AdminCancelAppointmentModal } from '@/features/appointments/AdminCancelAppointmentModal'
-import { completeAppointment, fetchEstablishmentAgenda, type Appointment } from '@/features/appointments/appointmentsApi'
+import { completeAppointment, fetchEstablishmentAgenda, fetchTeamAvailability, type Appointment } from '@/features/appointments/appointmentsApi'
 import { fetchEmployees } from '@/features/employees/services/employeesApi'
 import { getApiErrorMessage } from '@/lib/apiError'
 
@@ -28,6 +28,13 @@ export function AdminAgendaPage() {
       professionalId: professionalId ? Number(professionalId) : undefined,
       status: status || undefined,
     }),
+    refetchInterval: 30_000,
+  })
+  const teamAvailability = useQuery({
+    queryKey: ['team-availability', date, professionalId],
+    queryFn: () => fetchTeamAvailability(date, professionalId ? Number(professionalId) : undefined),
+    enabled: Boolean(date),
+    refetchInterval: 30_000,
   })
 
   function refreshAgenda() {
@@ -50,6 +57,19 @@ export function AdminAgendaPage() {
         <Filter label="Situação"><select value={status} onChange={(event) => setStatus(event.target.value as StatusFilter)} className="filter-input"><option value="">Todas</option><option value="CONFIRMED">Confirmado</option><option value="COMPLETED">Concluído</option><option value="CANCELLED">Cancelado</option><option value="INVALIDATED">Invalidado</option></select></Filter>
         <button type="button" onClick={() => { setDate(''); setProfessionalId(''); setStatus('') }} className="text-left text-sm font-semibold text-brand-600 hover:text-brand-800 sm:col-span-3">Limpar filtros</button>
       </section>
+
+      {date && <section className="mt-6 rounded-2xl border border-brand-100 bg-white p-5 shadow-sm">
+        <div className="flex items-center gap-2"><Clock3 size={18} className="text-brand-500" /><h2 className="font-semibold text-brand-900">Jornada e indisponibilidades</h2></div>
+        <p className="mt-1 text-sm text-brand-600">Compromissos pessoais aparecem apenas como indisponíveis; os detalhes permanecem privados.</p>
+        {teamAvailability.isLoading && <p className="mt-4 text-sm text-brand-600">Carregando disponibilidade da equipe...</p>}
+        {teamAvailability.isError && <p role="alert" className="mt-4 text-sm text-danger-600">{getApiErrorMessage(teamAvailability.error, 'Não foi possível carregar a disponibilidade da equipe.')}</p>}
+        <div className="mt-4 grid gap-3 lg:grid-cols-2">
+          {teamAvailability.data?.map((professional) => <div key={professional.professionalId} className="rounded-xl bg-sand-50 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2"><strong className="text-sm text-brand-900">{professional.professionalName}</strong><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${professional.working ? 'bg-sage-50 text-sage-700' : 'bg-brand-100 text-brand-600'}`}>{professional.working ? `${formatTimeOnly(professional.openingTime)} às ${formatTimeOnly(professional.closingTime)}` : 'Não trabalha neste dia'}</span></div>
+            {professional.blocks.length === 0 ? <p className="mt-3 text-xs text-brand-500">Sem bloqueios pessoais.</p> : <div className="mt-3 space-y-2">{professional.blocks.map((block) => <p key={block.id} className="flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs text-brand-700"><LockKeyhole size={14} /> Indisponível · {block.allDay ? 'Dia inteiro' : `${formatTime(block.startsAt)} às ${formatTime(block.endsAt)}`}</p>)}</div>}
+          </div>)}
+        </div>
+      </section>}
 
       <div className="mt-6 space-y-4">
         {agenda.isLoading && <StateCard>Carregando agenda...</StateCard>}
@@ -106,6 +126,7 @@ function CompleteAppointmentDialog({
     message={`Confirmar a conclusão do atendimento de ${appointment.clientName} com ${appointment.professionalName}? Essa ação não pode ser desfeita.`}
     confirmLabel={mutation.isPending ? 'Concluindo...' : 'Concluir atendimento'}
     isLoading={mutation.isPending}
+    errorMessage={mutation.isError ? getApiErrorMessage(mutation.error, 'Não foi possível concluir o atendimento.') : null}
     onConfirm={() => mutation.mutate()}
     onCancel={onClose}
   />
@@ -200,4 +221,5 @@ function today() { const date = new Date(); const offset = date.getTimezoneOffse
 function hasStarted(appointment: Appointment) { return new Date(appointment.startsAt).getTime() <= Date.now() }
 function formatDate(value: string) { return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' }).format(new Date(value)) }
 function formatTime(value: string) { return value.slice(11, 16) }
+function formatTimeOnly(value: string | null) { return value?.slice(0, 5) ?? '--:--' }
 function formatMoney(value: number) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value) }

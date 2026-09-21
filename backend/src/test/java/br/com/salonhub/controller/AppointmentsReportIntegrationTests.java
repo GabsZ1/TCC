@@ -227,7 +227,8 @@ class AppointmentsReportIntegrationTests {
                 .orElseThrow();
     }
 
-    private Fixture setUp(String suffix, String cnpj) throws Exception {
+    private Fixture setUp(String suffix, String cnpjSeed) throws Exception {
+        String cnpj = validCnpj(cnpjSeed.substring(0, 12));
         MvcResult registration = mockMvc.perform(post("/api/auth/cadastro")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -288,6 +289,23 @@ class AppointmentsReportIntegrationTests {
         return new Fixture(
                 administratorToken, professionalToken, clientToken,
                 establishment, professionalUser, clientUser, establishmentService);
+    }
+
+    private String validCnpj(String base) {
+        String firstDigitBase = base;
+        int firstDigit = cnpjDigit(firstDigitBase, new int[]{5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2});
+        String secondDigitBase = firstDigitBase + firstDigit;
+        int secondDigit = cnpjDigit(secondDigitBase, new int[]{6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2});
+        return secondDigitBase + secondDigit;
+    }
+
+    private int cnpjDigit(String digits, int[] weights) {
+        int sum = 0;
+        for (int i = 0; i < weights.length; i++) {
+            sum += Character.digit(digits.charAt(i), 10) * weights[i];
+        }
+        int remainder = sum % 11;
+        return remainder < 2 ? 0 : 11 - remainder;
     }
 
     private record Fixture(
