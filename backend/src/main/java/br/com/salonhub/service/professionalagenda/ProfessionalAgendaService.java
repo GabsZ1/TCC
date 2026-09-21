@@ -105,30 +105,33 @@ public class ProfessionalAgendaService {
     }
 
     /**
-     * Impede salvar uma jornada que tornaria agendamentos futuros já confirmados incompatíveis
-     * com o novo horário (ex.: fechar um dia ou reduzir o expediente exatamente no horário de
-     * um atendimento já marcado). Sem essa checagem, a agenda ficava contraditória: um
-     * atendimento CONFIRMED existindo num horário em que o profissional formalmente "não
-     * trabalha mais".
+     * Impede salvar uma jornada que tornaria agendamentos já confirmados (futuros ou em
+     * andamento) incompatíveis com o novo horário (ex.: fechar um dia ou reduzir o expediente
+     * exatamente no horário de um atendimento já marcado ou que já esteja em curso). Usa o
+     * término do agendamento (não o início) como corte, para cobrir também um atendimento que
+     * já começou mas ainda não terminou — mesmo critério usado em EmployeeService.deactivate()
+     * e EstablishmentManagementService.deactivate(). Sem essa checagem, a agenda ficava
+     * contraditória: um atendimento CONFIRMED existindo num horário em que o profissional
+     * formalmente "não trabalha mais".
      */
     private void requireNoConflictingFutureAppointments(
             User professional,
             Map<DayOfWeek, EstablishmentBusinessHour> establishmentHours,
             Map<DayOfWeek, ProfessionalHourRequest> requestByDay) {
-        List<Appointment> futureConfirmed = appointmentRepository
-                .findByProfessionalIdAndStatusAndStartsAtGreaterThanOrderByStartsAt(
+        List<Appointment> relevantConfirmed = appointmentRepository
+                .findByProfessionalIdAndStatusAndEndsAtGreaterThanOrderByStartsAt(
                         professional.getId(), AppointmentStatus.CONFIRMED, LocalDateTime.now(clock));
-        if (futureConfirmed.isEmpty()) {
+        if (relevantConfirmed.isEmpty()) {
             return;
         }
-        long conflicting = futureConfirmed.stream()
+        long conflicting = relevantConfirmed.stream()
                 .filter(appointment -> fallsOutsideNewSchedule(appointment, establishmentHours, requestByDay))
                 .count();
         if (conflicting > 0) {
             throw new ConflictException(
                     "Não foi possível alterar a jornada: " + conflicting
-                            + " agendamento(s) confirmado(s) ficariam fora do novo horário. Cancele-os, "
-                            + "aguarde a conclusão ou ajuste a jornada para mantê-los dentro do expediente.");
+                            + " agendamento(s) confirmado(s) futuro(s) ou em andamento ficariam fora do novo horário. "
+                            + "Cancele-os, aguarde a conclusão ou ajuste a jornada para mantê-los dentro do expediente.");
         }
     }
 
