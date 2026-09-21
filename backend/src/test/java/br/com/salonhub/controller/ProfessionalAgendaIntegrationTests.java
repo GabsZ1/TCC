@@ -1,5 +1,13 @@
 package br.com.salonhub.controller;
 
+import br.com.salonhub.entity.Appointment;
+import br.com.salonhub.entity.Establishment;
+import br.com.salonhub.entity.EstablishmentService;
+import br.com.salonhub.entity.User;
+import br.com.salonhub.repository.AppointmentRepository;
+import br.com.salonhub.repository.EstablishmentRepository;
+import br.com.salonhub.repository.EstablishmentServiceRepository;
+import br.com.salonhub.repository.UserRepository;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +35,18 @@ class ProfessionalAgendaIntegrationTests {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private AppointmentRepository appointmentRepository;
+
+    @Autowired
+    private EstablishmentRepository establishmentRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private EstablishmentServiceRepository establishmentServiceRepository;
 
     @Test
     void shouldManageProfessionalScheduleEventsAndUnifiedAgenda() throws Exception {
@@ -286,6 +306,57 @@ class ProfessionalAgendaIntegrationTests {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(scheduleWithCustomDay(day, "09:00", "12:00", false)))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void shouldBlockScheduleChangeThatWouldOrphanAppointmentInProgress() throws Exception {
+        TestContext context = createContext();
+
+        // Agendamento já em andamento: começou há 10 minutos e só termina em 50 (serviço de
+        // 60 min de duração). Inserido direto no repositório porque a API não permite criar
+        // um agendamento com início no passado — mas é exatamente esse o caso que a checagem
+        // baseada em "início no futuro" deixava passar antes da correção.
+        Establishment establishment = establishmentRepository.findById(context.establishmentId().longValue())
+                .orElseThrow();
+        User professional = userRepository.findById(context.professionalId().longValue()).orElseThrow();
+        EstablishmentService service = establishmentServiceRepository
+                .findById(context.serviceId().longValue()).orElseThrow();
+        Long clientId = fetchUserId(context.clientToken());
+        User client = userRepository.findById(clientId).orElseThrow();
+
+        LocalDateTime startsAt = LocalDateTime.now().minusMinutes(10);
+        DayOfWeek day = startsAt.getDayOfWeek();
+        Appointment inProgress = Appointment.schedule(establishment, client, professional, service, startsAt);
+        appointmentRepository.saveAndFlush(inProgress);
+
+        // Fechar o dia do agendamento em andamento é rejeitado, mesmo o início já estando no
+        // passado — é justamente o caso que "início no futuro" não cobria.
+        MvcResult blocked = mockMvc.perform(put("/api/profissionais/me/agenda/horarios")
+                        .header("Authorization", bearer(context.professionalToken()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(scheduleWithCustomDay(day, null, null, true)))
+                .andExpect(status().isConflict())
+                .andReturn();
+        assertThat(blocked.getResponse().getContentAsString()).contains("em andamento");
+
+        // Depois de concluído, o agendamento deixa de ser CONFIRMED e para de bloquear a
+        // mudança de jornada.
+        mockMvc.perform(patch("/api/agendamentos/{id}/conclusao", inProgress.getId())
+                        .header("Authorization", bearer(context.professionalToken())))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(put("/api/profissionais/me/agenda/horarios")
+                        .header("Authorization", bearer(context.professionalToken()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(scheduleWithCustomDay(day, null, null, true)))
+                .andExpect(status().isOk());
+    }
+
+    private Long fetchUserId(String token) throws Exception {
+        MvcResult result = mockMvc.perform(get("/api/auth/me").header("Authorization", bearer(token)))
+                .andExpect(status().isOk()).andReturn();
+        Number id = JsonPath.read(result.getResponse().getContentAsString(), "$.id");
+        return id.longValue();
     }
 
     private TestContext createContext() throws Exception {

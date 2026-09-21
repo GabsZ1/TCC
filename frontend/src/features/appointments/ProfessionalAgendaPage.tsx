@@ -20,7 +20,7 @@ interface EventEditorState { event: ProfessionalAgendaItem | null; startsAt: str
 export function ProfessionalAgendaPage() {
   const calendarRef = useRef<FullCalendar>(null)
   const queryClient = useQueryClient()
-  const [view, setView] = useState<'month' | 'week'>('month')
+  const [view, setView] = useState<'month' | 'week'>('week')
   const [range, setRange] = useState<VisibleRange | null>(null)
   const [editor, setEditor] = useState<EventEditorState | null>(null)
   const [selectedAppointment, setSelectedAppointment] = useState<ProfessionalAgendaItem | null>(null)
@@ -47,9 +47,9 @@ export function ProfessionalAgendaPage() {
     </div>
     {agenda.isError && <p role="alert" className="mb-4 rounded-xl border border-danger-500/30 bg-danger-500/5 px-4 py-3 text-sm text-danger-600">{getApiErrorMessage(agenda.error, 'Não foi possível carregar sua agenda.')}</p>}
     <section className={`professional-calendar rounded-2xl border border-brand-100 bg-white p-3 shadow-sm sm:p-5 ${agenda.isFetching ? 'opacity-70' : ''}`}>
-      <FullCalendar ref={calendarRef} plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]} initialView="dayGridMonth" locale={ptBrLocale} firstDay={0} headerToolbar={{ left: 'prev,next today', center: 'title', right: '' }} buttonText={{ today: 'Hoje' }} height="auto" dayMaxEvents={3} nowIndicator selectable selectMirror select={handleSelect} dateClick={handleDateClick} eventClick={handleEventClick} datesSet={(info: DatesSetArg) => setRange({ startsAt: toLocalDateTime(info.start), endsAt: toLocalDateTime(info.end) })} events={events} eventTimeFormat={{ hour: '2-digit', minute: '2-digit', hour12: false }} slotLabelFormat={{ hour: '2-digit', minute: '2-digit', hour12: false }} slotMinTime="06:00:00" slotMaxTime="23:00:00" allDaySlot={false} noEventsText="Nenhum item" />
+      <FullCalendar ref={calendarRef} plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]} initialView="timeGridWeek" locale={ptBrLocale} firstDay={0} headerToolbar={{ left: 'prev,next today', center: 'title', right: '' }} buttonText={{ today: 'Hoje' }} height="auto" dayMaxEvents={3} nowIndicator selectable selectMirror select={handleSelect} dateClick={handleDateClick} eventClick={handleEventClick} datesSet={(info: DatesSetArg) => setRange({ startsAt: toLocalDateTime(info.start), endsAt: toLocalDateTime(info.end) })} events={events} eventTimeFormat={{ hour: '2-digit', minute: '2-digit', hour12: false }} slotLabelFormat={{ hour: '2-digit', minute: '2-digit', hour12: false }} slotMinTime="06:00:00" slotMaxTime="23:00:00" allDaySlot={false} noEventsText="Nenhum item" />
     </section>
-    <div className="mt-4 flex flex-wrap gap-4 text-xs text-brand-600"><Legend color="bg-brand-600" label="Atendimento" /><Legend color="bg-sage-500" label="Compromisso pessoal" /><Legend color="bg-brand-300" label="Atendimento encerrado" /></div>
+    <div className="mt-4 flex flex-wrap gap-4 text-xs text-brand-600"><Legend color="bg-brand-600" label="Atendimento confirmado" /><Legend color="bg-sage-500" label="Compromisso pessoal" /><Legend color="bg-brand-300" label="Atendimento concluído" /><Legend color="bg-danger-600" label="Atendimento cancelado" /><Legend color="bg-amber-700" label="Atendimento invalidado" /></div>
     {editor && <EventEditor initial={editor} onClose={() => setEditor(null)} onSaved={() => { setEditor(null); queryClient.invalidateQueries({ queryKey: AGENDA_KEY }) }} onDelete={editor.event ? () => { setEditor(null); setDeletingEvent(editor.event) } : undefined} />}
     {selectedAppointment && <AppointmentDetails item={selectedAppointment} onClose={() => setSelectedAppointment(null)} onCompleted={() => { setSelectedAppointment(null); queryClient.invalidateQueries({ queryKey: AGENDA_KEY }) }} />}
     {scheduleOpen && <ScheduleEditor onClose={() => setScheduleOpen(false)} />}
@@ -172,15 +172,25 @@ function ScheduleForm({ initial, onClose, onSaved }: { initial: ProfessionalHour
 
 function AppointmentDetails({ item, onClose, onCompleted }: { item: ProfessionalAgendaItem; onClose: () => void; onCompleted: () => void }) {
   const [openedAt] = useState(() => Date.now())
+  const [confirming, setConfirming] = useState(false)
   const canComplete = item.status === 'CONFIRMED' && new Date(item.startsAt).getTime() <= openedAt
   const mutation = useMutation({ mutationFn: () => completeAppointment(item.id), onSuccess: onCompleted })
-  return <Modal title={item.serviceName ?? item.title} onClose={onClose}><div className="space-y-3 text-sm text-brand-700"><p className="flex items-center gap-2"><User size={16} /> {item.clientName}</p><p className="flex items-center gap-2"><CalendarDays size={16} /> {formatDate(item.startsAt)}</p><p className="flex items-center gap-2"><Clock3 size={16} /> {formatTime(item.startsAt)} às {formatTime(item.endsAt)}</p><p>Status: <strong>{statusLabel(item.status)}</strong></p>{mutation.isError && <p className="text-danger-600">{getApiErrorMessage(mutation.error, 'Não foi possível concluir o atendimento.')}</p>}{canComplete && <button type="button" onClick={() => mutation.mutate()} disabled={mutation.isPending} className="primary-button disabled:opacity-60">{mutation.isPending ? 'Concluindo...' : 'Concluir atendimento'}</button>}</div></Modal>
+  if (confirming) {
+    return <ConfirmDialog
+      title="Concluir atendimento"
+      message={`Confirmar a conclusão do atendimento de ${item.clientName ?? 'cliente'}? Essa ação não pode ser desfeita.`}
+      confirmLabel={mutation.isPending ? 'Concluindo...' : 'Concluir atendimento'}
+      isLoading={mutation.isPending}
+      onConfirm={() => mutation.mutate()}
+      onCancel={() => setConfirming(false)}
+    />
+  }
+  return <Modal title={item.serviceName ?? item.title} onClose={onClose}><div className="space-y-3 text-sm text-brand-700"><p className="flex items-center gap-2"><User size={16} /> {item.clientName}</p><p className="flex items-center gap-2"><CalendarDays size={16} /> {formatDate(item.startsAt)}</p><p className="flex items-center gap-2"><Clock3 size={16} /> {formatTime(item.startsAt)} às {formatTime(item.endsAt)}</p><p>Status: <strong>{statusLabel(item.status)}</strong></p>{mutation.isError && <p className="text-danger-600">{getApiErrorMessage(mutation.error, 'Não foi possível concluir o atendimento.')}</p>}{canComplete && <button type="button" onClick={() => setConfirming(true)} className="primary-button">Concluir atendimento</button>}</div></Modal>
 }
 
 function DeleteEventDialog({ event, onClose, onDeleted }: { event: ProfessionalAgendaItem; onClose: () => void; onDeleted: () => void }) { const mutation = useMutation({ mutationFn: () => deleteCalendarEvent(event.id), onSuccess: onDeleted }); return <ConfirmDialog title="Excluir compromisso" message={`Deseja excluir “${event.title}”?`} confirmLabel="Excluir compromisso" isLoading={mutation.isPending} onConfirm={() => mutation.mutate()} onCancel={onClose} /> }
 function toCalendarEvent(item: ProfessionalAgendaItem, view: 'month' | 'week'): EventInput {
   const appointment = item.type === 'APPOINTMENT'
-  const ended = item.status !== 'CONFIRMED'
   const fillsDayColumn = view === 'week' && item.allDay
   return {
     id: `${item.type}-${item.id}`,
@@ -188,10 +198,22 @@ function toCalendarEvent(item: ProfessionalAgendaItem, view: 'month' | 'week'): 
     start: item.startsAt,
     end: item.endsAt,
     allDay: fillsDayColumn ? false : item.allDay,
-    backgroundColor: appointment ? (ended ? '#b79cd6' : '#64408c') : '#6f9a5f',
+    backgroundColor: eventColor(item),
     borderColor: 'transparent',
     textColor: '#fff',
     extendedProps: { item },
+  }
+}
+// Cada situação do atendimento tem uma cor própria no calendário — antes cancelado,
+// concluído e invalidado eram todos exibidos com a mesma cor "encerrado", dificultando
+// distinguir um caso do outro só olhando a agenda.
+function eventColor(item: ProfessionalAgendaItem) {
+  if (item.type !== 'APPOINTMENT') return '#6f9a5f'
+  switch (item.status) {
+    case 'COMPLETED': return '#b79cd6'
+    case 'CANCELLED': return '#a63a30'
+    case 'INVALIDATED': return '#b45309'
+    default: return '#64408c'
   }
 }
 function normalizeEventInput(input: CalendarEventInput): CalendarEventInput {

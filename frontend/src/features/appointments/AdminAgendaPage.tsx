@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CalendarDays, Clock3, Scissors, User } from 'lucide-react'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { InvalidateAppointmentModal } from '@/features/appointments/InvalidateAppointmentModal'
 import { AdminCancelAppointmentModal } from '@/features/appointments/AdminCancelAppointmentModal'
 import { completeAppointment, fetchEstablishmentAgenda, type Appointment } from '@/features/appointments/appointmentsApi'
@@ -18,6 +19,7 @@ export function AdminAgendaPage() {
   const [status, setStatus] = useState<StatusFilter>('')
   const [invalidating, setInvalidating] = useState<Appointment | null>(null)
   const [cancelling, setCancelling] = useState<Appointment | null>(null)
+  const [completing, setCompleting] = useState<Appointment | null>(null)
   const employees = useQuery({ queryKey: ['employees'], queryFn: fetchEmployees })
   const agenda = useQuery({
     queryKey: [AGENDA_QUERY_KEY, date, professionalId, status],
@@ -26,11 +28,6 @@ export function AdminAgendaPage() {
       professionalId: professionalId ? Number(professionalId) : undefined,
       status: status || undefined,
     }),
-  })
-
-  const completeMutation = useMutation({
-    mutationFn: completeAppointment,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: [AGENDA_QUERY_KEY] }),
   })
 
   function refreshAgenda() {
@@ -54,12 +51,6 @@ export function AdminAgendaPage() {
         <button type="button" onClick={() => { setDate(''); setProfessionalId(''); setStatus('') }} className="text-left text-sm font-semibold text-brand-600 hover:text-brand-800 sm:col-span-3">Limpar filtros</button>
       </section>
 
-      {completeMutation.isError && (
-        <p className="mt-4 rounded-xl border border-danger-500/30 bg-danger-500/5 px-4 py-3 text-sm text-danger-600">
-          {getApiErrorMessage(completeMutation.error, 'Não foi possível concluir o atendimento.')}
-        </p>
-      )}
-
       <div className="mt-6 space-y-4">
         {agenda.isLoading && <StateCard>Carregando agenda...</StateCard>}
         {agenda.isError && <StateCard error>{getApiErrorMessage(agenda.error, 'Não foi possível carregar a agenda.')}</StateCard>}
@@ -68,14 +59,20 @@ export function AdminAgendaPage() {
           <AppointmentCard
             key={appointment.id}
             appointment={appointment}
-            onComplete={() => completeMutation.mutate(appointment.id)}
-            isCompleting={completeMutation.isPending && completeMutation.variables === appointment.id}
+            onComplete={() => setCompleting(appointment)}
             onInvalidate={() => setInvalidating(appointment)}
             onCancel={() => setCancelling(appointment)}
           />
         ))}
       </div>
 
+      {completing && (
+        <CompleteAppointmentDialog
+          appointment={completing}
+          onClose={() => setCompleting(null)}
+          onCompleted={() => { refreshAgenda(); setCompleting(null) }}
+        />
+      )}
       {cancelling && (
         <AdminCancelAppointmentModal
           appointment={cancelling}
@@ -94,16 +91,34 @@ export function AdminAgendaPage() {
   )
 }
 
+function CompleteAppointmentDialog({
+  appointment,
+  onClose,
+  onCompleted,
+}: {
+  appointment: Appointment
+  onClose: () => void
+  onCompleted: () => void
+}) {
+  const mutation = useMutation({ mutationFn: () => completeAppointment(appointment.id), onSuccess: onCompleted })
+  return <ConfirmDialog
+    title="Concluir atendimento"
+    message={`Confirmar a conclusão do atendimento de ${appointment.clientName} com ${appointment.professionalName}? Essa ação não pode ser desfeita.`}
+    confirmLabel={mutation.isPending ? 'Concluindo...' : 'Concluir atendimento'}
+    isLoading={mutation.isPending}
+    onConfirm={() => mutation.mutate()}
+    onCancel={onClose}
+  />
+}
+
 function AppointmentCard({
   appointment,
   onComplete,
-  isCompleting,
   onInvalidate,
   onCancel,
 }: {
   appointment: Appointment
   onComplete: () => void
-  isCompleting: boolean
   onInvalidate: () => void
   onCancel: () => void
 }) {
@@ -147,10 +162,9 @@ function AppointmentCard({
                 <button
                   type="button"
                   onClick={onComplete}
-                  disabled={isCompleting}
-                  className="rounded-lg border border-sage-300 px-3 py-1.5 text-xs font-semibold text-sage-700 hover:bg-sage-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-lg border border-sage-300 px-3 py-1.5 text-xs font-semibold text-sage-700 hover:bg-sage-50"
                 >
-                  {isCompleting ? 'Concluindo...' : 'Concluir'}
+                  Concluir
                 </button>
               )}
               {canInvalidate && (
