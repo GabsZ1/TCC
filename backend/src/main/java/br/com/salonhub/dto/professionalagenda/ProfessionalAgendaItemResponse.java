@@ -4,6 +4,7 @@ import br.com.salonhub.entity.Appointment;
 import br.com.salonhub.entity.ProfessionalCalendarEvent;
 
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 
 public record ProfessionalAgendaItemResponse(
         String type,
@@ -15,19 +16,26 @@ public record ProfessionalAgendaItemResponse(
         boolean allDay,
         String status,
         String clientName,
-        String serviceName) {
+        String clientEmail,
+        String serviceName,
+        Integer durationMinutes,
+        BigDecimal agreedPrice,
+        String cancellationReason,
+        String invalidationReason) {
 
     public static ProfessionalAgendaItemResponse fromAppointment(Appointment appointment) {
         return new ProfessionalAgendaItemResponse(
                 "APPOINTMENT", appointment.getId(), appointment.getServiceName(), null,
                 appointment.getStartsAt(), appointment.getEndsAt(), false,
-                appointment.getStatus().name(), appointment.getClient().getName(), appointment.getServiceName());
+                appointment.getStatus().name(), appointment.getClient().getName(), appointment.getClient().getEmail(),
+                appointment.getServiceName(), appointment.getDurationMinutes(), appointment.getAgreedPrice(),
+                appointment.getCancellationReason(), appointment.getInvalidationReason());
     }
 
     public static ProfessionalAgendaItemResponse fromEvent(ProfessionalCalendarEvent event) {
         return new ProfessionalAgendaItemResponse(
                 "EVENT", event.getId(), event.getTitle(), event.getDescription(),
                 event.getStartsAt(), event.getEndsAt(), event.isAllDay(),
-                null, null, null);
+                null, null, null, null, null, null, null, null);
     }
 }

@@ -11,6 +11,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.time.Clock;
 import java.util.List;
 
 @RestController
@@ -19,6 +20,13 @@ import java.util.List;
 public class ProfessionalAgendaController {
 
     private final ProfessionalAgendaService agendaService;
+    private final Clock clock;
+
+    @GetMapping("/configuracao")
+    public ProfessionalAgendaConfigurationResponse configuration(@AuthenticationPrincipal Jwt jwt) {
+        agendaService.findSchedule(currentUserId(jwt));
+        return new ProfessionalAgendaConfigurationResponse(clock.getZone().getId());
+    }
 
     @GetMapping("/horarios")
     public List<ProfessionalHourResponse> findSchedule(@AuthenticationPrincipal Jwt jwt) {

@@ -96,24 +96,37 @@ function EstablishmentContent({ establishment }: { establishment: Awaited<Return
       {isInactive && <p className="mt-5 rounded-xl border border-danger-500/30 bg-danger-500/5 px-4 py-3 text-sm text-danger-600">Este estabelecimento está inativo. Reative-o para liberar as operações administrativas e novos agendamentos.</p>}
 
       <div className="mt-7 grid gap-6 xl:grid-cols-[minmax(0,1fr)_18rem]">
-        <form onSubmit={submit} className="rounded-2xl border border-brand-100 bg-white p-5 shadow-sm sm:p-6">
-          <div className="flex items-center gap-2"><Building2 size={20} className="text-brand-500" /><h2 className="text-lg font-semibold text-brand-900">Dados cadastrais</h2></div>
-          <p className="mt-1 text-sm text-brand-600">Nome e telefone podem ser atualizados. O CNPJ é definido no cadastro inicial.</p>
-          <fieldset disabled={isInactive || updateMutation.isPending || deactivateMutation.isPending} className="mt-6 grid gap-5 sm:grid-cols-2">
-            <Field label="Nome do estabelecimento" value={form.name} onChange={(value) => updateField('name', value)} required className="sm:col-span-2" />
-            <label className="block"><span className="text-sm font-medium text-brand-800">CNPJ</span><input value={formatCnpj(establishment.cnpj)} readOnly className="mt-2 w-full rounded-xl border border-brand-200 bg-sand-100 px-3.5 py-3 text-brand-700" /></label>
-            <Field label="Telefone" value={form.phone} onChange={(value) => updateField('phone', value)} />
-            <Field label="E-mail" value={form.email} type="email" onChange={(value) => updateField('email', value)} className="sm:col-span-2" />
-            <label className="block"><span className="text-sm font-medium text-brand-800">Antecedência mínima (horas)</span><input type="number" min={0} max={168} required value={form.minimumAdvanceHours} onChange={(event) => setForm((current) => ({ ...current, minimumAdvanceHours: Number(event.target.value) }))} className="mt-2 w-full rounded-xl border border-brand-200 px-3.5 py-3" /></label>
-            <label className="block"><span className="text-sm font-medium text-brand-800">Antecedência máxima (dias)</span><input type="number" min={1} max={365} required value={form.maximumAdvanceDays} onChange={(event) => setForm((current) => ({ ...current, maximumAdvanceDays: Number(event.target.value) }))} className="mt-2 w-full rounded-xl border border-brand-200 px-3.5 py-3" /></label>
-            <p className="sm:col-span-2 text-sm text-brand-600">Exemplo: com 2 horas e 60 dias, clientes não conseguem marcar em cima da hora nem além dos próximos 60 dias.</p>
-            <div className="sm:col-span-2 border-t border-brand-100 pt-5">
-              <div className="flex items-center gap-2"><CalendarClock size={19} className="text-brand-500" /><h3 className="font-semibold text-brand-900">Horários de funcionamento</h3></div>
-              <p className="mt-1 text-sm text-brand-600">Defina os horários de cada dia ou marque o estabelecimento como fechado.</p>
-              <div className="mt-4 space-y-3">{form.businessHours.map((hour) => <BusinessHourRow key={hour.dayOfWeek} hour={hour} onChange={(changes) => updateBusinessHour(hour.dayOfWeek, changes)} />)}</div>
-            </div>
+        <form onSubmit={submit} className="space-y-5">
+          <fieldset disabled={isInactive || updateMutation.isPending || deactivateMutation.isPending} className="space-y-5">
+            <section className="rounded-2xl border border-brand-100 bg-white p-5 shadow-sm sm:p-6">
+              <SectionHeader icon={<Building2 size={20} />} title="Dados do estabelecimento" description="Informações usadas para identificar e entrar em contato com o salão." />
+              <div className="mt-6 grid gap-5 sm:grid-cols-2">
+                <Field label="Nome do estabelecimento" value={form.name} onChange={(value) => updateField('name', value)} required className="sm:col-span-2" />
+                <label className="block"><span className="text-sm font-medium text-brand-800">CNPJ</span><input value={formatCnpj(establishment.cnpj)} readOnly className="mt-2 w-full rounded-xl border border-brand-200 bg-sand-100 px-3.5 py-3 text-brand-700" /></label>
+                <Field label="Telefone" value={form.phone} onChange={(value) => updateField('phone', value)} />
+                <Field label="E-mail" value={form.email} type="email" onChange={(value) => updateField('email', value)} className="sm:col-span-2" />
+              </div>
+              <p className="mt-4 text-xs text-brand-500">O CNPJ é definido no cadastro inicial e não pode ser alterado.</p>
+            </section>
+
+            <section className="rounded-2xl border border-brand-100 bg-white p-5 shadow-sm sm:p-6">
+              <SectionHeader icon={<CalendarClock size={20} />} title="Política de agendamento" description="Defina com quanta antecedência os clientes podem reservar um horário." />
+              <div className="mt-6 grid gap-5 sm:grid-cols-2">
+                <label className="block"><span className="text-sm font-medium text-brand-800">Antecedência mínima</span><div className="relative mt-2"><input type="number" min={0} max={168} required value={form.minimumAdvanceHours} onChange={(event) => setForm((current) => ({ ...current, minimumAdvanceHours: Number(event.target.value) }))} className="w-full rounded-xl border border-brand-200 py-3 pl-3.5 pr-16 text-brand-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" /><span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-brand-500">horas</span></div><span className="mt-2 block text-xs text-brand-500">Evita reservas muito próximas do horário atual.</span></label>
+                <label className="block"><span className="text-sm font-medium text-brand-800">Antecedência máxima</span><div className="relative mt-2"><input type="number" min={1} max={365} required value={form.maximumAdvanceDays} onChange={(event) => setForm((current) => ({ ...current, maximumAdvanceDays: Number(event.target.value) }))} className="w-full rounded-xl border border-brand-200 py-3 pl-3.5 pr-14 text-brand-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" /><span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-brand-500">dias</span></div><span className="mt-2 block text-xs text-brand-500">Limita até quando a agenda fica aberta para reservas.</span></label>
+              </div>
+              <div className="mt-5 rounded-xl bg-brand-50 px-4 py-3 text-sm text-brand-700">Com a configuração atual, clientes podem agendar entre <strong>{form.minimumAdvanceHours} horas</strong> e <strong>{form.maximumAdvanceDays} dias</strong> de antecedência.</div>
+            </section>
+
+            <section className="rounded-2xl border border-brand-100 bg-white p-5 shadow-sm sm:p-6">
+              <SectionHeader icon={<CalendarClock size={20} />} title="Horários de funcionamento" description="Defina os horários de cada dia ou marque o estabelecimento como fechado." />
+              <div className="mt-5 space-y-3">{form.businessHours.map((hour) => <BusinessHourRow key={hour.dayOfWeek} hour={hour} onChange={(changes) => updateBusinessHour(hour.dayOfWeek, changes)} />)}</div>
+            </section>
           </fieldset>
-          <button type="submit" disabled={isInactive || updateMutation.isPending} className="primary-button mt-7 disabled:cursor-not-allowed disabled:opacity-60"><Save size={18} /> {updateMutation.isPending ? 'Salvando...' : 'Salvar alterações'}</button>
+
+          <div className="flex justify-end rounded-2xl border border-brand-100 bg-white p-4 shadow-sm">
+            <button type="submit" disabled={isInactive || updateMutation.isPending || deactivateMutation.isPending} className="primary-button disabled:cursor-not-allowed disabled:opacity-60"><Save size={18} /> {updateMutation.isPending ? 'Salvando...' : 'Salvar alterações'}</button>
+          </div>
         </form>
 
         <aside className="h-fit rounded-2xl border border-brand-100 bg-white p-5 shadow-sm">
@@ -140,6 +153,7 @@ function EstablishmentContent({ establishment }: { establishment: Awaited<Return
 }
 
 function Field({ label, value, onChange, type = 'text', required = false, className = '' }: { label: string; value: string; onChange: (value: string) => void; type?: string; required?: boolean; className?: string }) { return <label className={`block ${className}`}><span className="text-sm font-medium text-brand-800">{label}</span><input type={type} value={value} required={required} onChange={(event) => onChange(event.target.value)} className="mt-2 w-full rounded-xl border border-brand-200 px-3.5 py-3 text-brand-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 disabled:bg-sand-100" /></label> }
+function SectionHeader({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) { return <div><div className="flex items-center gap-2 text-brand-500">{icon}<h2 className="text-lg font-semibold text-brand-900">{title}</h2></div><p className="mt-1 text-sm text-brand-600">{description}</p></div> }
 function BusinessHourRow({ hour, onChange }: { hour: BusinessHour; onChange: (changes: Partial<BusinessHour>) => void }) { const label = WEEK_DAYS.find((day) => day.value === hour.dayOfWeek)?.label ?? hour.dayOfWeek; return <div className="grid items-center gap-3 rounded-xl bg-sand-50 p-3 sm:grid-cols-[9rem_auto_1fr_1fr]"><span className="text-sm font-medium text-brand-800">{label}</span><label className="flex items-center gap-2 text-sm text-brand-600"><input type="checkbox" checked={hour.closed} onChange={(event) => onChange({ closed: event.target.checked, openingTime: event.target.checked ? null : '09:00', closingTime: event.target.checked ? null : '18:00' })} /> Fechado</label><input aria-label={`Abertura de ${label}`} type="time" required={!hour.closed} disabled={hour.closed} value={hour.openingTime?.slice(0, 5) ?? ''} onChange={(event) => onChange({ openingTime: event.target.value })} className="rounded-lg border border-brand-200 px-3 py-2 disabled:bg-brand-100" /><input aria-label={`Fechamento de ${label}`} type="time" required={!hour.closed} disabled={hour.closed} value={hour.closingTime?.slice(0, 5) ?? ''} onChange={(event) => onChange({ closingTime: event.target.value })} className="rounded-lg border border-brand-200 px-3 py-2 disabled:bg-brand-100" /></div> }
 function Info({ label, value, icon }: { label: string; value: string; icon?: React.ReactNode }) { return <div><dt className="text-brand-600">{label}</dt><dd className="mt-1 flex items-center gap-2 font-semibold text-brand-900">{icon}{value}</dd></div> }
 function PageContainer({ children }: { children: React.ReactNode }) { return <div className="p-5 sm:p-7 lg:p-9">{children}</div> }
