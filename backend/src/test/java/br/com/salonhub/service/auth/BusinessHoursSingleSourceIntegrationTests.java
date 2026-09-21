@@ -2,6 +2,7 @@ package br.com.salonhub.service.auth;
 
 import br.com.salonhub.dto.auth.InitialRegistrationRequest;
 import br.com.salonhub.repository.EstablishmentBusinessHourRepository;
+import br.com.salonhub.repository.EstablishmentRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -23,13 +24,20 @@ class BusinessHoursSingleSourceIntegrationTests {
     private EstablishmentBusinessHourRepository businessHourRepository;
 
     @Autowired
+    private EstablishmentRepository establishmentRepository;
+
+    @Autowired
     private JdbcTemplate jdbcTemplate;
 
     @Test
     void shouldUseOnlyWeeklyBusinessHoursAndCreateTheCurrentDefaults() {
         var registration = registrationService.registerEstablishment(new InitialRegistrationRequest(
                 "Administrador", "single-source@salonhub.test", "senha123",
-                "Salão Fonte Única", "11222333000181", null, null, null, null));
+                "Salão Fonte Única", "11222333000181", null, null));
+
+        var establishment = establishmentRepository.findById(registration.establishmentId()).orElseThrow();
+        assertThat(establishment.getMinimumAdvanceMinutes()).isEqualTo(120);
+        assertThat(establishment.getMaximumAdvanceDays()).isEqualTo(60);
 
         Integer legacyColumnCount = jdbcTemplate.queryForObject("""
                 SELECT count(*)

@@ -55,6 +55,11 @@ class ProfessionalAgendaIntegrationTests {
         LocalDateTime eventStart = date.atTime(10, 0);
         LocalDateTime eventEnd = date.atTime(12, 0);
 
+        mockMvc.perform(get("/api/profissionais/me/agenda/configuracao")
+                        .header("Authorization", bearer(context.professionalToken())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.timeZone").value("America/Sao_Paulo"));
+
         mockMvc.perform(get("/api/profissionais/me/agenda/horarios")
                         .header("Authorization", bearer(context.professionalToken())))
                 .andExpect(status().isOk())
@@ -151,6 +156,20 @@ class ProfessionalAgendaIntegrationTests {
         mockMvc.perform(get("/api/profissionais/me/agenda/horarios")
                         .header("Authorization", bearer(context.clientToken())))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void shouldRejectCreatingCalendarEventThatAlreadyEnded() throws Exception {
+        TestContext context = createContext();
+        LocalDateTime end = LocalDateTime.now().minusMinutes(5);
+
+        mockMvc.perform(post("/api/profissionais/me/agenda/eventos")
+                        .header("Authorization", bearer(context.professionalToken()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(eventPayload("Compromisso passado", end.minusHours(1), end, false)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message")
+                        .value("Não é possível criar um compromisso que já terminou."));
     }
 
     @Test

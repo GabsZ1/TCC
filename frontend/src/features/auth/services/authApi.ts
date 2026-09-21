@@ -9,8 +9,6 @@ export interface InitialRegistrationInput {
   cnpj: string
   establishmentEmail?: string
   establishmentPhone?: string
-  minimumAdvanceHours?: number
-  maximumAdvanceDays?: number
 }
 
 export interface InitialRegistrationResponse {

@@ -170,6 +170,10 @@ public class ProfessionalAgendaService {
     public CalendarEventResponse createEvent(Long professionalId, CalendarEventRequest request) {
         User professional = lockProfessional(professionalId);
         validateEvent(request, professional.getId(), null);
+        LocalDateTime now = LocalDateTime.now(clock);
+        if (!request.endsAt().isAfter(now)) {
+            throw new InvalidRequestException("Não é possível criar um compromisso que já terminou.");
+        }
         ProfessionalCalendarEvent event = ProfessionalCalendarEvent.create(
                 professional.getEstablishment(), professional, request.title(), request.description(),
                 request.startsAt(), request.endsAt(), request.allDay());
