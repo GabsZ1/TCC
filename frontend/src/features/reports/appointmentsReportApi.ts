@@ -1,0 +1,33 @@
+import { api } from '@/lib/api'
+
+export interface AppointmentsReportEntry {
+  professionalId: number
+  professionalName: string
+  confirmedCount: number
+  completedCount: number
+  cancelledCount: number
+  invalidatedCount: number
+  totalCount: number
+  completionRate: number
+}
+
+export interface AppointmentsReport {
+  periodStart: string
+  periodEnd: string
+  entries: AppointmentsReportEntry[]
+  totalConfirmed: number
+  totalCompleted: number
+  totalCancelled: number
+  totalInvalidated: number
+}
+
+export interface AppointmentsReportFilters {
+  startDate?: string
+  endDate?: string
+  professionalId?: number
+}
+
+export function fetchAppointmentsReport(filters: AppointmentsReportFilters) {
+  return api.get<AppointmentsReport>('/estabelecimentos/me/relatorio-atendimentos', { params: filters })
+    .then((response) => response.data)
+}

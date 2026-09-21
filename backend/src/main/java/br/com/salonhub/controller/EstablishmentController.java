@@ -4,6 +4,8 @@ import br.com.salonhub.dto.commission.CommissionReportResponse;
 import br.com.salonhub.dto.dashboard.DashboardSummaryResponse;
 import br.com.salonhub.dto.establishment.EstablishmentResponse;
 import br.com.salonhub.dto.establishment.EstablishmentUpdateRequest;
+import br.com.salonhub.dto.report.AppointmentsReportResponse;
+import br.com.salonhub.service.AppointmentsReportService;
 import br.com.salonhub.service.CommissionReportService;
 import br.com.salonhub.service.DashboardService;
 import br.com.salonhub.service.EstablishmentManagementService;
@@ -25,6 +27,7 @@ public class EstablishmentController {
     private final EstablishmentManagementService establishmentManagementService;
     private final DashboardService dashboardService;
     private final CommissionReportService commissionReportService;
+    private final AppointmentsReportService appointmentsReportService;
 
     @GetMapping
     public EstablishmentResponse findMine(@AuthenticationPrincipal Jwt jwt) {
@@ -43,6 +46,15 @@ public class EstablishmentController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam(required = false) Long professionalId) {
         return commissionReportService.getReport(Long.valueOf(jwt.getSubject()), startDate, endDate, professionalId);
+    }
+
+    @GetMapping("/relatorio-atendimentos")
+    public AppointmentsReportResponse appointmentsReport(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) Long professionalId) {
+        return appointmentsReportService.getReport(Long.valueOf(jwt.getSubject()), startDate, endDate, professionalId);
     }
 
     @PutMapping

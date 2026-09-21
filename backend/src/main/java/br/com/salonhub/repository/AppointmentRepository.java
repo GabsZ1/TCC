@@ -141,4 +141,27 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             @Param("periodStart") LocalDateTime periodStart,
             @Param("periodEnd") LocalDateTime periodEnd,
             @Param("professionalId") Long professionalId);
+
+    @Query("""
+            select
+                professional.id as professionalId,
+                professional.name as professionalName,
+                sum(case when appointment.status = br.com.salonhub.entity.AppointmentStatus.CONFIRMED then 1L else 0L end) as confirmedCount,
+                sum(case when appointment.status = br.com.salonhub.entity.AppointmentStatus.COMPLETED then 1L else 0L end) as completedCount,
+                sum(case when appointment.status = br.com.salonhub.entity.AppointmentStatus.CANCELLED then 1L else 0L end) as cancelledCount,
+                sum(case when appointment.status = br.com.salonhub.entity.AppointmentStatus.INVALIDATED then 1L else 0L end) as invalidatedCount
+            from Appointment appointment
+            join appointment.professional professional
+            where appointment.establishment.id = :establishmentId
+              and appointment.startsAt >= :periodStart
+              and appointment.startsAt < :periodEnd
+              and (:professionalId is null or professional.id = :professionalId)
+            group by professional.id, professional.name
+            order by professional.name asc
+            """)
+    List<AppointmentsReportRow> findAppointmentsReportRows(
+            @Param("establishmentId") Long establishmentId,
+            @Param("periodStart") LocalDateTime periodStart,
+            @Param("periodEnd") LocalDateTime periodEnd,
+            @Param("professionalId") Long professionalId);
 }

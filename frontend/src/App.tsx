@@ -18,6 +18,7 @@ const MyServicesPage = lazy(() => import('@/features/services/MyServicesPage').t
 const EstablishmentPage = lazy(() => import('@/features/establishment/EstablishmentPage').then((module) => ({ default: module.EstablishmentPage })))
 const AdminAgendaPage = lazy(() => import('@/features/appointments/AdminAgendaPage').then((module) => ({ default: module.AdminAgendaPage })))
 const CommissionReportPage = lazy(() => import('@/features/commissions/CommissionReportPage').then((module) => ({ default: module.CommissionReportPage })))
+const AppointmentsReportPage = lazy(() => import('@/features/reports/AppointmentsReportPage').then((module) => ({ default: module.AppointmentsReportPage })))
 
 function App() {
   return (
@@ -41,6 +42,7 @@ function App() {
             <Route path="/estabelecimento" element={<EstablishmentPage />} />
             <Route path="/agenda" element={<AdminAgendaPage />} />
             <Route path="/relatorio-comissoes" element={<CommissionReportPage />} />
+            <Route path="/relatorio-atendimentos" element={<AppointmentsReportPage />} />
           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={['CLIENT']} />}>

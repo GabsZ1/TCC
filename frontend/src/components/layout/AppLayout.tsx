@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { BadgeDollarSign, Building2, CalendarDays, House, Scissors, UsersRound } from 'lucide-react'
+import { BadgeDollarSign, Building2, CalendarDays, ClipboardList, House, Scissors, UsersRound } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 
 export function AppLayout() {
@@ -9,6 +9,7 @@ export function AppLayout() {
         { to: '/', label: 'Início', icon: House },
         { to: '/agenda', label: 'Agenda', icon: CalendarDays },
         { to: '/relatorio-comissoes', label: 'Comissões', icon: BadgeDollarSign },
+        { to: '/relatorio-atendimentos', label: 'Atendimentos', icon: ClipboardList },
         { to: '/funcionarios', label: 'Funcionários', icon: UsersRound },
         { to: '/servicos', label: 'Serviços', icon: Scissors },
         { to: '/estabelecimento', label: 'Estabelecimento', icon: Building2 },
