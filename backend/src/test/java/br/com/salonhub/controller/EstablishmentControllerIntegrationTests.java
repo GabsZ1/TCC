@@ -198,7 +198,7 @@ class EstablishmentControllerIntegrationTests {
     }
 
     @Test
-    void shouldBlockDeactivationWithFutureConfirmedAppointment() throws Exception {
+    void shouldDeactivateAndPreserveFutureConfirmedAppointment() throws Exception {
         User admin = administrator("future-pending", "12345678000195");
         Establishment establishment = admin.getEstablishment();
         User professional = user("professional-future-pending", UserRole.PROFESSIONAL, establishment);
@@ -210,16 +210,16 @@ class EstablishmentControllerIntegrationTests {
                 establishment, client, professional, service, LocalDateTime.now().plusDays(1)));
 
         mockMvc.perform(delete(ENDPOINT).header("Authorization", bearer(admin)))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.message").value(
-                        "O estabelecimento possui atendimentos confirmados futuros ou em andamento. "
-                                + "Cancele ou conclua os atendimentos pendentes antes de desativar."));
+                .andExpect(status().isNoContent());
 
-        assertThat(establishmentRepository.findById(establishment.getId()).orElseThrow().isActive()).isTrue();
+        assertThat(establishmentRepository.findById(establishment.getId()).orElseThrow().isActive()).isFalse();
+        assertThat(appointmentRepository.findAll()).anyMatch(appointment ->
+                appointment.getEstablishment().getId().equals(establishment.getId())
+                        && appointment.getStatus() == AppointmentStatus.CONFIRMED);
     }
 
     @Test
-    void shouldBlockDeactivationWithConfirmedAppointmentInProgress() throws Exception {
+    void shouldDeactivateAndPreserveConfirmedAppointmentInProgress() throws Exception {
         User admin = administrator("ongoing-pending", "12345678000195");
         Establishment establishment = admin.getEstablishment();
         User professional = user("professional-ongoing-pending", UserRole.PROFESSIONAL, establishment);
@@ -231,9 +231,9 @@ class EstablishmentControllerIntegrationTests {
                 establishment, client, professional, service, LocalDateTime.now().minusMinutes(30)));
 
         mockMvc.perform(delete(ENDPOINT).header("Authorization", bearer(admin)))
-                .andExpect(status().isConflict());
+                .andExpect(status().isNoContent());
 
-        assertThat(establishmentRepository.findById(establishment.getId()).orElseThrow().isActive()).isTrue();
+        assertThat(establishmentRepository.findById(establishment.getId()).orElseThrow().isActive()).isFalse();
     }
     @Test
     void shouldDeactivateBlockNormalOperationsAndReactivateWithoutLosingData() throws Exception {
@@ -290,7 +290,6 @@ class EstablishmentControllerIntegrationTests {
                 """;
         for (MockHttpServletRequestBuilder request : List.of(
                 get("/api/funcionarios"), get("/api/servicos"),
-                get("/api/agendamentos/estabelecimento/me"),
                 patch("/api/funcionarios/{id}/ativacao", professional.getId()),
                 patch("/api/funcionarios/{id}/desativacao", professional.getId()),
                 patch("/api/servicos/{id}/ativacao", service.getId()),
@@ -334,9 +333,13 @@ class EstablishmentControllerIntegrationTests {
         mockMvc.perform(get("/api/agendamentos/profissional/me").header("Authorization", professionalToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(appointment.getId()));
+        mockMvc.perform(get("/api/agendamentos/estabelecimento/me").header("Authorization", adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(appointment.getId()));
         mockMvc.perform(patch("/api/agendamentos/{id}/conclusao", appointment.getId())
                         .header("Authorization", professionalToken))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("COMPLETED"));
         mockMvc.perform(post("/api/profissionais/me/agenda/eventos")
                         .header("Authorization", professionalToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -383,7 +386,7 @@ class EstablishmentControllerIntegrationTests {
                 .containsExactly(service.getId());
         assertThat(serviceRepository.findById(service.getId()).orElseThrow().isActive()).isTrue();
         Appointment afterReactivation = appointmentRepository.findById(appointment.getId()).orElseThrow();
-        assertThat(afterReactivation.getStatus()).isEqualTo(AppointmentStatus.CONFIRMED);
+        assertThat(afterReactivation.getStatus()).isEqualTo(AppointmentStatus.COMPLETED);
         assertThat(afterReactivation.getProfessional().getId()).isEqualTo(professional.getId());
         assertThat(afterReactivation.getService().getId()).isEqualTo(service.getId());
         assertThat(afterReactivation.getClient().getId()).isEqualTo(client.getId());
@@ -395,10 +398,6 @@ class EstablishmentControllerIntegrationTests {
         assertThat(afterReactivation.getEndsAt()).isEqualTo(appointment.getEndsAt());
         mockMvc.perform(get(ENDPOINT).header("Authorization", adminToken))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.active").value(true));
-        mockMvc.perform(patch("/api/agendamentos/{id}/conclusao", appointment.getId())
-                        .header("Authorization", professionalToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("COMPLETED"));
         mockMvc.perform(put(ENDPOINT).header("Authorization", adminToken)
                         .contentType(MediaType.APPLICATION_JSON).content(VALID_UPDATE))
                 .andExpect(status().isOk());

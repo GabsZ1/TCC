@@ -135,6 +135,14 @@ As configurações podem ser substituídas pelas variáveis:
 - `DB_USERNAME`
 - `DB_PASSWORD`
 
+Para criar o administrador da plataforma no primeiro início do backend, configure as três variáveis abaixo. A criação é idempotente: se a conta de administrador do sistema já existir, ela será reutilizada.
+
+- `SYSTEM_ADMIN_NAME`
+- `SYSTEM_ADMIN_EMAIL`
+- `SYSTEM_ADMIN_PASSWORD` (mínimo de 6 caracteres)
+
+Esse usuário recebe o perfil `SYSTEM_ADMIN`, não fica vinculado a um estabelecimento e acessa a tela de gestão de estabelecimentos após o login.
+
 Por fim, dentro de `frontend`, instale as dependências e execute a aplicação:
 
 ```bash

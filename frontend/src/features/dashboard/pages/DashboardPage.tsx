@@ -1,12 +1,14 @@
 import { useState, type ComponentType } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Link, Navigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import {
   ArrowUpRight,
   CalendarCheck,
   CalendarDays,
   Check,
   Clipboard,
+  Clock3,
+  Building2,
   Scissors,
   UsersRound,
   Wallet,
@@ -14,6 +16,7 @@ import {
 import { useAuth } from '@/hooks/useAuth'
 import { fetchDashboardSummary } from '@/features/dashboard/dashboardApi'
 import { getApiErrorMessage } from '@/lib/apiError'
+import { fetchMyAppointments, fetchMyAppointmentsAsProfessional, type Appointment } from '@/features/appointments/appointmentsApi'
 
 export function DashboardPage() {
   const { user } = useAuth()
@@ -23,9 +26,20 @@ export function DashboardPage() {
     queryFn: fetchDashboardSummary,
     enabled: user?.role === 'ADMIN',
   })
+  const clientAppointments = useQuery({
+    queryKey: ['my-appointments'],
+    queryFn: fetchMyAppointments,
+    enabled: user?.role === 'CLIENT',
+  })
+  const professionalAppointments = useQuery({
+    queryKey: ['professional-appointments'],
+    queryFn: fetchMyAppointmentsAsProfessional,
+    enabled: user?.role === 'PROFESSIONAL',
+  })
 
-  if (user?.role === 'CLIENT') return <Navigate to="/agendamentos" replace />
-  if (user?.role === 'PROFESSIONAL') return <Navigate to="/minha-agenda" replace />
+  if (user?.role === 'SYSTEM_ADMIN') return <SystemAdministratorHome name={user.name} />
+  if (user?.role === 'CLIENT') return <ClientHome name={user.name} appointments={clientAppointments.data ?? []} isLoading={clientAppointments.isLoading} />
+  if (user?.role === 'PROFESSIONAL') return <ProfessionalHome name={user.name} establishmentName={user.establishmentName} appointments={professionalAppointments.data ?? []} isLoading={professionalAppointments.isLoading} />
 
   const firstName = user?.name?.split(' ')[0] ?? 'Olá'
   const establishmentCode = user?.establishmentId ? `#${user.establishmentId}` : '—'
@@ -146,6 +160,74 @@ export function DashboardPage() {
   )
 }
 
+function ClientHome({ name, appointments, isLoading }: { name: string; appointments: Appointment[]; isLoading: boolean }) {
+  const [now] = useState(() => Date.now())
+  const next = appointments
+    .filter((appointment) => appointment.status === 'CONFIRMED' && new Date(appointment.startsAt).getTime() > now)
+    .sort((first, second) => first.startsAt.localeCompare(second.startsAt))[0]
+
+  return (
+    <RoleHomeHeader eyebrow="Área do cliente" name={name} subtitle="Organize seus próximos cuidados e acompanhe tudo em um só lugar.">
+      <div className="mt-8 grid gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(18rem,.65fr)]">
+        <section className="overflow-hidden rounded-[1.4rem] bg-primary-900 p-6 text-white shadow-[var(--shadow-lifted)] sm:p-8">
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary-200">Próximo compromisso</p>
+          {isLoading ? <p className="mt-6 text-primary-100">Carregando sua agenda...</p> : next ? (
+            <>
+              <h2 className="mt-4 font-[var(--font-display)] text-3xl font-semibold">{next.serviceName}</h2>
+              <p className="mt-2 text-primary-100">{next.establishmentName} · com {next.professionalName}</p>
+              <div className="mt-6 flex flex-wrap gap-3 text-sm font-semibold"><span className="rounded-xl bg-white/10 px-3 py-2">{formatAppointmentDate(next.startsAt)}</span><span className="rounded-xl bg-white/10 px-3 py-2">{next.startsAt.slice(11, 16)}</span></div>
+            </>
+          ) : <><h2 className="mt-4 font-[var(--font-display)] text-3xl font-semibold">Sua agenda está livre</h2><p className="mt-2 text-primary-100">Escolha um estabelecimento e encontre o melhor horário para você.</p></>}
+        </section>
+        <aside className="surface-card p-6">
+          <span className="grid size-11 place-items-center rounded-xl bg-accent-100 text-accent-700"><CalendarDays size={20} /></span>
+          <h2 className="mt-5 text-xl font-semibold text-text-900">Meus agendamentos</h2>
+          <p className="mt-2 text-sm leading-6 text-text-600">Agende um novo horário, remarque ou consulte seu histórico.</p>
+          <Link to="/agendamentos" className="primary-button mt-6 w-full">Abrir agendamentos <ArrowUpRight size={16} /></Link>
+        </aside>
+      </div>
+    </RoleHomeHeader>
+  )
+}
+
+function ProfessionalHome({ name, establishmentName, appointments, isLoading }: { name: string; establishmentName: string | null; appointments: Appointment[]; isLoading: boolean }) {
+  const [now] = useState(() => Date.now())
+  const today = localDateKey(new Date(now))
+  const todaysAppointments = appointments
+    .filter((appointment) => appointment.status === 'CONFIRMED' && appointment.startsAt.slice(0, 10) === today)
+    .sort((first, second) => first.startsAt.localeCompare(second.startsAt))
+  const next = todaysAppointments.find((appointment) => new Date(appointment.endsAt).getTime() > now)
+
+  return (
+    <RoleHomeHeader eyebrow="Área do profissional" name={name} subtitle={`Acompanhe seu dia${establishmentName ? ` no ${establishmentName}` : ''} e chegue preparado para cada atendimento.`}>
+      <section className="mt-8 grid gap-4 md:grid-cols-3">
+        <MetricCard icon={CalendarCheck} label="Atendimentos hoje" helper="confirmados na agenda" value={isLoading ? '—' : String(todaysAppointments.length)} tone="primary" />
+        <MetricCard icon={Clock3} label="Próximo horário" helper={next?.clientName ?? 'nenhum cliente aguardando'} value={next ? next.startsAt.slice(11, 16) : 'Livre'} tone="accent" />
+        <MetricCard icon={Scissors} label="Serviço seguinte" helper={next?.clientName ?? 'sua agenda está livre'} value={next?.serviceName ?? '—'} tone="secondary" />
+      </section>
+      <section className="mt-5 grid gap-4 md:grid-cols-2">
+        <ActionCard to="/minha-agenda" icon={CalendarDays} eyebrow="Operação" title="Abrir minha agenda" description="Veja os horários do dia, os clientes e os detalhes de cada atendimento." />
+        <ActionCard to="/meus-servicos" icon={Scissors} eyebrow="Perfil profissional" title="Consultar meus serviços" description="Confira quais serviços estão vinculados ao seu perfil no estabelecimento." />
+      </section>
+    </RoleHomeHeader>
+  )
+}
+
+function SystemAdministratorHome({ name }: { name: string }) {
+  return (
+    <RoleHomeHeader eyebrow="Administração do sistema" name={name} subtitle="Acompanhe os estabelecimentos que utilizam a plataforma e gerencie o acesso a novas reservas.">
+      <section className="mt-8 max-w-2xl">
+        <ActionCard to="/admin/estabelecimentos" icon={Building2} eyebrow="Gestão da plataforma" title="Gerenciar estabelecimentos" description="Liste todos os cadastros e desative estabelecimentos sem apagar o histórico de atendimentos." />
+      </section>
+    </RoleHomeHeader>
+  )
+}
+
+function RoleHomeHeader({ eyebrow, name, subtitle, children }: { eyebrow: string; name: string; subtitle: string; children: React.ReactNode }) {
+  const firstName = name.split(' ')[0]
+  return <div className="page-shell"><header><p className="eyebrow">{eyebrow}</p><h1 className="page-title mt-2">Olá, {firstName}</h1><p className="page-subtitle">{subtitle}</p></header>{children}</div>
+}
+
 const metricTones = {
   primary: 'bg-primary-100 text-primary-700',
   accent: 'bg-accent-100 text-accent-700',
@@ -226,4 +308,15 @@ function formatMoney(value: number) {
 
 function formatToday() {
   return new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' }).format(new Date())
+}
+
+function formatAppointmentDate(value: string) {
+  return new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' }).format(new Date(value))
+}
+
+function localDateKey(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }

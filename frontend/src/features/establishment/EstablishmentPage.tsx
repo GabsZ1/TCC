@@ -54,7 +54,7 @@ function EstablishmentContent({ establishment }: { establishment: Awaited<Return
     onError: (error) => {
       setIsConfirmingDeactivation(false)
       setMessage(null)
-      setErrorMessage(getApiErrorMessage(error, 'Não foi possível desativar. Cancele ou conclua os atendimentos confirmados pendentes e tente novamente.'))
+      setErrorMessage(getApiErrorMessage(error, 'Não foi possível desativar o estabelecimento.'))
     },
   })
 
@@ -134,7 +134,7 @@ function EstablishmentContent({ establishment }: { establishment: Awaited<Return
           <dl className="mt-5 space-y-4 text-sm"><Info label="Código" value={`#${establishment.id}`} /><Info label="Funcionamento" value="Configuração semanal" icon={<CalendarClock size={16} />} /></dl>
           <div className="mt-6 border-t border-background-300 pt-5">
             <h3 className={`font-semibold ${isInactive ? 'text-success-600' : 'text-danger-600'}`}>{isInactive ? 'Reativar estabelecimento' : 'Desativar estabelecimento'}</h3>
-            <p className="mt-2 text-sm leading-6 text-text-600">{isInactive ? 'Reative o estabelecimento para retomar as operações com os dados e vínculos preservados.' : 'Antes de desativar, resolva na agenda todos os atendimentos confirmados futuros ou em andamento. Depois disso, o estabelecimento deixará de aceitar novas operações; o histórico será preservado.'}</p>
+            <p className="mt-2 text-sm leading-6 text-text-600">{isInactive ? 'Reative o estabelecimento para retomar as operações com os dados e vínculos preservados.' : 'Ao desativar, novos agendamentos e remarcações serão bloqueados. Os atendimentos já marcados e todo o histórico serão preservados.'}</p>
             <button type="button" disabled={updateMutation.isPending || deactivateMutation.isPending || reactivateMutation.isPending} onClick={() => {
               setMessage(null)
               setErrorMessage(null)
@@ -147,7 +147,7 @@ function EstablishmentContent({ establishment }: { establishment: Awaited<Return
           </div>
         </aside>
       </div>
-      {isConfirmingDeactivation && <ConfirmDialog title="Desativar estabelecimento" message={`Tem certeza que deseja desativar “${establishment.name}”? Confirme somente depois de cancelar ou concluir os atendimentos confirmados futuros e em andamento. Os dados e o histórico serão preservados.`} confirmLabel="Desativar estabelecimento" isLoading={deactivateMutation.isPending} onConfirm={() => deactivateMutation.mutate()} onCancel={() => setIsConfirmingDeactivation(false)} />}
+      {isConfirmingDeactivation && <ConfirmDialog title="Desativar estabelecimento" message={`Tem certeza que deseja desativar “${establishment.name}”? Novos agendamentos e remarcações serão bloqueados, mas os atendimentos já existentes continuarão disponíveis normalmente.`} confirmLabel="Desativar estabelecimento" isLoading={deactivateMutation.isPending} onConfirm={() => deactivateMutation.mutate()} onCancel={() => setIsConfirmingDeactivation(false)} />}
     </PageContainer>
   )
 }

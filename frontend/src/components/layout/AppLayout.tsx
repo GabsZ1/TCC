@@ -31,7 +31,12 @@ export function AppLayout() {
     setMobileMenuOpen(false)
   }, [location.pathname])
 
-  const navItems: NavItem[] = user?.role === 'ADMIN'
+  const navItems: NavItem[] = user?.role === 'SYSTEM_ADMIN'
+    ? [
+        { to: '/', label: 'Início', icon: House, group: 'Visão geral' },
+        { to: '/admin/estabelecimentos', label: 'Estabelecimentos', icon: Building2, group: 'Gestão' },
+      ]
+    : user?.role === 'ADMIN'
     ? [
         { to: '/', label: 'Início', icon: House, group: 'Visão geral' },
         { to: '/agenda', label: 'Agenda', icon: CalendarDays, group: 'Operação' },
@@ -42,10 +47,14 @@ export function AppLayout() {
         { to: '/estabelecimento', label: 'Estabelecimento', icon: Building2, group: 'Gestão' },
       ]
     : user?.role === 'CLIENT'
-      ? [{ to: '/agendamentos', label: 'Meus agendamentos', icon: CalendarDays, group: 'Visão geral' }]
+      ? [
+          { to: '/', label: 'Início', icon: House, group: 'Visão geral' },
+          { to: '/agendamentos', label: 'Meus agendamentos', icon: CalendarDays, group: 'Operação' },
+        ]
       : user?.role === 'PROFESSIONAL'
         ? [
-            { to: '/minha-agenda', label: 'Minha agenda', icon: CalendarDays, group: 'Visão geral' },
+            { to: '/', label: 'Início', icon: House, group: 'Visão geral' },
+            { to: '/minha-agenda', label: 'Minha agenda', icon: CalendarDays, group: 'Operação' },
             { to: '/meus-servicos', label: 'Meus serviços', icon: Scissors, group: 'Gestão' },
           ]
         : [{ to: '/', label: 'Início', icon: House, group: 'Visão geral' }]
@@ -231,6 +240,7 @@ function Avatar({ name }: { name?: string | null }) {
 }
 
 function roleLabel(role?: string) {
+  if (role === 'SYSTEM_ADMIN') return 'Administrador do sistema'
   if (role === 'ADMIN') return 'Administrador'
   if (role === 'PROFESSIONAL') return 'Profissional'
   if (role === 'CLIENT') return 'Cliente'

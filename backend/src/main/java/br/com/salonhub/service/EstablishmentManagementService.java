@@ -76,18 +76,13 @@ public class EstablishmentManagementService {
     @Transactional
     public void deactivate(Long administratorId) {
         Establishment identityEstablishment = findEstablishment(administratorId);
-        Establishment establishment = establishmentRepository.findByIdForUpdate(identityEstablishment.getId())
-                .orElseThrow(() -> new IllegalStateException("Estabelecimento do administrador não encontrado."));
-        if (!establishment.isActive()) {
-            return;
-        }
-        if (appointmentRepository.existsByEstablishmentIdAndStatusAndEndsAtGreaterThan(
-                establishment.getId(), AppointmentStatus.CONFIRMED, LocalDateTime.now(clock))) {
-            throw new ConflictException(
-                    "O estabelecimento possui atendimentos confirmados futuros ou em andamento. "
-                            + "Cancele ou conclua os atendimentos pendentes antes de desativar.");
-        }
-        establishment.deactivate();
+        deactivateEstablishment(identityEstablishment.getId());
+    }
+
+    @Transactional
+    public void deactivateAsSystemAdministrator(Long systemAdministratorId, Long establishmentId) {
+        tenantAuthorizationService.requireSystemAdministrator(systemAdministratorId);
+        deactivateEstablishment(establishmentId);
     }
 
     @Transactional
@@ -102,6 +97,15 @@ public class EstablishmentManagementService {
 
     private Establishment findEstablishment(Long administratorId) {
         return tenantAuthorizationService.requireAdministratorIdentity(administratorId).getEstablishment();
+    }
+
+    private void deactivateEstablishment(Long establishmentId) {
+        Establishment establishment = establishmentRepository.findByIdForUpdate(establishmentId)
+                .orElseThrow(() -> new br.com.salonhub.exception.ResourceNotFoundException(
+                        "Estabelecimento não encontrado."));
+        if (establishment.isActive()) {
+            establishment.deactivate();
+        }
     }
 
     private String normalizeOptionalText(String value) {

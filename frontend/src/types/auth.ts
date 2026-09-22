@@ -1,4 +1,4 @@
-export type UserRole = 'ADMIN' | 'PROFESSIONAL' | 'CLIENT'
+export type UserRole = 'SYSTEM_ADMIN' | 'ADMIN' | 'PROFESSIONAL' | 'CLIENT'
 
 export interface AuthenticatedUser {
   id: number
