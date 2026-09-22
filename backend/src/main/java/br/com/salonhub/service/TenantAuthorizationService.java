@@ -29,11 +29,7 @@ public class TenantAuthorizationService {
 
     @Transactional(readOnly = true)
     public User requireAdministrator(Long userId) {
-        User user = requireAdministratorIdentity(userId);
-        if (!user.getEstablishment().isActive()) {
-            throw new AccessDeniedException("O estabelecimento está inativo. As operações administrativas estão bloqueadas.");
-        }
-        return user;
+        return requireAdministratorIdentity(userId);
     }
 
     @Transactional(readOnly = true)
@@ -47,6 +43,9 @@ public class TenantAuthorizationService {
         }
         if (user.getEstablishment() == null) {
             throw new AccessDeniedException("O administrador não possui estabelecimento vinculado.");
+        }
+        if (!user.getEstablishment().isActive()) {
+            throw new AccessDeniedException("O estabelecimento foi desativado pelo administrador do sistema.");
         }
 
         return user;
@@ -67,11 +66,7 @@ public class TenantAuthorizationService {
 
     @Transactional(readOnly = true)
     public User requireProfessionalAtActiveEstablishment(Long userId) {
-        User user = requireProfessional(userId);
-        if (user.getEstablishment() == null || !user.getEstablishment().isActive()) {
-            throw new AccessDeniedException("O estabelecimento está inativo. As operações profissionais estão bloqueadas.");
-        }
-        return user;
+        return requireProfessional(userId);
     }
 
     @Transactional(readOnly = true)
@@ -82,6 +77,12 @@ public class TenantAuthorizationService {
 
         if (user.getRole() != UserRole.PROFESSIONAL) {
             throw new AccessDeniedException("Acesso permitido apenas para profissionais");
+        }
+        if (user.getEstablishment() == null || !user.getEstablishment().isActive()) {
+            throw new AccessDeniedException("O estabelecimento foi desativado pelo administrador do sistema.");
+        }
+        if (user.getEstablishment().isPaused()) {
+            throw new AccessDeniedException("O estabelecimento está pausado. O acesso dos funcionários está bloqueado.");
         }
 
         return user;

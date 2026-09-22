@@ -7,6 +7,10 @@ export interface SystemEstablishment {
   email: string | null
   phone: string | null
   active: boolean
+  paused: boolean
+  pausedBySystem: boolean
+  bookingsBlocked: boolean
+  bookingsBlockedBySystem: boolean
   createdAt: string
 }
 
@@ -16,4 +20,24 @@ export function fetchSystemEstablishments() {
 
 export function deactivateSystemEstablishment(establishmentId: number) {
   return api.delete(`/admin-sistema/estabelecimentos/${establishmentId}`)
+}
+
+export function reactivateSystemEstablishment(establishmentId: number) {
+  return api.patch(`/admin-sistema/estabelecimentos/${establishmentId}/ativacao`)
+}
+
+export function blockSystemEstablishmentBookings(establishmentId: number) {
+  return api.patch(`/admin-sistema/estabelecimentos/${establishmentId}/bloqueio-agendamentos`)
+}
+
+export function allowSystemEstablishmentBookings(establishmentId: number) {
+  return api.delete(`/admin-sistema/estabelecimentos/${establishmentId}/bloqueio-agendamentos`)
+}
+
+export function pauseSystemEstablishment(establishmentId: number) {
+  return api.patch(`/admin-sistema/estabelecimentos/${establishmentId}/pausa`)
+}
+
+export function resumeSystemEstablishment(establishmentId: number) {
+  return api.delete(`/admin-sistema/estabelecimentos/${establishmentId}/pausa`)
 }

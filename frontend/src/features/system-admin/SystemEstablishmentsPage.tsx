@@ -1,32 +1,36 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Building2, Power, Search } from 'lucide-react'
+import { Building2, CalendarOff, Pause, Power, RotateCcw, Search } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { getApiErrorMessage } from '@/lib/apiError'
 import {
+  allowSystemEstablishmentBookings,
+  blockSystemEstablishmentBookings,
   deactivateSystemEstablishment,
   fetchSystemEstablishments,
+  pauseSystemEstablishment,
+  reactivateSystemEstablishment,
+  resumeSystemEstablishment,
   type SystemEstablishment,
 } from '@/features/system-admin/systemEstablishmentsApi'
 
 const QUERY_KEY = ['system-establishments']
+type Action = 'block' | 'allow' | 'pause' | 'resume' | 'deactivate' | 'reactivate'
 
 export function SystemEstablishmentsPage() {
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
-  const [selected, setSelected] = useState<SystemEstablishment | null>(null)
+  const [selection, setSelection] = useState<{ establishment: SystemEstablishment; action: Action } | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const establishments = useQuery({ queryKey: QUERY_KEY, queryFn: fetchSystemEstablishments })
-  const deactivate = useMutation({
-    mutationFn: deactivateSystemEstablishment,
-    onSuccess: (_, establishmentId) => {
-      queryClient.setQueryData<SystemEstablishment[]>(QUERY_KEY, (current) =>
-        current?.map((item) => item.id === establishmentId ? { ...item, active: false } : item),
-      )
-      setMessage('Estabelecimento desativado. Os atendimentos existentes foram preservados.')
-      setSelected(null)
+  const stateMutation = useMutation({
+    mutationFn: ({ establishment, action }: NonNullable<typeof selection>) => runAction(establishment.id, action),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEY })
+      setMessage(successMessage(variables.action))
+      setSelection(null)
     },
-    onError: () => setSelected(null),
+    onError: () => setSelection(null),
   })
   const filtered = useMemo(() => {
     const term = search.trim().toLocaleLowerCase('pt-BR')
@@ -36,62 +40,70 @@ export function SystemEstablishmentsPage() {
     )
   }, [establishments.data, search])
 
+  function select(establishment: SystemEstablishment, action: Action) {
+    setMessage(null)
+    setSelection({ establishment, action })
+  }
+
   return (
     <div className="page-shell">
-      <header>
-        <p className="eyebrow">Administração do sistema</p>
-        <h1 className="page-title mt-2">Estabelecimentos</h1>
-        <p className="page-subtitle">Consulte os estabelecimentos cadastrados e interrompa novas reservas quando necessário.</p>
-      </header>
-
+      <header><p className="eyebrow">Administração do sistema</p><h1 className="page-title mt-2">Estabelecimentos</h1><p className="page-subtitle">Controle reservas, operação e acesso à plataforma sem apagar o histórico.</p></header>
       {message && <p role="status" className="mt-6 rounded-xl bg-success-50 px-4 py-3 text-sm text-success-700">{message}</p>}
-      {deactivate.isError && <p role="alert" className="mt-6 rounded-xl bg-danger-50 px-4 py-3 text-sm text-danger-600">{getApiErrorMessage(deactivate.error, 'Não foi possível desativar o estabelecimento.')}</p>}
-
+      {stateMutation.isError && <p role="alert" className="mt-6 rounded-xl bg-danger-50 px-4 py-3 text-sm text-danger-600">{getApiErrorMessage(stateMutation.error, 'Não foi possível alterar o estado do estabelecimento.')}</p>}
       <section className="surface-card mt-7 overflow-hidden">
         <div className="flex flex-col gap-4 border-b border-background-300 p-5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="font-semibold text-text-900">Todos os estabelecimentos</h2>
-            <p className="mt-1 text-sm text-text-500">{establishments.data?.length ?? 0} cadastro(s) encontrado(s)</p>
-          </div>
-          <label className="relative block sm:w-80">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-400" size={17} />
-            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar por nome ou CNPJ" className="w-full rounded-xl border border-background-300 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" />
-          </label>
+          <div><h2 className="font-semibold text-text-900">Todos os estabelecimentos</h2><p className="mt-1 text-sm text-text-500">{establishments.data?.length ?? 0} cadastro(s) encontrado(s)</p></div>
+          <label className="relative block sm:w-80"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-400" size={17} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar por nome ou CNPJ" className="w-full rounded-xl border border-background-300 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" /></label>
         </div>
-
         {establishments.isLoading && <State>Carregando estabelecimentos...</State>}
         {establishments.isError && <State error>{getApiErrorMessage(establishments.error, 'Não foi possível carregar os estabelecimentos.')}</State>}
         {!establishments.isLoading && !establishments.isError && filtered.length === 0 && <State>Nenhum estabelecimento encontrado.</State>}
-        {filtered.length > 0 && (
-          <div className="divide-y divide-background-300">
-            {filtered.map((item) => (
-              <article key={item.id} className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
-                <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary-100 text-primary-700"><Building2 size={20} /></span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="font-semibold text-text-900">{item.name}</h3>
-                    <span className={`status-pill ${item.active ? 'bg-success-50 text-success-700' : 'bg-danger-50 text-danger-600'}`}>{item.active ? 'Ativo' : 'Inativo'}</span>
-                  </div>
-                  <p className="mt-1 text-sm text-text-500">CNPJ {formatCnpj(item.cnpj)}{item.email ? ` · ${item.email}` : ''}</p>
-                </div>
-                <button type="button" disabled={!item.active || deactivate.isPending} onClick={() => { setMessage(null); setSelected(item) }} className="inline-flex items-center justify-center gap-2 rounded-xl border border-danger-500/30 px-4 py-2.5 text-sm font-semibold text-danger-600 hover:bg-danger-50 disabled:cursor-not-allowed disabled:opacity-45">
-                  <Power size={16} /> {item.active ? 'Desativar' : 'Desativado'}
-                </button>
-              </article>
-            ))}
-          </div>
-        )}
+        {filtered.length > 0 && <div className="divide-y divide-background-300">{filtered.map((item) => (
+          <article key={item.id} className="p-5">
+            <div className="flex items-start gap-3"><span className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary-100 text-primary-700"><Building2 size={20} /></span><div className="min-w-0 flex-1"><h3 className="font-semibold text-text-900">{item.name}</h3><p className="mt-1 text-sm text-text-500">CNPJ {formatCnpj(item.cnpj)}{item.email ? ` · ${item.email}` : ''}</p><div className="mt-3 flex flex-wrap gap-2"><Status active={item.active} label={item.active ? 'Site ativo' : 'Site desativado'} />{item.paused && <Status label="Operação pausada" />}{item.bookingsBlocked && <Status label="Agendamentos bloqueados" />}</div></div></div>
+            <div className="mt-4 grid gap-2 sm:grid-cols-3">
+              <ActionButton icon={<CalendarOff size={16} />} disabled={!item.active || stateMutation.isPending} onClick={() => select(item, item.bookingsBlocked ? 'allow' : 'block')}>{item.bookingsBlocked ? 'Liberar agendamentos' : 'Bloquear agendamentos'}</ActionButton>
+              <ActionButton icon={item.paused ? <RotateCcw size={16} /> : <Pause size={16} />} disabled={!item.active || stateMutation.isPending} onClick={() => select(item, item.paused ? 'resume' : 'pause')}>{item.paused ? 'Retomar operação' : 'Pausar operação'}</ActionButton>
+              <ActionButton danger={item.active} icon={<Power size={16} />} disabled={stateMutation.isPending} onClick={() => select(item, item.active ? 'deactivate' : 'reactivate')}>{item.active ? 'Desativar site' : 'Reativar site'}</ActionButton>
+            </div>
+          </article>
+        ))}</div>}
       </section>
-
-      {selected && <ConfirmDialog title="Desativar estabelecimento" message={`Desativar “${selected.name}”? Novos agendamentos e remarcações serão bloqueados, mas os atendimentos já existentes continuarão disponíveis normalmente.`} confirmLabel="Desativar estabelecimento" isLoading={deactivate.isPending} onConfirm={() => deactivate.mutate(selected.id)} onCancel={() => setSelected(null)} />}
+      {selection && <ConfirmDialog {...confirmationProps(selection.establishment, selection.action)} isLoading={stateMutation.isPending} onConfirm={() => stateMutation.mutate(selection)} onCancel={() => setSelection(null)} />}
     </div>
   )
 }
 
-function State({ children, error = false }: { children: React.ReactNode; error?: boolean }) {
-  return <div className={`p-10 text-center text-sm ${error ? 'text-danger-600' : 'text-text-500'}`}>{children}</div>
+function runAction(id: number, action: Action) {
+  if (action === 'block') return blockSystemEstablishmentBookings(id)
+  if (action === 'allow') return allowSystemEstablishmentBookings(id)
+  if (action === 'pause') return pauseSystemEstablishment(id)
+  if (action === 'resume') return resumeSystemEstablishment(id)
+  if (action === 'reactivate') return reactivateSystemEstablishment(id)
+  return deactivateSystemEstablishment(id)
 }
 
-function formatCnpj(value: string) {
-  return value.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5')
+function confirmationProps(item: SystemEstablishment, action: Action) {
+  const copy: Record<Action, { title: string; message: string; confirmLabel: string }> = {
+    block: { title: 'Bloquear agendamentos', message: `Bloquear novas reservas e remarcações em “${item.name}”? Os atendimentos existentes serão preservados.`, confirmLabel: 'Bloquear' },
+    allow: { title: 'Liberar agendamentos', message: `Permitir novamente novas reservas em “${item.name}”?`, confirmLabel: 'Liberar' },
+    pause: { title: 'Pausar operação', message: `Pausar “${item.name}”? A pausa só será possível se não houver atendimentos confirmados e bloqueará o acesso dos funcionários.`, confirmLabel: 'Pausar' },
+    resume: { title: 'Retomar operação', message: `Liberar novamente o acesso dos funcionários de “${item.name}”?`, confirmLabel: 'Retomar' },
+    deactivate: { title: 'Desativar site', message: `Desativar “${item.name}”? Todos os usuários vinculados perderão o acesso e os atendimentos confirmados serão cancelados definitivamente com o motivo “Site desativado”.`, confirmLabel: 'Desativar site' },
+    reactivate: { title: 'Reativar site', message: `Reativar o acesso de “${item.name}”? Os atendimentos cancelados na desativação continuarão cancelados.`, confirmLabel: 'Reativar site' },
+  }
+  return copy[action]
 }
+
+function successMessage(action: Action) {
+  if (action === 'deactivate') return 'Site desativado e atendimentos pendentes cancelados.'
+  if (action === 'reactivate') return 'Site reativado. Os cancelamentos anteriores foram mantidos.'
+  if (action === 'pause') return 'Operação pausada pelo sistema.'
+  if (action === 'resume') return 'Operação retomada.'
+  return action === 'block' ? 'Novos agendamentos bloqueados pelo sistema.' : 'Novos agendamentos liberados.'
+}
+
+function ActionButton({ children, icon, danger = false, disabled, onClick }: { children: React.ReactNode; icon: React.ReactNode; danger?: boolean; disabled: boolean; onClick: () => void }) { return <button type="button" disabled={disabled} onClick={onClick} className={`inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40 ${danger ? 'border-danger-500/30 text-danger-600 hover:bg-danger-50' : 'border-background-300 text-text-700 hover:bg-background-100'}`}>{icon}{children}</button> }
+function Status({ active = false, label }: { active?: boolean; label: string }) { return <span className={`status-pill ${active ? 'bg-success-50 text-success-700' : 'bg-warning-100 text-warning-700'}`}>{label}</span> }
+function State({ children, error = false }: { children: React.ReactNode; error?: boolean }) { return <div className={`p-10 text-center text-sm ${error ? 'text-danger-600' : 'text-text-500'}`}>{children}</div> }
+function formatCnpj(value: string) { return value.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') }

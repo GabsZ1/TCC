@@ -127,7 +127,7 @@ public class AppointmentQueryService {
         }
 
         Establishment establishment = establishmentRepository.findById(establishmentId)
-                .filter(Establishment::isActive)
+                .filter(Establishment::acceptsNewAppointments)
                 .orElseThrow(() -> new ResourceNotFoundException("Estabelecimento não encontrado."));
         LocalDateTime now = LocalDateTime.now(clock);
         LocalDateTime earliestStart = now.plusMinutes(establishment.getMinimumAdvanceMinutes());

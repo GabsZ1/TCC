@@ -28,4 +28,29 @@ public class SystemEstablishmentService {
     public void deactivate(Long systemAdministratorId, Long establishmentId) {
         establishmentManagementService.deactivateAsSystemAdministrator(systemAdministratorId, establishmentId);
     }
+
+    @Transactional
+    public void reactivate(Long systemAdministratorId, Long establishmentId) {
+        establishmentManagementService.reactivateAsSystemAdministrator(systemAdministratorId, establishmentId);
+    }
+
+    @Transactional
+    public void blockBookings(Long systemAdministratorId, Long establishmentId) {
+        establishmentManagementService.blockBookingsAsSystemAdministrator(systemAdministratorId, establishmentId);
+    }
+
+    @Transactional
+    public void allowBookings(Long systemAdministratorId, Long establishmentId) {
+        establishmentManagementService.allowBookingsAsSystemAdministrator(systemAdministratorId, establishmentId);
+    }
+
+    @Transactional
+    public void pause(Long systemAdministratorId, Long establishmentId) {
+        establishmentManagementService.pauseAsSystemAdministrator(systemAdministratorId, establishmentId);
+    }
+
+    @Transactional
+    public void resume(Long systemAdministratorId, Long establishmentId) {
+        establishmentManagementService.resumeAsSystemAdministrator(systemAdministratorId, establishmentId);
+    }
 }

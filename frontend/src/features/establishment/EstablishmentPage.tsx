@@ -1,9 +1,9 @@
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Building2, CalendarClock, Save, Power, RotateCcw } from 'lucide-react'
+import { Building2, CalendarClock, Save, CalendarOff, Pause, Play, RotateCcw } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { getApiErrorMessage } from '@/lib/apiError'
-import { deactivateMyEstablishment, fetchMyEstablishment, reactivateMyEstablishment, updateMyEstablishment, type BusinessHour, type EstablishmentUpdateInput, type WeekDay } from '@/features/establishment/establishmentApi'
+import { allowMyEstablishmentBookings, blockMyEstablishmentBookings, fetchMyEstablishment, pauseMyEstablishment, resumeMyEstablishment, updateMyEstablishment, type BusinessHour, type Establishment, type EstablishmentUpdateInput, type WeekDay } from '@/features/establishment/establishmentApi'
 
 const QUERY_KEY = ['my-establishment']
 const WEEK_DAYS: { value: WeekDay; label: string }[] = [
@@ -27,7 +27,7 @@ function EstablishmentContent({ establishment }: { establishment: Awaited<Return
   const [form, setForm] = useState<EstablishmentUpdateInput>(() => toForm(establishment))
   const [message, setMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [isConfirmingDeactivation, setIsConfirmingDeactivation] = useState(false)
+  const [confirmation, setConfirmation] = useState<'block' | 'pause' | null>(null)
 
   const updateMutation = useMutation({
     mutationFn: updateMyEstablishment,
@@ -42,33 +42,19 @@ function EstablishmentContent({ establishment }: { establishment: Awaited<Return
       setErrorMessage(getApiErrorMessage(error, 'Não foi possível atualizar o estabelecimento.'))
     },
   })
-  const deactivateMutation = useMutation({
-    mutationFn: deactivateMyEstablishment,
-    onSuccess: () => {
-      queryClient.setQueryData(QUERY_KEY, (current: typeof establishment) => current ? { ...current, active: false } : current)
-      queryClient.invalidateQueries()
-      setIsConfirmingDeactivation(false)
-      setMessage('Estabelecimento desativado com sucesso.')
-      setErrorMessage(null)
-    },
-    onError: (error) => {
-      setIsConfirmingDeactivation(false)
-      setMessage(null)
-      setErrorMessage(getApiErrorMessage(error, 'Não foi possível desativar o estabelecimento.'))
-    },
-  })
-
-  const reactivateMutation = useMutation({
-    mutationFn: reactivateMyEstablishment,
-    onSuccess: (updated) => {
+  const stateMutation = useMutation({
+    mutationFn: ({ operation }: { operation: () => Promise<Establishment>; successMessage: string }) => operation(),
+    onSuccess: (updated, variables) => {
       queryClient.setQueryData(QUERY_KEY, updated)
       queryClient.invalidateQueries()
-      setMessage('Estabelecimento reativado com sucesso.')
+      setConfirmation(null)
+      setMessage(variables.successMessage)
       setErrorMessage(null)
     },
     onError: (error) => {
+      setConfirmation(null)
       setMessage(null)
-      setErrorMessage(getApiErrorMessage(error, 'Não foi possível reativar o estabelecimento.'))
+      setErrorMessage(getApiErrorMessage(error, 'Não foi possível alterar o estado do estabelecimento.'))
     },
   })
 
@@ -84,20 +70,29 @@ function EstablishmentContent({ establishment }: { establishment: Awaited<Return
     updateMutation.mutate(form)
   }
 
-  const isInactive = !establishment.active
+  function changeState(operation: () => Promise<Establishment>, successMessage: string) {
+    setMessage(null)
+    setErrorMessage(null)
+    stateMutation.mutate({ operation, successMessage })
+  }
+
   return (
     <PageContainer>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div><h1 className="page-title">Meu estabelecimento</h1><p className="page-subtitle">Consulte e mantenha os dados cadastrais do seu estabelecimento.</p></div>
-        <span className={`inline-flex w-fit items-center rounded-full px-3 py-1 text-sm font-semibold ${isInactive ? 'bg-danger-500/10 text-danger-600' : 'bg-success-50 text-success-600'}`}>{isInactive ? 'Inativo' : 'Ativo'}</span>
+        <div className="flex flex-wrap gap-2">
+          <span className="status-pill bg-success-50 text-success-700">Ativo</span>
+          {establishment.paused && <span className="status-pill bg-warning-100 text-warning-700">Pausado{establishment.pausedBySystem ? ' pelo sistema' : ''}</span>}
+          {establishment.bookingsBlocked && <span className="status-pill bg-danger-50 text-danger-600">Agendamentos bloqueados{establishment.bookingsBlockedBySystem ? ' pelo sistema' : ''}</span>}
+        </div>
       </div>
       {message && <p role="status" className="mt-5 rounded-xl bg-success-50 px-4 py-3 text-sm text-success-600">{message}</p>}
       {errorMessage && <p role="alert" className="mt-5 rounded-xl border border-danger-500/30 bg-danger-500/5 px-4 py-3 text-sm text-danger-600">{errorMessage}</p>}
-      {isInactive && <p className="mt-5 rounded-xl border border-danger-500/30 bg-danger-500/5 px-4 py-3 text-sm text-danger-600">Este estabelecimento está inativo. Reative-o para liberar as operações administrativas e novos agendamentos.</p>}
+      {(establishment.pausedBySystem || establishment.bookingsBlockedBySystem) && <p className="mt-5 rounded-xl border border-warning-500/30 bg-warning-100 px-4 py-3 text-sm text-warning-700">Uma ou mais restrições foram aplicadas pelo administrador do sistema e somente ele poderá removê-las.</p>}
 
       <div className="mt-7 grid gap-6 xl:grid-cols-[minmax(0,1fr)_18rem]">
         <form onSubmit={submit} className="space-y-5">
-          <fieldset disabled={isInactive || updateMutation.isPending || deactivateMutation.isPending} className="space-y-5">
+          <fieldset disabled={updateMutation.isPending || stateMutation.isPending} className="space-y-5">
             <section className="surface-card p-5 sm:p-6">
               <SectionHeader icon={<Building2 size={20} />} title="Dados do estabelecimento" description="Informações usadas para identificar e entrar em contato com o estabelecimento." />
               <div className="mt-6 grid gap-5 sm:grid-cols-2">
@@ -125,34 +120,43 @@ function EstablishmentContent({ establishment }: { establishment: Awaited<Return
           </fieldset>
 
           <div className="surface-card flex justify-end p-4">
-            <button type="submit" disabled={isInactive || updateMutation.isPending || deactivateMutation.isPending} className="primary-button disabled:cursor-not-allowed disabled:opacity-60"><Save size={18} /> {updateMutation.isPending ? 'Salvando...' : 'Salvar alterações'}</button>
+            <button type="submit" disabled={updateMutation.isPending || stateMutation.isPending} className="primary-button disabled:cursor-not-allowed disabled:opacity-60"><Save size={18} /> {updateMutation.isPending ? 'Salvando...' : 'Salvar alterações'}</button>
           </div>
         </form>
 
         <aside className="surface-card h-fit p-5">
           <h2 className="text-lg font-semibold text-text-900">Informações</h2>
           <dl className="mt-5 space-y-4 text-sm"><Info label="Código" value={`#${establishment.id}`} /><Info label="Funcionamento" value="Configuração semanal" icon={<CalendarClock size={16} />} /></dl>
-          <div className="mt-6 border-t border-background-300 pt-5">
-            <h3 className={`font-semibold ${isInactive ? 'text-success-600' : 'text-danger-600'}`}>{isInactive ? 'Reativar estabelecimento' : 'Desativar estabelecimento'}</h3>
-            <p className="mt-2 text-sm leading-6 text-text-600">{isInactive ? 'Reative o estabelecimento para retomar as operações com os dados e vínculos preservados.' : 'Ao desativar, novos agendamentos e remarcações serão bloqueados. Os atendimentos já marcados e todo o histórico serão preservados.'}</p>
-            <button type="button" disabled={updateMutation.isPending || deactivateMutation.isPending || reactivateMutation.isPending} onClick={() => {
-              setMessage(null)
-              setErrorMessage(null)
-              if (isInactive) reactivateMutation.mutate()
-              else setIsConfirmingDeactivation(true)
-            }} className={`mt-4 inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60 ${isInactive ? 'border-success-600/30 text-success-600 hover:bg-success-50' : 'border-danger-500/30 text-danger-600 hover:bg-danger-500/5'}`}>
-              {isInactive ? <RotateCcw size={17} /> : <Power size={17} />}
-              {reactivateMutation.isPending ? 'Reativando...' : isInactive ? 'Reativar' : 'Desativar'}
-            </button>
+          <div className="mt-6 space-y-6 border-t border-background-300 pt-5">
+            <OperationalAction
+              title={establishment.bookingsBlocked ? 'Liberar agendamentos' : 'Bloquear novos agendamentos'}
+              description={establishment.bookingsBlocked ? 'Volta a permitir novas reservas e remarcações.' : 'Impede novas reservas e remarcações sem alterar os atendimentos existentes.'}
+              icon={establishment.bookingsBlocked ? <RotateCcw size={17} /> : <CalendarOff size={17} />}
+              disabled={stateMutation.isPending || establishment.bookingsBlockedBySystem}
+              onClick={() => establishment.bookingsBlocked
+                ? changeState(allowMyEstablishmentBookings, 'Novos agendamentos liberados.')
+                : setConfirmation('block')}
+            />
+            <OperationalAction
+              title={establishment.paused ? 'Retomar estabelecimento' : 'Pausar estabelecimento'}
+              description={establishment.paused ? 'Libera novamente o acesso dos funcionários.' : 'Exige que todos os atendimentos estejam cancelados ou concluídos e bloqueia o acesso dos funcionários.'}
+              icon={establishment.paused ? <Play size={17} /> : <Pause size={17} />}
+              disabled={stateMutation.isPending || establishment.pausedBySystem}
+              onClick={() => establishment.paused
+                ? changeState(resumeMyEstablishment, 'Estabelecimento retomado.')
+                : setConfirmation('pause')}
+            />
           </div>
         </aside>
       </div>
-      {isConfirmingDeactivation && <ConfirmDialog title="Desativar estabelecimento" message={`Tem certeza que deseja desativar “${establishment.name}”? Novos agendamentos e remarcações serão bloqueados, mas os atendimentos já existentes continuarão disponíveis normalmente.`} confirmLabel="Desativar estabelecimento" isLoading={deactivateMutation.isPending} onConfirm={() => deactivateMutation.mutate()} onCancel={() => setIsConfirmingDeactivation(false)} />}
+      {confirmation === 'block' && <ConfirmDialog title="Bloquear novos agendamentos" message={`Bloquear novas reservas e remarcações em “${establishment.name}”? Os atendimentos existentes não serão alterados.`} confirmLabel="Bloquear agendamentos" isLoading={stateMutation.isPending} onConfirm={() => changeState(blockMyEstablishmentBookings, 'Novos agendamentos bloqueados.')} onCancel={() => setConfirmation(null)} />}
+      {confirmation === 'pause' && <ConfirmDialog title="Pausar estabelecimento" message={`Pausar “${establishment.name}”? A operação só será concluída se não houver nenhum atendimento confirmado, e os funcionários não conseguirão acessar o sistema.`} confirmLabel="Pausar estabelecimento" isLoading={stateMutation.isPending} onConfirm={() => changeState(pauseMyEstablishment, 'Estabelecimento pausado.')} onCancel={() => setConfirmation(null)} />}
     </PageContainer>
   )
 }
 
 function Field({ label, value, onChange, type = 'text', required = false, className = '' }: { label: string; value: string; onChange: (value: string) => void; type?: string; required?: boolean; className?: string }) { return <label className={`block ${className}`}><span className="text-sm font-medium text-text-800">{label}</span><input type={type} value={value} required={required} onChange={(event) => onChange(event.target.value)} className="mt-2 w-full rounded-xl border border-background-300 px-3.5 py-3 text-text-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 disabled:bg-background-100" /></label> }
+function OperationalAction({ title, description, icon, disabled, onClick }: { title: string; description: string; icon: React.ReactNode; disabled: boolean; onClick: () => void }) { return <div><h3 className="font-semibold text-text-900">{title}</h3><p className="mt-1.5 text-sm leading-6 text-text-600">{description}</p><button type="button" disabled={disabled} onClick={onClick} className="mt-3 inline-flex items-center gap-2 rounded-xl border border-primary-300 px-4 py-2 text-sm font-semibold text-primary-700 hover:bg-primary-50 disabled:cursor-not-allowed disabled:opacity-45">{icon}{title}</button></div> }
 function SectionHeader({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) { return <div><div className="flex items-center gap-2 text-text-600">{icon}<h2 className="text-lg font-semibold text-text-900">{title}</h2></div><p className="mt-1 text-sm text-text-600">{description}</p></div> }
 function BusinessHourRow({ hour, onChange }: { hour: BusinessHour; onChange: (changes: Partial<BusinessHour>) => void }) { const label = WEEK_DAYS.find((day) => day.value === hour.dayOfWeek)?.label ?? hour.dayOfWeek; return <div className="grid items-center gap-3 rounded-xl bg-background-50 p-3 sm:grid-cols-[9rem_auto_1fr_1fr]"><span className="text-sm font-medium text-text-800">{label}</span><label className="flex items-center gap-2 text-sm text-text-600"><input type="checkbox" checked={hour.closed} onChange={(event) => onChange({ closed: event.target.checked, openingTime: event.target.checked ? null : '09:00', closingTime: event.target.checked ? null : '18:00' })} /> Fechado</label><input aria-label={`Abertura de ${label}`} type="time" required={!hour.closed} disabled={hour.closed} value={hour.openingTime?.slice(0, 5) ?? ''} onChange={(event) => onChange({ openingTime: event.target.value })} className="rounded-lg border border-background-300 px-3 py-2 disabled:bg-background-200" /><input aria-label={`Fechamento de ${label}`} type="time" required={!hour.closed} disabled={hour.closed} value={hour.closingTime?.slice(0, 5) ?? ''} onChange={(event) => onChange({ closingTime: event.target.value })} className="rounded-lg border border-background-300 px-3 py-2 disabled:bg-background-200" /></div> }
 function Info({ label, value, icon }: { label: string; value: string; icon?: React.ReactNode }) { return <div><dt className="text-text-600">{label}</dt><dd className="mt-1 flex items-center gap-2 font-semibold text-text-900">{icon}{value}</dd></div> }
