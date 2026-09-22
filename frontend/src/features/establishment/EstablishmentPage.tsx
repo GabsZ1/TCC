@@ -58,7 +58,7 @@ function EstablishmentContent({ establishment }: { establishment: Awaited<Return
     },
   })
 
-  function updateField(field: 'name' | 'email' | 'phone', value: string) { setForm((current) => ({ ...current, [field]: value })) }
+  function updateField(field: 'name' | 'email', value: string) { setForm((current) => ({ ...current, [field]: value })) }
   function updateBusinessHour(dayOfWeek: WeekDay, changes: Partial<BusinessHour>) {
     setForm((current) => ({ ...current, businessHours: current.businessHours.map((hour) => hour.dayOfWeek === dayOfWeek ? { ...hour, ...changes } : hour) }))
   }
@@ -79,7 +79,7 @@ function EstablishmentContent({ establishment }: { establishment: Awaited<Return
   return (
     <PageContainer>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div><h1 className="page-title">Meu estabelecimento</h1><p className="page-subtitle">Consulte e mantenha os dados cadastrais do seu estabelecimento.</p></div>
+        <div><p className="eyebrow">Administração</p><h1 className="page-title mt-2">Configurações do estabelecimento</h1><p className="page-subtitle">Gerencie os dados cadastrais, a agenda e o estado operacional do estabelecimento.</p></div>
         <div className="flex flex-wrap gap-2">
           <span className="status-pill bg-success-50 text-success-700">Ativo</span>
           {establishment.paused && <span className="status-pill bg-warning-100 text-warning-700">Pausado{establishment.pausedBySystem ? ' pelo sistema' : ''}</span>}
@@ -98,8 +98,7 @@ function EstablishmentContent({ establishment }: { establishment: Awaited<Return
               <div className="mt-6 grid gap-5 sm:grid-cols-2">
                 <Field label="Nome do estabelecimento" value={form.name} onChange={(value) => updateField('name', value)} required className="sm:col-span-2" />
                 <label className="block"><span className="text-sm font-medium text-text-800">CNPJ</span><input value={formatCnpj(establishment.cnpj)} readOnly className="mt-2 w-full rounded-xl border border-background-300 bg-background-100 px-3.5 py-3 text-text-700" /></label>
-                <Field label="Telefone" value={form.phone} onChange={(value) => updateField('phone', value)} />
-                <Field label="E-mail" value={form.email} type="email" onChange={(value) => updateField('email', value)} className="sm:col-span-2" />
+                <Field label="E-mail" value={form.email} type="email" onChange={(value) => updateField('email', value)} />
               </div>
               <p className="mt-4 text-xs text-text-600">O CNPJ é definido no cadastro inicial e não pode ser alterado.</p>
             </section>
@@ -164,4 +163,4 @@ function PageContainer({ children }: { children: React.ReactNode }) { return <di
 function StateCard({ children, error = false }: { children: React.ReactNode; error?: boolean }) { return <div className={`rounded-2xl border bg-background-50 p-8 text-center ${error ? 'border-danger-500/30 text-danger-600' : 'border-background-300 text-text-600'}`}>{children}</div> }
 function formatCnpj(value: string) { return value.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') }
 function orderBusinessHours(hours: BusinessHour[]) { return WEEK_DAYS.map((day) => hours.find((hour) => hour.dayOfWeek === day.value) ?? { dayOfWeek: day.value, closed: false, openingTime: '09:00', closingTime: '18:00' }) }
-function toForm(establishment: Awaited<ReturnType<typeof fetchMyEstablishment>>): EstablishmentUpdateInput { return { name: establishment.name, email: establishment.email ?? '', phone: establishment.phone ?? '', businessHours: orderBusinessHours(establishment.businessHours), minimumAdvanceHours: establishment.minimumAdvanceHours, maximumAdvanceDays: establishment.maximumAdvanceDays } }
+function toForm(establishment: Awaited<ReturnType<typeof fetchMyEstablishment>>): EstablishmentUpdateInput { return { name: establishment.name, email: establishment.email ?? '', businessHours: orderBusinessHours(establishment.businessHours), minimumAdvanceHours: establishment.minimumAdvanceHours, maximumAdvanceDays: establishment.maximumAdvanceDays } }

@@ -17,6 +17,7 @@ const BookingPage = lazy(() => import('@/features/appointments/BookingPage').the
 const ProfessionalAgendaPage = lazy(() => import('@/features/appointments/ProfessionalAgendaPage').then((module) => ({ default: module.ProfessionalAgendaPage })))
 const MyServicesPage = lazy(() => import('@/features/services/MyServicesPage').then((module) => ({ default: module.MyServicesPage })))
 const EstablishmentPage = lazy(() => import('@/features/establishment/EstablishmentPage').then((module) => ({ default: module.EstablishmentPage })))
+const EstablishmentProfilePage = lazy(() => import('@/features/establishment/EstablishmentProfilePage').then((module) => ({ default: module.EstablishmentProfilePage })))
 const AdminAgendaPage = lazy(() => import('@/features/appointments/AdminAgendaPage').then((module) => ({ default: module.AdminAgendaPage })))
 const CommissionReportPage = lazy(() => import('@/features/commissions/CommissionReportPage').then((module) => ({ default: module.CommissionReportPage })))
 const AppointmentsReportPage = lazy(() => import('@/features/reports/AppointmentsReportPage').then((module) => ({ default: module.AppointmentsReportPage })))
@@ -45,6 +46,7 @@ function App() {
             <Route path="/funcionarios" element={<EmployeesListPage />} />
             <Route path="/servicos" element={<ServicesPage />} />
             <Route path="/estabelecimento" element={<EstablishmentPage />} />
+            <Route path="/perfil-estabelecimento" element={<EstablishmentProfilePage />} />
             <Route path="/agenda" element={<AdminAgendaPage />} />
             <Route path="/relatorio-comissoes" element={<CommissionReportPage />} />
             <Route path="/relatorio-atendimentos" element={<AppointmentsReportPage />} />

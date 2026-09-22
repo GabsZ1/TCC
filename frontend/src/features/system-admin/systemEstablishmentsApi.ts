@@ -5,7 +5,6 @@ export interface SystemEstablishment {
   name: string
   cnpj: string
   email: string | null
-  phone: string | null
   active: boolean
   paused: boolean
   pausedBySystem: boolean

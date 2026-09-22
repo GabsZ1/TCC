@@ -1,10 +1,11 @@
-import { useState, type FormEvent } from 'react'
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowRight, CalendarPlus, Clock3, MapPin, Scissors, UserRound } from 'lucide-react'
+import { ArrowRight, CalendarPlus, Clock3, Eye, MapPin, Scissors, UserRound } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { AppointmentEditModal } from '@/features/appointments/AppointmentEditModal'
-import { cancelAppointment, fetchActiveEstablishments, fetchMyAppointments, type Appointment } from '@/features/appointments/appointmentsApi'
+import { EstablishmentDetailsModal } from '@/features/appointments/EstablishmentDetailsModal'
+import { cancelAppointment, fetchActiveEstablishments, fetchMyAppointments, type ActiveEstablishment, type Appointment } from '@/features/appointments/appointmentsApi'
 import { getApiErrorMessage } from '@/lib/apiError'
 
 const QUERY_KEY = ['my-appointments']
@@ -13,8 +14,8 @@ type AppointmentSection = 'upcoming' | 'history'
 export function AppointmentsPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [establishmentId, setEstablishmentId] = useState('')
   const [section, setSection] = useState<AppointmentSection>('upcoming')
+  const [details, setDetails] = useState<ActiveEstablishment | null>(null)
   const [cancelling, setCancelling] = useState<Appointment | null>(null)
   const [editing, setEditing] = useState<Appointment | null>(null)
   const [cancellationError, setCancellationError] = useState<string | null>(null)
@@ -34,12 +35,6 @@ export function AppointmentsPage() {
     },
     onError: (error) => setCancellationError(getApiErrorMessage(error, 'Não foi possível cancelar o agendamento.')),
   })
-
-  function startBooking(event: FormEvent) {
-    event.preventDefault()
-    const id = Number(establishmentId)
-    if (Number.isInteger(id) && id > 0) navigate(`/estabelecimentos/${id}/agendar`)
-  }
 
   return (
     <div className="page-shell">
@@ -102,23 +97,28 @@ export function AppointmentsPage() {
             <div className="pointer-events-none absolute -right-12 -top-12 size-40 rounded-full border border-white/10" />
             <span className="grid size-11 place-items-center rounded-xl bg-white/10 text-primary-200"><CalendarPlus size={20} /></span>
             <h2 className="mt-5 font-[var(--font-display)] text-2xl font-semibold tracking-[-0.03em]">Marcar um horário</h2>
-            <p className="mt-2 text-sm leading-6 text-primary-100">Escolha o estabelecimento para consultar serviços, profissionais e horários disponíveis.</p>
-            <form onSubmit={startBooking} className="mt-6">
-              <label className="text-xs font-bold uppercase tracking-[0.11em] text-primary-200" htmlFor="establishment">Estabelecimento</label>
-              <select id="establishment" required value={establishmentId} onChange={(event) => setEstablishmentId(event.target.value)} disabled={establishments.isLoading || establishments.isError || establishments.data?.length === 0} className="mt-2 w-full rounded-xl border border-white/15 bg-white px-3.5 py-3 text-sm text-primary-950 outline-none focus:ring-4 focus:ring-primary-300/30 disabled:cursor-not-allowed disabled:opacity-70">
-                <option value="">{establishments.isLoading ? 'Carregando...' : 'Selecione um estabelecimento'}</option>
-                {establishments.data?.map((establishment) => <option key={establishment.id} value={establishment.id}>{establishment.name}</option>)}
-              </select>
+            <p className="mt-2 text-sm leading-6 text-primary-100">Conheça cada estabelecimento ou vá direto para o agendamento.</p>
+            <div className="mt-6 space-y-3">
+              {establishments.isLoading && <p className="rounded-xl bg-white/10 px-4 py-3 text-sm text-primary-100">Carregando estabelecimentos...</p>}
               {establishments.isError && <p className="mt-3 text-sm text-danger-700">{getApiErrorMessage(establishments.error, 'Não foi possível carregar os estabelecimentos.')}</p>}
               {!establishments.isLoading && !establishments.isError && establishments.data?.length === 0 && <p className="mt-3 text-sm text-primary-100">Nenhum estabelecimento está disponível no momento.</p>}
-              <button disabled={!establishmentId} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-primary-900 hover:bg-primary-50 disabled:cursor-not-allowed disabled:opacity-55">Continuar <ArrowRight size={16} /></button>
-            </form>
+              {establishments.data?.map((establishment) => (
+                <article key={establishment.id} className="rounded-xl border border-white/15 bg-white/10 p-3.5">
+                  <p className="font-semibold text-white">{establishment.name}</p>
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <button type="button" onClick={() => setDetails(establishment)} className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-white/20 px-3 py-2 text-xs font-semibold text-white hover:bg-white/10"><Eye size={14} /> Detalhes</button>
+                    <button type="button" onClick={() => navigate(`/estabelecimentos/${establishment.id}/agendar`)} className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-white px-3 py-2 text-xs font-semibold text-primary-900 hover:bg-primary-50">Agendar <ArrowRight size={14} /></button>
+                  </div>
+                </article>
+              ))}
+            </div>
           </div>
         </aside>
       </div>
 
       {cancelling && <ConfirmDialog title="Cancelar agendamento" message={`Deseja cancelar o agendamento de ${cancelling.serviceName} em ${formatDate(cancelling.startsAt)}?`} confirmLabel="Cancelar agendamento" isLoading={cancelMutation.isPending} onConfirm={() => cancelMutation.mutate(cancelling.id)} onCancel={() => setCancelling(null)} />}
       {editing && <AppointmentEditModal appointment={editing} onUpdated={() => { queryClient.invalidateQueries({ queryKey: QUERY_KEY }); setEditing(null) }} onClose={() => setEditing(null)} />}
+      {details && <EstablishmentDetailsModal establishmentId={details.id} establishmentName={details.name} onClose={() => setDetails(null)} />}
     </div>
   )
 }
