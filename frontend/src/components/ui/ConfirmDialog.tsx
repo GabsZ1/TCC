@@ -37,11 +37,11 @@ export function ConfirmDialog({
 
   return (
     <Modal title={title} onClose={onCancel}>
-      <p className="text-sm text-brand-700">{message}</p>
+      <p className="text-sm text-text-700">{message}</p>
 
       {requiresTypedConfirmation && (
         <div className="mt-4">
-          <label className="text-sm font-medium text-brand-800">
+          <label className="text-sm font-medium text-text-800">
             {confirmationLabel ?? `Digite "${confirmationText}" para confirmar`}
           </label>
           <input
@@ -49,7 +49,7 @@ export function ConfirmDialog({
             value={typedValue}
             onChange={(event) => setTypedValue(event.target.value)}
             autoFocus
-            className="mt-2 w-full rounded-lg border border-brand-200 px-3 py-2 text-sm text-brand-900 focus:border-brand-500 focus:outline-none"
+            className="mt-2 w-full rounded-lg border border-background-300 px-3 py-2 text-sm text-text-900 focus:border-primary-500 focus:outline-none"
             placeholder={confirmationText}
           />
         </div>
@@ -65,7 +65,7 @@ export function ConfirmDialog({
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-lg border border-brand-200 px-4 py-2 text-sm font-medium text-brand-700 hover:bg-sand-100"
+          className="rounded-lg border border-background-300 px-4 py-2 text-sm font-medium text-text-700 hover:bg-background-100"
         >
           Cancelar
         </button>
@@ -73,7 +73,7 @@ export function ConfirmDialog({
           type="button"
           onClick={onConfirm}
           disabled={isConfirmDisabled}
-          className="rounded-lg bg-danger-600 px-4 py-2 text-sm font-medium text-white hover:bg-danger-500 disabled:opacity-60"
+          className="rounded-lg bg-danger-600 px-4 py-2 text-sm font-medium text-on-danger hover:bg-danger-500 disabled:opacity-60"
         >
           {isLoading ? 'Aguarde...' : confirmLabel}
         </button>

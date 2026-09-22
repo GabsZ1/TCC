@@ -19,7 +19,7 @@ export function MyServicesPage() {
       </div>
 
       {servicesQuery.data?.allServices && (
-        <p className="mt-4 rounded-xl border border-brand-100 bg-brand-50/60 px-4 py-3 text-sm text-brand-700">
+        <p className="mt-4 rounded-xl border border-background-300 bg-background-200 px-4 py-3 text-sm text-text-700">
           Você está habilitado a realizar todos os serviços do estabelecimento, incluindo novos que forem cadastrados.
         </p>
       )}
@@ -33,12 +33,12 @@ export function MyServicesPage() {
           <StateCard>Nenhum serviço liberado para você ainda. Fale com o administrador do estabelecimento.</StateCard>
         )}
         {services.map((service) => (
-          <article key={service.id} className="rounded-2xl border border-brand-100 bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-semibold text-brand-900">{service.name}</h2>
-            <p className="mt-1 text-sm text-brand-600">{service.description || 'Sem descrição'}</p>
-            <div className="mt-5 flex items-center justify-between border-t border-brand-100 pt-4">
-              <p className="font-semibold text-brand-900">{formatMoney(service.price)}</p>
-              <p className="flex items-center gap-1 text-sm text-brand-600">
+          <article key={service.id} className="rounded-2xl border border-background-300 bg-background-50 p-5 shadow-sm">
+            <h2 className="text-lg font-semibold text-text-900">{service.name}</h2>
+            <p className="mt-1 text-sm text-text-600">{service.description || 'Sem descrição'}</p>
+            <div className="mt-5 flex items-center justify-between border-t border-background-300 pt-4">
+              <p className="font-semibold text-text-900">{formatMoney(service.price)}</p>
+              <p className="flex items-center gap-1 text-sm text-text-600">
                 <Clock3 size={15} /> {service.durationMinutes} min · {service.commissionPercentage}% comissão
               </p>
             </div>
@@ -52,8 +52,8 @@ export function MyServicesPage() {
 function StateCard({ children, error = false }: { children: React.ReactNode; error?: boolean }) {
   return (
     <div
-      className={`sm:col-span-2 xl:col-span-3 rounded-2xl border bg-white p-8 text-center ${
-        error ? 'border-danger-500/30 text-danger-600' : 'border-brand-100 text-brand-600'
+      className={`sm:col-span-2 xl:col-span-3 rounded-2xl border bg-background-50 p-8 text-center ${
+        error ? 'border-danger-500/30 text-danger-600' : 'border-background-300 text-text-600'
       }`}
     >
       {children}

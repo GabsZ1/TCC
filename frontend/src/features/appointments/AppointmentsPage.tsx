@@ -61,24 +61,24 @@ export function AppointmentsPage() {
             {appointments.isError && <EmptyState error>{getApiErrorMessage(appointments.error, 'Não foi possível carregar seus agendamentos.')}</EmptyState>}
             {!appointments.isLoading && !appointments.isError && displayedAppointments.length === 0 && <EmptyState>{section === 'upcoming' ? 'Você não possui próximos agendamentos.' : 'Você ainda não possui agendamentos no histórico.'}</EmptyState>}
             {displayedAppointments.map((appointment) => (
-              <article key={appointment.id} className="rounded-2xl border border-brand-100 bg-white p-5 shadow-sm">
+              <article key={appointment.id} className="rounded-2xl border border-background-300 bg-background-50 p-5 shadow-sm">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <div className="flex items-center gap-2"><Scissors size={18} className="text-brand-500" /><h2 className="text-lg font-semibold text-brand-900">{appointment.serviceName}</h2></div>
-                    <p className="mt-2 flex items-center gap-2 text-sm text-brand-600"><MapPin size={16} /> {appointment.establishmentName}</p>
-                    <p className="mt-1 text-sm text-brand-600">com {appointment.professionalName}</p>
-                    <p className="mt-1 text-sm font-semibold text-brand-800">{formatMoney(appointment.agreedPrice)} · {appointment.durationMinutes} min</p>
+                    <div className="flex items-center gap-2"><Scissors size={18} className="text-text-600" /><h2 className="text-lg font-semibold text-text-900">{appointment.serviceName}</h2></div>
+                    <p className="mt-2 flex items-center gap-2 text-sm text-text-600"><MapPin size={16} /> {appointment.establishmentName}</p>
+                    <p className="mt-1 text-sm text-text-600">com {appointment.professionalName}</p>
+                    <p className="mt-1 text-sm font-semibold text-text-800">{formatMoney(appointment.agreedPrice)} · {appointment.durationMinutes} min</p>
                   </div>
-                  <div className="rounded-xl bg-brand-50 px-4 py-3 text-sm text-brand-800">
+                  <div className="rounded-xl bg-background-200 px-4 py-3 text-sm text-text-800">
                     <p className="flex items-center gap-2 font-semibold"><CalendarDays size={16} /> {formatDate(appointment.startsAt)}</p>
                     <p className="mt-1 flex items-center gap-2"><Clock3 size={16} /> {formatTime(appointment.startsAt)} às {formatTime(appointment.endsAt)}</p>
                   </div>
                   <div>
                     {appointment.status !== 'CONFIRMED' && <StatusBadge status={appointment.status} />}
                     {appointment.status === 'INVALIDATED' && appointment.invalidationReason && (
-                      <p className="mt-2 max-w-[16rem] text-xs text-amber-700">Motivo: {appointment.invalidationReason}</p>
+                      <p className="mt-2 max-w-[16rem] text-xs text-warning-700">Motivo: {appointment.invalidationReason}</p>
                     )}
-                    {appointment.status === 'CONFIRMED' && isFuture(appointment.startsAt) && <div className="flex flex-wrap gap-2"><button type="button" onClick={() => setEditing(appointment)} className="rounded-xl border border-brand-200 px-4 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-50">Editar agendamento</button><button type="button" onClick={() => requestCancellation(appointment)} className="rounded-xl border border-danger-500/30 px-4 py-2 text-sm font-semibold text-danger-600 hover:bg-danger-500/5">Cancelar agendamento</button></div>}
+                    {appointment.status === 'CONFIRMED' && isFuture(appointment.startsAt) && <div className="flex flex-wrap gap-2"><button type="button" onClick={() => setEditing(appointment)} className="rounded-xl border border-background-300 px-4 py-2 text-sm font-semibold text-text-700 hover:bg-primary-50">Editar agendamento</button><button type="button" onClick={() => requestCancellation(appointment)} className="rounded-xl border border-danger-500/30 px-4 py-2 text-sm font-semibold text-danger-600 hover:bg-danger-500/5">Cancelar agendamento</button></div>}
                   </div>
                 </div>
               </article>
@@ -86,18 +86,18 @@ export function AppointmentsPage() {
           </div>
         </section>
 
-        <aside className="h-fit rounded-2xl border border-brand-200 bg-brand-900 p-6 text-white shadow-sm">
+        <aside className="h-fit rounded-2xl border border-background-300 bg-primary-900 p-6 text-on-primary shadow-sm">
           <h2 className="font-[var(--font-display)] text-2xl">Marcar um horário</h2>
-          <p className="mt-2 text-sm leading-6 text-brand-100">Escolha um dos estabelecimentos disponíveis.</p>
+          <p className="mt-2 text-sm leading-6 text-text-100">Escolha um dos estabelecimentos disponíveis.</p>
           <form onSubmit={startBooking} className="mt-5">
             <label className="text-sm font-medium" htmlFor="establishment">Estabelecimento</label>
-            <select id="establishment" required value={establishmentId} onChange={(event) => setEstablishmentId(event.target.value)} disabled={establishments.isLoading || establishments.isError || establishments.data?.length === 0} className="mt-2 w-full rounded-xl border border-white/20 bg-white px-3.5 py-3 text-brand-900 outline-none focus:ring-2 focus:ring-brand-300 disabled:cursor-not-allowed disabled:opacity-70">
+            <select id="establishment" required value={establishmentId} onChange={(event) => setEstablishmentId(event.target.value)} disabled={establishments.isLoading || establishments.isError || establishments.data?.length === 0} className="mt-2 w-full rounded-xl border border-on-primary/20 bg-background-50 px-3.5 py-3 text-text-900 outline-none focus:ring-2 focus:ring-primary-300 disabled:cursor-not-allowed disabled:opacity-70">
               <option value="">{establishments.isLoading ? 'Carregando estabelecimentos...' : 'Selecione um estabelecimento'}</option>
               {establishments.data?.map((establishment) => <option key={establishment.id} value={establishment.id}>{establishment.name}</option>)}
             </select>
-            {establishments.isError && <p className="mt-2 text-sm text-danger-500">{getApiErrorMessage(establishments.error, 'Não foi possível carregar os estabelecimentos.')}</p>}
-            {!establishments.isLoading && !establishments.isError && establishments.data?.length === 0 && <p className="mt-2 text-sm text-brand-100">Nenhum estabelecimento está disponível no momento.</p>}
-            <button disabled={!establishmentId} className="mt-3 w-full rounded-xl bg-white px-4 py-3 font-semibold text-brand-800 hover:bg-brand-50 disabled:cursor-not-allowed disabled:opacity-60">Continuar</button>
+            {establishments.isError && <p className="mt-2 text-sm text-danger-600">{getApiErrorMessage(establishments.error, 'Não foi possível carregar os estabelecimentos.')}</p>}
+            {!establishments.isLoading && !establishments.isError && establishments.data?.length === 0 && <p className="mt-2 text-sm text-text-100">Nenhum estabelecimento está disponível no momento.</p>}
+            <button disabled={!establishmentId} className="mt-3 w-full rounded-xl bg-background-50 px-4 py-3 font-semibold text-text-800 hover:bg-primary-50 disabled:cursor-not-allowed disabled:opacity-60">Continuar</button>
           </form>
         </aside>
       </div>
@@ -107,21 +107,21 @@ export function AppointmentsPage() {
   )
 }
 
-function Tabs({ section, onChange }: { section: AppointmentSection; onChange: (section: AppointmentSection) => void }) { return <div className="mt-5 flex gap-2 border-b border-brand-100"><TabButton active={section === 'upcoming'} onClick={() => onChange('upcoming')}>Próximos</TabButton><TabButton active={section === 'history'} onClick={() => onChange('history')}>Histórico</TabButton></div> }
-function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) { return <button type="button" onClick={onClick} className={`border-b-2 px-3 py-2 text-sm font-semibold ${active ? 'border-brand-600 text-brand-800' : 'border-transparent text-brand-600 hover:text-brand-800'}`}>{children}</button> }
+function Tabs({ section, onChange }: { section: AppointmentSection; onChange: (section: AppointmentSection) => void }) { return <div className="mt-5 flex gap-2 border-b border-background-300"><TabButton active={section === 'upcoming'} onClick={() => onChange('upcoming')}>Próximos</TabButton><TabButton active={section === 'history'} onClick={() => onChange('history')}>Histórico</TabButton></div> }
+function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) { return <button type="button" onClick={onClick} className={`border-b-2 px-3 py-2 text-sm font-semibold ${active ? 'border-primary-600 text-text-800' : 'border-transparent text-text-600 hover:text-text-800'}`}>{children}</button> }
 function StatusBadge({ status }: { status: Appointment['status'] }) {
   const labels: Record<Appointment['status'], string> = { CONFIRMED: 'Confirmado', CANCELLED: 'Cancelado', COMPLETED: 'Concluído', INVALIDATED: 'Invalidado' }
   const styles: Record<Appointment['status'], string> = {
-    CONFIRMED: 'bg-sage-50 text-sage-600',
+    CONFIRMED: 'bg-primary-100 text-text-800',
     CANCELLED: 'bg-danger-500/10 text-danger-600',
-    COMPLETED: 'bg-brand-50 text-brand-700',
-    INVALIDATED: 'bg-amber-100 text-amber-700',
+    COMPLETED: 'bg-success-50 text-success-700',
+    INVALIDATED: 'bg-warning-100 text-warning-700',
   }
   return <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${styles[status]}`}>{labels[status]}</span>
 }
 function isFuture(value: string) { return new Date(value).getTime() > Date.now() }
 function isUpcoming(appointment: Appointment) { return appointment.status === 'CONFIRMED' && isFuture(appointment.startsAt) }
-function EmptyState({ children, error = false }: { children: React.ReactNode; error?: boolean }) { return <div className={`rounded-2xl border bg-white p-8 text-center ${error ? 'border-danger-500/30 text-danger-600' : 'border-brand-100 text-brand-600'}`}>{children}</div> }
+function EmptyState({ children, error = false }: { children: React.ReactNode; error?: boolean }) { return <div className={`rounded-2xl border bg-background-50 p-8 text-center ${error ? 'border-danger-500/30 text-danger-600' : 'border-background-300 text-text-600'}`}>{children}</div> }
 function formatDate(value: string) { return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' }).format(new Date(value)) }
 function formatTime(value: string) { return value.slice(11, 16) }
 function formatMoney(value: number) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value) }

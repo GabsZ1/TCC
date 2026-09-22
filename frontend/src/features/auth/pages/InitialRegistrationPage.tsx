@@ -46,8 +46,8 @@ export function InitialRegistrationPage() {
         {error && <p role="alert" className="sm:col-span-2 text-sm text-danger-600">{error}</p>}
 
         <div className="sm:col-span-2 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-brand-600">Já possui conta? <Link className="font-semibold text-brand-700 hover:underline" to="/login">Entrar</Link></p>
-          <button disabled={isSubmitting} className="rounded-xl bg-brand-600 px-5 py-3 font-semibold text-white hover:bg-brand-700 disabled:opacity-60">
+          <p className="text-sm text-text-600">Já possui conta? <Link className="font-semibold text-text-700 hover:underline" to="/login">Entrar</Link></p>
+          <button disabled={isSubmitting} className="rounded-xl bg-primary-600 px-5 py-3 font-semibold text-on-primary hover:bg-primary-700 disabled:opacity-60">
             {isSubmitting ? 'Cadastrando...' : 'Criar estabelecimento'}
           </button>
         </div>
@@ -63,16 +63,16 @@ interface FieldProps extends React.InputHTMLAttributes<HTMLInputElement> {
 
 function Field({ name, label, required = true, ...props }: FieldProps) {
   return (
-    <label className="block text-sm font-medium text-brand-800">
+    <label className="block text-sm font-medium text-text-800">
       {label}
-      <input name={name} required={required} {...props} className="mt-1.5 w-full rounded-xl border border-brand-200 bg-white px-3.5 py-2.5 text-brand-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
+      <input name={name} required={required} {...props} className="mt-1.5 w-full rounded-xl border border-background-300 bg-background-50 px-3.5 py-2.5 text-text-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" />
     </label>
   )
 }
 
 function CnpjField() {
   return (
-    <label className="block text-sm font-medium text-brand-800">
+    <label className="block text-sm font-medium text-text-800">
       CNPJ
       <IMaskInput
         name="cnpj"
@@ -82,7 +82,7 @@ function CnpjField() {
         pattern="[0-9]{2}\\.[0-9]{3}\\.[0-9]{3}/[0-9]{4}-[0-9]{2}"
         title="Informe os 14 dígitos do CNPJ"
         placeholder="00.000.000/0000-00"
-        className="mt-1.5 w-full rounded-xl border border-brand-200 bg-white px-3.5 py-2.5 text-brand-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+        className="mt-1.5 w-full rounded-xl border border-background-300 bg-background-50 px-3.5 py-2.5 text-text-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
       />
     </label>
   )
@@ -90,12 +90,12 @@ function CnpjField() {
 
 function AuthPage({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   return (
-    <main className="min-h-screen bg-sand-50 px-4 py-10">
+    <main className="min-h-screen bg-background-100 px-4 py-10">
       <div className="mx-auto max-w-3xl">
-        <Link to="/login" className="font-[var(--font-display)] text-xl text-brand-900">SalonHub</Link>
-        <section className="mt-8 rounded-3xl border border-brand-100 bg-white p-6 shadow-sm sm:p-9">
-          <h1 className="font-[var(--font-display)] text-3xl text-brand-900">{title}</h1>
-          <p className="mt-2 mb-7 text-base text-brand-600">{subtitle}</p>
+        <Link to="/login" className="font-[var(--font-display)] text-xl text-text-900">SalonHub</Link>
+        <section className="mt-8 rounded-3xl border border-background-300 bg-background-50 p-6 shadow-sm sm:p-9">
+          <h1 className="font-[var(--font-display)] text-3xl text-text-900">{title}</h1>
+          <p className="mt-2 mb-7 text-base text-text-600">{subtitle}</p>
           {children}
         </section>
       </div>

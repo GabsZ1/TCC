@@ -48,7 +48,7 @@ export function EmployeeFormModal({
   return (
     <Modal title={isEditing ? 'Editar funcionário' : 'Novo funcionário'} onClose={onClose}>
       <form onSubmit={handleSubmit(onSubmit)} noValidate>
-        <label className="block text-sm font-medium text-brand-800" htmlFor="employee-name">
+        <label className="block text-sm font-medium text-text-800" htmlFor="employee-name">
           Nome
         </label>
         <input
@@ -56,18 +56,18 @@ export function EmployeeFormModal({
           type="text"
           autoFocus
           {...register('name')}
-          className="mt-1 w-full rounded-lg border border-brand-200 px-3 py-2 text-brand-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+          className="mt-1 w-full rounded-lg border border-background-300 px-3 py-2 text-text-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
         />
         {errors.name && <p className="mt-1 text-sm text-danger-600">{errors.name.message}</p>}
 
-        <label className="mt-4 block text-sm font-medium text-brand-800" htmlFor="employee-email">
+        <label className="mt-4 block text-sm font-medium text-text-800" htmlFor="employee-email">
           E-mail
         </label>
         <input
           id="employee-email"
           type="email"
           {...register('email')}
-          className="mt-1 w-full rounded-lg border border-brand-200 px-3 py-2 text-brand-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+          className="mt-1 w-full rounded-lg border border-background-300 px-3 py-2 text-text-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
         />
         {errors.email && <p className="mt-1 text-sm text-danger-600">{errors.email.message}</p>}
 
@@ -81,14 +81,14 @@ export function EmployeeFormModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-brand-200 px-4 py-2 text-sm font-medium text-brand-700 hover:bg-sand-100"
+            className="rounded-lg border border-background-300 px-4 py-2 text-sm font-medium text-text-700 hover:bg-background-100"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={isSubmitting}
-            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
+            className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-on-primary hover:bg-primary-700 disabled:opacity-60"
           >
             {isSubmitting ? 'Salvando...' : 'Salvar'}
           </button>

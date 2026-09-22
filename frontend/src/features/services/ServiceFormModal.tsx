@@ -48,8 +48,8 @@ export function ServiceFormModal({ service, isSubmitting, errorMessage, onSubmit
         <ServiceField name="commissionPercentage" label="Comissão % (opcional)" type="number" min="0" max="100" step="0.01" defaultValue={service?.commissionPercentage ?? 0} required={false} />
         {(error || errorMessage) && <p role="alert" className="text-sm text-danger-600">{error ?? errorMessage}</p>}
         <div className="flex justify-end gap-3 pt-2">
-          <button type="button" onClick={onClose} className="rounded-xl border border-brand-200 px-4 py-2.5 text-sm font-semibold text-brand-700 hover:bg-sand-100">Cancelar</button>
-          <button disabled={isSubmitting} className="rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60">{isSubmitting ? 'Salvando...' : 'Salvar serviço'}</button>
+          <button type="button" onClick={onClose} className="rounded-xl border border-background-300 px-4 py-2.5 text-sm font-semibold text-text-700 hover:bg-background-100">Cancelar</button>
+          <button disabled={isSubmitting} className="rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-on-primary hover:bg-primary-700 disabled:opacity-60">{isSubmitting ? 'Salvando...' : 'Salvar serviço'}</button>
         </div>
       </form>
     </Modal>
@@ -58,9 +58,9 @@ export function ServiceFormModal({ service, isSubmitting, errorMessage, onSubmit
 
 function ServiceField({ label, required = true, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: string; name: string }) {
   return (
-    <label className="block text-sm font-medium text-brand-800">
+    <label className="block text-sm font-medium text-text-800">
       {label}
-      <input required={required} {...props} className="mt-1.5 w-full rounded-xl border border-brand-200 px-3.5 py-2.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
+      <input required={required} {...props} className="mt-1.5 w-full rounded-xl border border-background-300 px-3.5 py-2.5 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" />
     </label>
   )
 }
