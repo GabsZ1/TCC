@@ -9,6 +9,8 @@ import {
   LogOut,
   Menu,
   Scissors,
+  Settings,
+  Store,
   UsersRound,
   X,
 } from 'lucide-react'
@@ -44,7 +46,8 @@ export function AppLayout() {
         { to: '/relatorio-comissoes', label: 'Comissões', icon: BadgeDollarSign, group: 'Operação' },
         { to: '/funcionarios', label: 'Equipe', icon: UsersRound, group: 'Gestão' },
         { to: '/servicos', label: 'Serviços', icon: Scissors, group: 'Gestão' },
-        { to: '/estabelecimento', label: 'Estabelecimento', icon: Building2, group: 'Gestão' },
+        { to: '/perfil-estabelecimento', label: 'Perfil público', icon: Store, group: 'Gestão' },
+        { to: '/estabelecimento', label: 'Configurações', icon: Settings, group: 'Gestão' },
       ]
     : user?.role === 'CLIENT'
       ? [
