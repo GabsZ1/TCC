@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from 'react'
+import { ArrowRight, CheckCircle2, KeyRound } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { AuthShell } from '@/features/auth/components/AuthShell'
 import { completeFirstAccess } from '@/features/auth/services/authApi'
 import { getApiErrorMessage } from '@/lib/apiError'
 
@@ -30,25 +32,34 @@ export function FirstAccessPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background-100 p-4">
-      <section className="w-full max-w-md rounded-2xl bg-background-50 p-6 shadow-sm">
-        <h1 className="font-[var(--font-display)] text-2xl text-text-900">Primeiro acesso</h1>
-        {completed ? (
-          <div className="mt-4">
-            <p className="text-success-600">Senha definida com sucesso.</p>
-            <Link className="mt-4 inline-block text-text-600 underline" to="/login">Entrar</Link>
+    <AuthShell
+      eyebrow="Primeiro acesso"
+      title={completed ? 'Tudo pronto.' : 'Defina sua senha'}
+      subtitle={completed ? 'Sua senha foi criada e seu acesso já pode ser usado.' : 'Crie uma senha segura para ativar seu acesso ao SalonHub.'}
+      maxWidth="sm"
+    >
+      {completed ? (
+        <div className="text-center">
+          <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-success-50 text-success-600">
+            <CheckCircle2 size={28} />
+          </span>
+          <p className="mt-5 text-sm leading-6 text-text-600">Senha definida com sucesso. Entre com seu e-mail e a nova senha.</p>
+          <Link className="primary-button mt-6 w-full py-3" to="/login">Ir para o login <ArrowRight size={17} /></Link>
+        </div>
+      ) : (
+        <form onSubmit={submit}>
+          <div className="mb-5 flex items-center gap-3 rounded-xl bg-primary-50 px-4 py-3 text-sm text-text-700">
+            <KeyRound size={18} className="shrink-0 text-primary-700" />
+            Use pelo menos 8 caracteres e evite senhas já utilizadas em outros serviços.
           </div>
-        ) : (
-          <form className="mt-4" onSubmit={submit}>
-            <label className="block text-sm font-medium text-text-800" htmlFor="first-password">Nova senha</label>
-            <input id="first-password" type="password" minLength={8} autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} className="mt-1 w-full rounded-lg border border-background-300 px-3 py-2" />
-            <label className="mt-4 block text-sm font-medium text-text-800" htmlFor="first-password-confirmation">Confirmar senha</label>
-            <input id="first-password-confirmation" type="password" minLength={8} autoComplete="new-password" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} className="mt-1 w-full rounded-lg border border-background-300 px-3 py-2" />
-            {error && <p role="alert" className="mt-4 text-sm text-danger-600">{error}</p>}
-            <button disabled={submitting} className="mt-6 w-full rounded-lg bg-primary-600 px-4 py-2 font-medium text-on-primary disabled:opacity-60">{submitting ? 'Salvando...' : 'Definir senha'}</button>
-          </form>
-        )}
-      </section>
-    </main>
+          <label className="block text-sm font-semibold text-text-800" htmlFor="first-password">Nova senha</label>
+          <input id="first-password" type="password" minLength={8} autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} className="auth-input" />
+          <label className="mt-5 block text-sm font-semibold text-text-800" htmlFor="first-password-confirmation">Confirmar senha</label>
+          <input id="first-password-confirmation" type="password" minLength={8} autoComplete="new-password" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} className="auth-input" />
+          {error && <p role="alert" className="mt-4 rounded-xl border border-danger-500/20 bg-danger-50 px-4 py-3 text-sm text-danger-600">{error}</p>}
+          <button disabled={submitting} className="primary-button mt-6 w-full py-3">{submitting ? 'Salvando...' : 'Definir senha'} {!submitting && <ArrowRight size={17} />}</button>
+        </form>
+      )}
+    </AuthShell>
   )
 }

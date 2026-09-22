@@ -1,12 +1,23 @@
+import { useState, type ComponentType } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, Navigate } from 'react-router-dom'
-import { CalendarCheck, CalendarPlus, Scissors, UsersRound, Wallet } from 'lucide-react'
+import {
+  ArrowUpRight,
+  CalendarCheck,
+  CalendarDays,
+  Check,
+  Clipboard,
+  Scissors,
+  UsersRound,
+  Wallet,
+} from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { fetchDashboardSummary } from '@/features/dashboard/dashboardApi'
 import { getApiErrorMessage } from '@/lib/apiError'
 
 export function DashboardPage() {
   const { user } = useAuth()
+  const [copied, setCopied] = useState(false)
   const dashboard = useQuery({
     queryKey: ['dashboard-summary'],
     queryFn: fetchDashboardSummary,
@@ -16,84 +27,203 @@ export function DashboardPage() {
   if (user?.role === 'CLIENT') return <Navigate to="/agendamentos" replace />
   if (user?.role === 'PROFESSIONAL') return <Navigate to="/minha-agenda" replace />
 
-  return (
-    <div className="p-5 sm:p-7 lg:p-9">
-      <div className="max-w-4xl">
-        <p className="text-sm font-semibold text-text-600">Olá, {user?.name}</p>
-        <h1 className="mt-2 font-[var(--font-display)] text-3xl text-text-900 sm:text-4xl">{user?.role === 'ADMIN' ? user.establishmentName : 'Seu acesso profissional'}</h1>
-        <p className="mt-3 max-w-2xl text-base leading-7 text-text-600">{user?.role === 'ADMIN' ? 'Acompanhe o dia a dia do estabelecimento e prepare o catálogo e a equipe para receber agendamentos.' : 'Seu acesso está ativo. A gestão do estabelecimento é feita pelo administrador.'}</p>
+  const firstName = user?.name?.split(' ')[0] ?? 'Olá'
+  const establishmentCode = user?.establishmentId ? `#${user.establishmentId}` : '—'
 
-        {user?.role === 'ADMIN' && (
-          <>
-            {dashboard.isError && (
-              <p className="mt-6 rounded-xl border border-danger-500/30 bg-danger-500/5 px-4 py-3 text-sm text-danger-600">
-                {getApiErrorMessage(dashboard.error, 'Não foi possível carregar os indicadores do dashboard.')}
+  async function copyCode() {
+    if (!user?.establishmentId) return
+    try {
+      await navigator.clipboard.writeText(String(user.establishmentId))
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1800)
+    } catch {
+      // Clipboard pode estar indisponível em alguns contextos; o código continua visível.
+    }
+  }
+
+  return (
+    <div className="page-shell">
+      <header className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <p className="eyebrow">Painel administrativo</p>
+          <h1 className="page-title mt-2">{user?.establishmentName ?? 'Seu estabelecimento'}</h1>
+          <p className="page-subtitle">Boa gestão começa com uma visão simples do que está acontecendo agora, {firstName}.</p>
+        </div>
+        <p className="w-fit rounded-full border border-background-300 bg-background-50 px-3 py-1.5 text-xs font-semibold text-text-600 shadow-sm">
+          {formatToday()}
+        </p>
+      </header>
+
+      {dashboard.isError && (
+        <p className="mt-6 rounded-2xl border border-danger-500/25 bg-danger-50 px-4 py-3 text-sm text-danger-600">
+          {getApiErrorMessage(dashboard.error, 'Não foi possível carregar os indicadores do dashboard.')}
+        </p>
+      )}
+
+      <section className="mt-8 grid gap-4 md:grid-cols-3">
+        <MetricCard
+          icon={CalendarCheck}
+          label="Concluídos hoje"
+          helper="serviços finalizados"
+          value={dashboard.isLoading ? '—' : String(dashboard.data?.todaysCompletedServices ?? 0)}
+          tone="primary"
+        />
+        <MetricCard
+          icon={Wallet}
+          label="Comissões no mês"
+          helper="valor acumulado"
+          value={dashboard.isLoading ? '—' : formatMoney(dashboard.data?.monthlyCommissionTotal ?? 0)}
+          tone="accent"
+        />
+        <MetricCard
+          icon={UsersRound}
+          label="Equipe ativa"
+          helper="profissionais disponíveis"
+          value={dashboard.isLoading ? '—' : String(dashboard.data?.activeEmployees ?? 0)}
+          tone="secondary"
+        />
+      </section>
+
+      <section className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(18rem,.55fr)]">
+        <div className="overflow-hidden rounded-[1.4rem] bg-primary-900 text-white shadow-[var(--shadow-lifted)]">
+          <div className="relative p-6 sm:p-7">
+            <div className="pointer-events-none absolute -right-16 -top-20 size-64 rounded-full border border-white/10" />
+            <div className="pointer-events-none absolute -right-5 -top-5 size-40 rounded-full border border-white/10" />
+            <div className="relative max-w-2xl">
+              <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-primary-200">Atalhos do dia</p>
+              <h2 className="mt-3 font-[var(--font-display)] text-2xl font-semibold tracking-[-0.03em] text-white sm:text-3xl">
+                Tudo que você mais usa, sem caçar menu.
+              </h2>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-primary-100">
+                Consulte a agenda, ajuste a equipe ou atualize o catálogo de serviços em poucos cliques.
               </p>
-            )}
+              <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                <QuickAction to="/agenda" icon={CalendarDays} label="Abrir agenda" />
+                <QuickAction to="/funcionarios" icon={UsersRound} label="Gerenciar equipe" />
+                <QuickAction to="/servicos" icon={Scissors} label="Editar serviços" />
+              </div>
+            </div>
+          </div>
+        </div>
 
-            <div className="mt-7 grid gap-4 sm:grid-cols-3">
-              <StatCard
-                icon={CalendarCheck}
-                tone="success"
-                label="Serviços concluídos hoje"
-                value={dashboard.isLoading ? '—' : String(dashboard.data?.todaysCompletedServices ?? 0)}
-              />
-              <StatCard
-                icon={Wallet}
-                tone="coral"
-                label="Comissões do mês"
-                value={dashboard.isLoading ? '—' : formatMoney(dashboard.data?.monthlyCommissionTotal ?? 0)}
-              />
-              <StatCard
-                icon={UsersRound}
-                tone="secondary"
-                label="Funcionários ativos"
-                value={dashboard.isLoading ? '—' : String(dashboard.data?.activeEmployees ?? 0)}
-              />
+        <aside className="surface-card p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-text-500">Código público</p>
+              <p className="mt-2 font-[var(--font-display)] text-4xl font-semibold tracking-[-0.04em] text-text-900">{establishmentCode}</p>
             </div>
+            <span className="grid size-11 place-items-center rounded-xl bg-accent-100 text-accent-700">
+              <Clipboard size={19} />
+            </span>
+          </div>
+          <p className="mt-4 text-sm leading-6 text-text-600">
+            Clientes usam esse código para localizar o estabelecimento e iniciar um agendamento.
+          </p>
+          <button type="button" onClick={copyCode} className="secondary-button mt-5 w-full">
+            {copied ? <Check size={16} /> : <Clipboard size={16} />}
+            {copied ? 'Código copiado' : 'Copiar código'}
+          </button>
+        </aside>
+      </section>
 
-            <div className="mt-6 rounded-2xl border border-coral-200 bg-coral-50 p-5">
-              <p className="text-sm font-semibold text-text-800">Código do estabelecimento</p>
-              <p className="mt-1 text-3xl font-bold text-text-900">#{user.establishmentId}</p>
-              <p className="mt-2 text-sm text-text-600">Compartilhe este código com clientes para que encontrem sua agenda.</p>
-            </div>
-            <div className="mt-6 grid gap-4 sm:grid-cols-2">
-              <ActionCard to="/funcionarios" icon={UsersRound} title="Cadastrar equipe" description="Adicione os profissionais que poderão receber agendamentos." />
-              <ActionCard to="/servicos" icon={Scissors} title="Cadastrar serviços" description="Defina valores e duração dos atendimentos oferecidos." />
-            </div>
-          </>
-        )}
+      <section className="mt-5 grid gap-4 md:grid-cols-2">
+        <ActionCard
+          to="/relatorio-atendimentos"
+          icon={CalendarCheck}
+          eyebrow="Operação"
+          title="Acompanhar atendimentos"
+          description="Veja o histórico da equipe, filtre períodos e confira o que foi concluído."
+        />
+        <ActionCard
+          to="/relatorio-comissoes"
+          icon={Wallet}
+          eyebrow="Financeiro"
+          title="Consultar comissões"
+          description="Revise os valores gerados no período sem perder o contexto de cada profissional."
+        />
+      </section>
+    </div>
+  )
+}
+
+const metricTones = {
+  primary: 'bg-primary-100 text-primary-700',
+  accent: 'bg-accent-100 text-accent-700',
+  secondary: 'bg-secondary-100 text-secondary-700',
+}
+
+function MetricCard({
+  icon: Icon,
+  label,
+  helper,
+  value,
+  tone,
+}: {
+  icon: ComponentType<{ size?: number; strokeWidth?: number }>
+  label: string
+  helper: string
+  value: string
+  tone: keyof typeof metricTones
+}) {
+  return (
+    <article className="surface-card group p-5 transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-lifted)] sm:p-6">
+      <div className="flex items-start justify-between gap-4">
+        <span className={`grid size-11 place-items-center rounded-xl ${metricTones[tone]}`}>
+          <Icon size={20} strokeWidth={1.9} />
+        </span>
+        <span className="text-[0.65rem] font-bold uppercase tracking-[0.13em] text-text-400">Hoje</span>
       </div>
-    </div>
+      <p className="mt-6 text-[2rem] font-bold leading-none tracking-[-0.04em] text-text-950">{value}</p>
+      <p className="mt-3 text-sm font-semibold text-text-800">{label}</p>
+      <p className="mt-1 text-xs text-text-500">{helper}</p>
+    </article>
   )
 }
 
-const statCardTones = {
-  success: 'bg-success-50 text-success-700',
-  coral: 'bg-coral-50 text-coral-700',
-  secondary: 'bg-secondary-50 text-secondary-700',
-}
-
-function StatCard({ icon: Icon, label, value, tone }: { icon: typeof CalendarCheck; label: string; value: string; tone: keyof typeof statCardTones }) {
+function QuickAction({ to, icon: Icon, label }: { to: string; icon: ComponentType<{ size?: number }>; label: string }) {
   return (
-    <div className="rounded-2xl border border-background-300 bg-background-50 p-5 shadow-sm">
-      <span className={`inline-grid size-10 place-items-center rounded-xl ${statCardTones[tone]}`}><Icon size={21} /></span>
-      <p className="mt-3 text-2xl font-bold text-text-900">{value}</p>
-      <p className="mt-1 text-sm text-text-600">{label}</p>
-    </div>
+    <Link
+      to={to}
+      className="group flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.07] px-3.5 py-3 text-sm font-semibold text-white backdrop-blur-sm hover:-translate-y-0.5 hover:bg-white/[0.12]"
+    >
+      <span className="flex items-center gap-2.5"><Icon size={17} /> {label}</span>
+      <ArrowUpRight size={15} className="opacity-55 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:opacity-100" />
+    </Link>
   )
 }
 
-function ActionCard({ to, icon: Icon, title, description }: { to: string; icon: typeof CalendarPlus; title: string; description: string }) {
+function ActionCard({
+  to,
+  icon: Icon,
+  eyebrow,
+  title,
+  description,
+}: {
+  to: string
+  icon: ComponentType<{ size?: number }>
+  eyebrow: string
+  title: string
+  description: string
+}) {
   return (
-    <Link to={to} className="group rounded-2xl border border-background-300 bg-background-50 p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-primary-300 hover:shadow-md">
-      <Icon className="text-text-600" size={24} />
-      <h2 className="mt-4 text-lg font-semibold text-text-900 group-hover:text-text-700">{title}</h2>
-      <p className="mt-2 text-sm leading-6 text-text-600">{description}</p>
+    <Link to={to} className="surface-card group flex items-start gap-4 p-5 hover:-translate-y-0.5 hover:border-primary-300 hover:shadow-[var(--shadow-lifted)] sm:p-6">
+      <span className="grid size-11 shrink-0 place-items-center rounded-xl border border-background-300 bg-background-100 text-text-700 group-hover:border-primary-200 group-hover:bg-primary-100 group-hover:text-primary-700">
+        <Icon size={20} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="text-[0.64rem] font-bold uppercase tracking-[0.14em] text-text-500">{eyebrow}</span>
+        <span className="mt-1 block text-base font-semibold text-text-900">{title}</span>
+        <span className="mt-1.5 block text-sm leading-6 text-text-600">{description}</span>
+      </span>
+      <ArrowUpRight size={17} className="mt-1 shrink-0 text-text-400 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-primary-600" />
     </Link>
   )
 }
 
 function formatMoney(value: number) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
+}
+
+function formatToday() {
+  return new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' }).format(new Date())
 }

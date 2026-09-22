@@ -1,6 +1,8 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type FormEvent, type InputHTMLAttributes } from 'react'
+import { ArrowRight, Building2, UserRound } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { IMaskInput } from 'react-imask'
+import { AuthShell } from '@/features/auth/components/AuthShell'
 import { registerInitial } from '@/features/auth/services/authApi'
 import { getApiErrorMessage } from '@/lib/apiError'
 
@@ -34,45 +36,70 @@ export function InitialRegistrationPage() {
   }
 
   return (
-    <AuthPage title="Cadastre seu estabelecimento" subtitle="Crie o acesso do administrador e os dados básicos do salão.">
-      <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
-        <Field name="ownerName" label="Seu nome" autoComplete="name" />
-        <Field name="ownerEmail" label="Seu e-mail" type="email" autoComplete="email" />
-        <Field name="password" label="Senha" type="password" minLength={8} autoComplete="new-password" />
-        <Field name="establishmentName" label="Nome do estabelecimento" />
-        <CnpjField />
-        <Field name="establishmentEmail" label="E-mail do estabelecimento (opcional)" type="email" required={false} />
-        <Field name="establishmentPhone" label="Telefone (opcional)" required={false} />
-        {error && <p role="alert" className="sm:col-span-2 text-sm text-danger-600">{error}</p>}
+    <AuthShell
+      eyebrow="Comece por aqui"
+      title="Cadastre seu estabelecimento"
+      subtitle="Crie o acesso do responsável e os dados básicos do negócio. Depois você poderá configurar equipe, serviços e agenda."
+      maxWidth="lg"
+    >
+      <form onSubmit={handleSubmit}>
+        <FormSection icon={<UserRound size={18} />} title="Sua conta" description="Dados usados para acessar e administrar o SalonHub.">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field name="ownerName" label="Seu nome" autoComplete="name" placeholder="Nome completo" />
+            <Field name="ownerEmail" label="Seu e-mail" type="email" autoComplete="email" placeholder="voce@exemplo.com" />
+            <Field name="password" label="Senha" type="password" minLength={8} autoComplete="new-password" placeholder="Mínimo de 8 caracteres" className="sm:col-span-2" />
+          </div>
+        </FormSection>
 
-        <div className="sm:col-span-2 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-text-600">Já possui conta? <Link className="font-semibold text-text-700 hover:underline" to="/login">Entrar</Link></p>
-          <button disabled={isSubmitting} className="rounded-xl bg-primary-600 px-5 py-3 font-semibold text-on-primary hover:bg-primary-700 disabled:opacity-60">
+        <div className="my-7 border-t border-background-300" />
+
+        <FormSection icon={<Building2 size={18} />} title="Seu negócio" description="Informações básicas do estabelecimento que será criado.">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field name="establishmentName" label="Nome do estabelecimento" placeholder="Ex.: Studio Aurora" className="sm:col-span-2" />
+            <CnpjField />
+            <Field name="establishmentPhone" label="Telefone (opcional)" required={false} placeholder="(44) 99999-9999" />
+            <Field name="establishmentEmail" label="E-mail do estabelecimento (opcional)" type="email" required={false} placeholder="contato@negocio.com" className="sm:col-span-2" />
+          </div>
+        </FormSection>
+
+        {error && (
+          <p role="alert" className="mt-6 rounded-xl border border-danger-500/20 bg-danger-50 px-4 py-3 text-sm text-danger-600">
+            {error}
+          </p>
+        )}
+
+        <div className="mt-7 flex flex-col-reverse gap-4 border-t border-background-300 pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-text-600">
+            Já possui conta? <Link className="font-semibold text-primary-700 hover:underline" to="/login">Entrar</Link>
+          </p>
+          <button disabled={isSubmitting} className="primary-button px-5 py-3">
             {isSubmitting ? 'Cadastrando...' : 'Criar estabelecimento'}
+            {!isSubmitting && <ArrowRight size={17} />}
           </button>
         </div>
       </form>
-    </AuthPage>
+    </AuthShell>
   )
 }
 
-interface FieldProps extends React.InputHTMLAttributes<HTMLInputElement> {
+interface FieldProps extends InputHTMLAttributes<HTMLInputElement> {
   name: string
   label: string
+  className?: string
 }
 
-function Field({ name, label, required = true, ...props }: FieldProps) {
+function Field({ name, label, required = true, className = '', ...props }: FieldProps) {
   return (
-    <label className="block text-sm font-medium text-text-800">
+    <label className={`block text-sm font-semibold text-text-800 ${className}`}>
       {label}
-      <input name={name} required={required} {...props} className="mt-1.5 w-full rounded-xl border border-background-300 bg-background-50 px-3.5 py-2.5 text-text-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" />
+      <input name={name} required={required} {...props} className="auth-input" />
     </label>
   )
 }
 
 function CnpjField() {
   return (
-    <label className="block text-sm font-medium text-text-800">
+    <label className="block text-sm font-semibold text-text-800">
       CNPJ
       <IMaskInput
         name="cnpj"
@@ -82,23 +109,23 @@ function CnpjField() {
         pattern="[0-9]{2}\\.[0-9]{3}\\.[0-9]{3}/[0-9]{4}-[0-9]{2}"
         title="Informe os 14 dígitos do CNPJ"
         placeholder="00.000.000/0000-00"
-        className="mt-1.5 w-full rounded-xl border border-background-300 bg-background-50 px-3.5 py-2.5 text-text-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+        className="auth-input"
       />
     </label>
   )
 }
 
-function AuthPage({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
+function FormSection({ icon, title, description, children }: { icon: React.ReactNode; title: string; description: string; children: React.ReactNode }) {
   return (
-    <main className="min-h-screen bg-background-100 px-4 py-10">
-      <div className="mx-auto max-w-3xl">
-        <Link to="/login" className="font-[var(--font-display)] text-xl text-text-900">SalonHub</Link>
-        <section className="mt-8 rounded-3xl border border-background-300 bg-background-50 p-6 shadow-sm sm:p-9">
-          <h1 className="font-[var(--font-display)] text-3xl text-text-900">{title}</h1>
-          <p className="mt-2 mb-7 text-base text-text-600">{subtitle}</p>
-          {children}
-        </section>
+    <section>
+      <div className="mb-5 flex items-start gap-3">
+        <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary-100 text-primary-700">{icon}</span>
+        <div>
+          <h2 className="font-semibold text-text-900">{title}</h2>
+          <p className="mt-0.5 text-sm text-text-500">{description}</p>
+        </div>
       </div>
-    </main>
+      {children}
+    </section>
   )
 }

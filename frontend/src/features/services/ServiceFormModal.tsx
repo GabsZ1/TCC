@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { Clock3, Percent, Wallet } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
 import type { SalonService, SalonServiceInput } from '@/features/services/servicesApi'
 
@@ -38,29 +39,34 @@ export function ServiceFormModal({ service, isSubmitting, errorMessage, onSubmit
 
   return (
     <Modal title={service ? 'Editar serviço' : 'Novo serviço'} onClose={onClose}>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <ServiceField name="name" label="Nome" defaultValue={service?.name} maxLength={100} />
-        <ServiceField name="description" label="Descrição (opcional)" defaultValue={service?.description ?? ''} required={false} maxLength={255} />
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <p className="text-sm leading-6 text-text-600">Defina como o serviço aparece no catálogo e quais valores serão usados nos atendimentos.</p>
+        <ServiceField name="name" label="Nome do serviço" defaultValue={service?.name} maxLength={100} placeholder="Ex.: Corte feminino" />
+        <ServiceField name="description" label="Descrição (opcional)" defaultValue={service?.description ?? ''} required={false} maxLength={255} placeholder="Uma descrição curta para identificar o serviço" />
         <div className="grid grid-cols-2 gap-3">
-          <ServiceField name="price" label="Valor (R$)" type="number" min="0.01" step="0.01" defaultValue={service?.price} />
-          <ServiceField name="durationMinutes" label="Duração (min)" type="number" min="1" max="1440" defaultValue={service?.durationMinutes ?? 30} />
+          <ServiceField name="price" label="Valor" type="number" min="0.01" step="0.01" defaultValue={service?.price} icon={<Wallet size={15} />} prefix="R$" />
+          <ServiceField name="durationMinutes" label="Duração" type="number" min="1" max="1440" defaultValue={service?.durationMinutes ?? 30} icon={<Clock3 size={15} />} suffix="min" />
         </div>
-        <ServiceField name="commissionPercentage" label="Comissão % (opcional)" type="number" min="0" max="100" step="0.01" defaultValue={service?.commissionPercentage ?? 0} required={false} />
-        {(error || errorMessage) && <p role="alert" className="text-sm text-danger-600">{error ?? errorMessage}</p>}
-        <div className="flex justify-end gap-3 pt-2">
-          <button type="button" onClick={onClose} className="rounded-xl border border-background-300 px-4 py-2.5 text-sm font-semibold text-text-700 hover:bg-background-100">Cancelar</button>
-          <button disabled={isSubmitting} className="rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-on-primary hover:bg-primary-700 disabled:opacity-60">{isSubmitting ? 'Salvando...' : 'Salvar serviço'}</button>
+        <ServiceField name="commissionPercentage" label="Comissão (opcional)" type="number" min="0" max="100" step="0.01" defaultValue={service?.commissionPercentage ?? 0} required={false} icon={<Percent size={15} />} suffix="%" />
+        {(error || errorMessage) && <p role="alert" className="rounded-xl border border-danger-500/20 bg-danger-50 px-4 py-3 text-sm text-danger-600">{error ?? errorMessage}</p>}
+        <div className="flex flex-col-reverse gap-3 border-t border-background-300 pt-5 sm:flex-row sm:justify-end">
+          <button type="button" onClick={onClose} className="secondary-button">Cancelar</button>
+          <button disabled={isSubmitting} className="primary-button">{isSubmitting ? 'Salvando...' : 'Salvar serviço'}</button>
         </div>
       </form>
     </Modal>
   )
 }
 
-function ServiceField({ label, required = true, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: string; name: string }) {
+function ServiceField({ label, required = true, icon, prefix, suffix, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: string; name: string; icon?: React.ReactNode; prefix?: string; suffix?: string }) {
   return (
-    <label className="block text-sm font-medium text-text-800">
+    <label className="block text-sm font-semibold text-text-800">
       {label}
-      <input required={required} {...props} className="mt-1.5 w-full rounded-xl border border-background-300 px-3.5 py-2.5 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" />
+      <span className="relative block">
+        {(icon || prefix) && <span className="pointer-events-none absolute left-3.5 top-1/2 mt-1 flex -translate-y-1/2 items-center gap-1 text-xs font-medium text-text-400">{icon}{prefix}</span>}
+        <input required={required} {...props} className={`field-control ${icon && prefix ? 'pl-16' : icon || prefix ? 'pl-10' : ''} ${suffix ? 'pr-11' : ''}`} />
+        {suffix && <span className="pointer-events-none absolute right-3.5 top-1/2 mt-1 -translate-y-1/2 text-xs font-medium text-text-400">{suffix}</span>}
+      </span>
     </label>
   )
 }

@@ -47,13 +47,13 @@ export function CommissionReportPage() {
   }
 
   return (
-    <div className="p-5 sm:p-7 lg:p-9">
+    <div className="page-shell">
       <div>
         <h1 className="page-title">Relatório de comissões</h1>
         <p className="page-subtitle">Acompanhe as comissões dos atendimentos concluídos por profissional e período.</p>
       </div>
 
-      <form onSubmit={applyFilters} className="mt-6 grid gap-4 rounded-2xl border border-background-300 bg-background-50 p-5 shadow-sm sm:grid-cols-2 lg:grid-cols-3">
+      <form onSubmit={applyFilters} className="surface-card mt-6 grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-3">
         <Filter label="Data inicial">
           <input type="date" value={startDate} max={endDate || undefined} onChange={(event) => setStartDate(event.target.value)} className="filter-input" />
         </Filter>
@@ -89,7 +89,7 @@ export function CommissionReportPage() {
             : (
               <section className="mt-6 space-y-4" aria-label="Comissões por profissional">
                 {report.data.entries.map((entry) => (
-                  <article key={entry.professionalId} className="rounded-2xl border border-background-300 bg-background-50 p-5 shadow-sm">
+                  <article key={entry.professionalId} className="surface-card p-5">
                     <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2"><UsersRound size={18} className="text-text-600" /><h2 className="truncate text-lg font-semibold text-text-900">{entry.professionalName}</h2></div>
@@ -113,7 +113,7 @@ export function CommissionReportPage() {
 
 function Filter({ label, children }: { label: string; children: React.ReactNode }) { return <label className="text-sm font-medium text-text-800">{label}{children}</label> }
 function StateCard({ children, error = false }: { children: React.ReactNode; error?: boolean }) { return <div className={`mt-6 rounded-2xl border bg-background-50 p-8 text-center ${error ? 'border-danger-500/30 text-danger-600' : 'border-background-300 text-text-600'}`}>{children}</div> }
-function SummaryCard({ icon: Icon, label, value }: { icon: typeof CalendarRange; label: string; value: string }) { return <div className="rounded-2xl border border-background-300 bg-background-50 p-5 shadow-sm"><Icon size={21} className="text-text-600" /><p className="mt-3 text-sm text-text-600">{label}</p><p className="mt-1 text-xl font-bold text-text-900">{value}</p></div> }
+function SummaryCard({ icon: Icon, label, value }: { icon: typeof CalendarRange; label: string; value: string }) { return <div className="surface-card p-5"><Icon size={21} className="text-text-600" /><p className="mt-3 text-sm text-text-600">{label}</p><p className="mt-1 text-xl font-bold text-text-900">{value}</p></div> }
 function Metric({ label, value, highlight = false }: { label: string; value: string; highlight?: boolean }) { return <div><dt className="text-xs font-medium uppercase tracking-wide text-text-600">{label}</dt><dd className={`mt-1 font-semibold ${highlight ? 'text-lg text-text-900' : 'text-text-700'}`}>{value}</dd></div> }
 function formatMoney(value: number) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value) }
 function formatPercentage(value: number) { return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value) + '%' }
