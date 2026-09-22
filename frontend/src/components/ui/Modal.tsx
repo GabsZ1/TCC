@@ -8,10 +8,6 @@ interface ModalProps {
   size?: 'md' | 'lg'
 }
 
-/**
- * Modal simples e acessível: fecha com ESC ou clique no backdrop.
- * Usado pelas telas de CRUD (ex.: criar/editar funcionário).
- */
 export function Modal({ title, onClose, children, size = 'md' }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
   const onCloseRef = useRef(onClose)
@@ -52,6 +48,7 @@ export function Modal({ title, onClose, children, size = 'md' }: ModalProps) {
         first.focus()
       }
     }
+
     document.addEventListener('keydown', handleKeyDown)
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
@@ -62,34 +59,37 @@ export function Modal({ title, onClose, children, size = 'md' }: ModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-overlay px-4"
+      className="fixed inset-0 z-[70] flex items-end justify-center bg-overlay px-3 pb-3 pt-16 backdrop-blur-[3px] sm:items-center sm:p-4"
       onClick={onClose}
       role="presentation"
     >
       <div
         ref={dialogRef}
-        className={`max-h-[calc(100dvh-2rem)] w-full overflow-y-auto rounded-2xl border border-background-300 bg-background-50 p-4 shadow-lg sm:p-6 ${size === 'lg' ? 'max-w-3xl' : 'max-w-md'}`}
+        className={`max-h-[calc(100dvh-2rem)] w-full overflow-y-auto rounded-[1.35rem] border border-background-300 bg-background-50 shadow-[var(--shadow-popover)] ${size === 'lg' ? 'max-w-3xl' : 'max-w-md'}`}
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
       >
-        <div className="flex items-center justify-between">
-          <h2 id={titleId} className="font-[var(--font-display)] text-xl text-text-900">
-            {title}
-          </h2>
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-background-300 bg-background-50/95 px-5 py-4 backdrop-blur-xl sm:px-6">
+          <div>
+            <p className="text-[0.62rem] font-bold uppercase tracking-[0.14em] text-text-400">SalonHub</p>
+            <h2 id={titleId} className="mt-1 font-[var(--font-display)] text-xl font-semibold tracking-[-0.025em] text-text-950">
+              {title}
+            </h2>
+          </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-1 text-text-600 hover:bg-background-100 hover:text-text-700"
+            className="grid size-9 shrink-0 place-items-center rounded-xl border border-background-300 text-text-500 hover:bg-background-200 hover:text-text-800"
             aria-label="Fechar"
           >
-            <X size={18} />
+            <X size={17} />
           </button>
         </div>
 
-        <div className="mt-4">{children}</div>
+        <div className="p-5 sm:p-6">{children}</div>
       </div>
     </div>
   )

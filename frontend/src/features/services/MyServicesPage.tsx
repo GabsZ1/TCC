@@ -12,7 +12,7 @@ export function MyServicesPage() {
   )
 
   return (
-    <div className="p-5 sm:p-7 lg:p-9">
+    <div className="page-shell">
       <div>
         <h1 className="page-title">Meus serviços</h1>
         <p className="page-subtitle">Serviços que você está habilitado a realizar.</p>
@@ -33,7 +33,7 @@ export function MyServicesPage() {
           <StateCard>Nenhum serviço liberado para você ainda. Fale com o administrador do estabelecimento.</StateCard>
         )}
         {services.map((service) => (
-          <article key={service.id} className="rounded-2xl border border-background-300 bg-background-50 p-5 shadow-sm">
+          <article key={service.id} className="surface-card p-5">
             <h2 className="text-lg font-semibold text-text-900">{service.name}</h2>
             <p className="mt-1 text-sm text-text-600">{service.description || 'Sem descrição'}</p>
             <div className="mt-5 flex items-center justify-between border-t border-background-300 pt-4">

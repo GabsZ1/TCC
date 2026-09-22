@@ -49,7 +49,7 @@ export function ProfessionalAgendaPage() {
     else setEditor({ event: item, startsAt: item.startsAt.slice(0, 16), endsAt: item.endsAt.slice(0, 16), allDay: item.allDay })
   }
 
-  return <div className="p-4 sm:p-6 lg:p-8">
+  return <div className="page-shell">
     <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div><h1 className="page-title">Minha agenda</h1><p className="page-subtitle">Visualize atendimentos, organize sua jornada e bloqueie horários pessoais.</p></div>
       <div className="flex flex-wrap gap-2"><button type="button" onClick={() => setScheduleOpen(true)} className="inline-flex items-center gap-2 rounded-xl border border-background-300 bg-background-50 px-4 py-2.5 text-sm font-semibold text-text-700 hover:bg-primary-50"><Settings2 size={17} /> Jornada</button><button type="button" onClick={() => { const start = contextualEventStart(calendarRef.current?.getApi().getDate(), schedule.data ?? [], agendaTimeZone); openNewEvent(start, addHours(start, 1), false) }} className="primary-button"><Plus size={18} /> Novo compromisso</button></div>
@@ -59,11 +59,11 @@ export function ProfessionalAgendaPage() {
       <label className="flex items-center gap-2 text-sm font-medium text-text-700"><span>Exibir</span><select value={filter} onChange={(event) => setFilter(event.target.value as AgendaFilter)} className="rounded-lg border border-background-300 bg-background-50 px-3 py-2"><option value="active">Ativos</option><option value="finished">Encerrados</option><option value="all">Todos</option></select></label>
     </div>
     {agenda.isError && <div role="alert" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-danger-500/30 bg-danger-500/5 px-4 py-3 text-sm text-danger-600"><span>{getApiErrorMessage(agenda.error, 'Não foi possível carregar sua agenda.')}</span><button type="button" onClick={() => agenda.refetch()} className="inline-flex items-center gap-1 font-semibold"><RefreshCw size={15} /> Tentar novamente</button></div>}
-    <section className={`professional-calendar relative rounded-2xl border border-background-300 bg-background-50 p-3 shadow-sm sm:p-5 ${agenda.isLoading ? 'min-h-96 animate-pulse opacity-60' : ''}`} aria-busy={agenda.isLoading}>
+    <section className={`professional-calendar surface-card relative p-3 sm:p-5 ${agenda.isLoading ? 'min-h-96 animate-pulse opacity-60' : ''}`} aria-busy={agenda.isLoading}>
       <FullCalendar ref={calendarRef} plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]} initialView={viewName(view)} locale={ptBrLocale} firstDay={1} headerToolbar={{ left: 'prev,next today', center: 'title', right: '' }} buttonText={{ today: 'Hoje' }} height="auto" dayMaxEvents={3} nowIndicator selectable selectMirror select={handleSelect} dateClick={handleDateClick} eventClick={handleEventClick} datesSet={(info: DatesSetArg) => setRange({ startsAt: toLocalDateTime(info.start), endsAt: toLocalDateTime(info.end) })} events={events} eventContent={renderEventContent} businessHours={businessHours} eventTimeFormat={{ hour: '2-digit', minute: '2-digit', hour12: false }} slotLabelFormat={{ hour: '2-digit', minute: '2-digit', hour12: false }} slotMinTime={visibleHours.min} slotMaxTime={visibleHours.max} scrollTime={visibleHours.scroll} allDaySlot={false} noEventsText="Nenhum item" />
       {agenda.isFetching && !agenda.isLoading && <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-background-50/95 px-2 py-1 text-xs text-text-600 shadow"><RefreshCw className="animate-spin" size={13} /> Atualizando</span>}
     </section>
-    <p className="mt-2 text-xs text-text-600">As áreas sombreadas ficam fora da sua jornada. Horários do salão: {agendaTimeZone}.</p>
+    <p className="mt-2 text-xs text-text-600">As áreas sombreadas ficam fora da sua jornada. Fuso da agenda: {agendaTimeZone}.</p>
     <div className="mt-4 flex flex-wrap gap-4 text-xs text-text-600"><Legend color="bg-primary-600" label="Atendimento confirmado" /><Legend color="bg-secondary-600" label="Compromisso pessoal" /><Legend color="bg-success-600" label="Atendimento concluído" /><Legend color="bg-danger-600" label="Atendimento cancelado" /><Legend color="bg-warning-700" label="Atendimento invalidado" /></div>
     {editor && <EventEditor initial={editor} agendaItems={agenda.data ?? []} timeZone={agendaTimeZone} onClose={() => setEditor(null)} onSaved={() => { setEditor(null); queryClient.invalidateQueries({ queryKey: AGENDA_KEY }) }} onDelete={editor.event ? () => { setEditor(null); setDeletingEvent(editor.event) } : undefined} />}
     {selectedAppointment && <AppointmentDetails item={selectedAppointment} timeZone={agendaTimeZone} onClose={() => setSelectedAppointment(null)} onCompleted={() => { setSelectedAppointment(null); queryClient.invalidateQueries({ queryKey: AGENDA_KEY }) }} />}
@@ -178,24 +178,24 @@ function ScheduleForm({ initial, onClose, onSaved }: { initial: ProfessionalHour
   }
 
   return <Modal title="Minha jornada semanal" onClose={onClose}>
-    <p className="mb-4 text-sm text-text-600">Por padrão, você acompanha o horário do salão — inclusive quando o administrador mudar o expediente depois. Personalize apenas os dias em que sua jornada for diferente.</p>
-    <div className="mb-4 flex flex-wrap gap-2"><button type="button" onClick={() => applyWeekdays('inherit')} className="rounded-lg border border-background-300 px-3 py-1.5 text-xs font-semibold text-text-700">Seg–sex: usar salão</button><button type="button" onClick={() => applyWeekdays('custom')} className="rounded-lg border border-background-300 px-3 py-1.5 text-xs font-semibold text-text-700">Seg–sex: personalizar</button><button type="button" onClick={() => applyWeekdays('closed')} className="rounded-lg border border-background-300 px-3 py-1.5 text-xs font-semibold text-text-700">Seg–sex: não trabalho</button></div>
+    <p className="mb-4 text-sm text-text-600">Por padrão, você acompanha o horário do estabelecimento — inclusive quando o administrador mudar o expediente depois. Personalize apenas os dias em que sua jornada for diferente.</p>
+    <div className="mb-4 flex flex-wrap gap-2"><button type="button" onClick={() => applyWeekdays('inherit')} className="rounded-lg border border-background-300 px-3 py-1.5 text-xs font-semibold text-text-700">Seg–sex: usar estabelecimento</button><button type="button" onClick={() => applyWeekdays('custom')} className="rounded-lg border border-background-300 px-3 py-1.5 text-xs font-semibold text-text-700">Seg–sex: personalizar</button><button type="button" onClick={() => applyWeekdays('closed')} className="rounded-lg border border-background-300 px-3 py-1.5 text-xs font-semibold text-text-700">Seg–sex: não trabalho</button></div>
     <div className="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
       {hours.map((hour, index) => {
         const mode = modeOf(hour)
         const establishmentLabel = hour.establishmentClosed
-          ? 'Salão fechado neste dia'
+          ? 'Estabelecimento fechado neste dia'
           : `${hour.establishmentOpeningTime?.slice(0, 5)} — ${hour.establishmentClosingTime?.slice(0, 5)}`
         return <div key={hour.dayOfWeek} className="rounded-xl bg-background-50 p-3">
           <div className="flex items-center justify-between gap-2"><span className="text-sm font-semibold text-text-800">{DAY_LABELS[hour.dayOfWeek]}</span><button type="button" onClick={() => copyDayToOthers(hour)} className="text-xs font-semibold text-text-600 hover:underline">Copiar para os demais</button></div>
           <div className="mt-2 space-y-1.5 text-sm text-text-700">
             <label className="flex items-center gap-2">
               <input type="radio" name={`mode-${hour.dayOfWeek}`} checked={mode === 'inherit'} onChange={() => selectMode(index, 'inherit')} />
-              Usar horário do salão <span className="text-xs text-text-600">({establishmentLabel})</span>
+              Usar horário do estabelecimento <span className="text-xs text-text-600">({establishmentLabel})</span>
             </label>
             <label className="flex items-center gap-2">
               <input type="radio" name={`mode-${hour.dayOfWeek}`} checked={mode === 'custom'} disabled={hour.establishmentClosed} onChange={() => selectMode(index, 'custom')} />
-              Personalizar {hour.establishmentClosed && <span className="text-xs text-text-600">(indisponível com o salão fechado)</span>}
+              Personalizar {hour.establishmentClosed && <span className="text-xs text-text-600">(indisponível com o estabelecimento fechado)</span>}
             </label>
             {mode === 'custom' && <div className="ml-6 grid grid-cols-2 gap-2">
               <input aria-label={`Início de ${DAY_LABELS[hour.dayOfWeek]}`} type="time" step={300} min={hour.establishmentOpeningTime?.slice(0, 5)} max={hour.establishmentClosingTime?.slice(0, 5)} value={hour.openingTime?.slice(0, 5) ?? ''} onChange={(event) => changeTime(index, { openingTime: event.target.value })} className="rounded-lg border border-background-300 px-2 py-1.5 text-sm" />

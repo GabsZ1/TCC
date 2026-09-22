@@ -47,18 +47,18 @@ export function AdminAgendaPage() {
   }
 
   return (
-    <div className="p-5 sm:p-7 lg:p-9">
+    <div className="page-shell">
       <h1 className="page-title">Agenda do estabelecimento</h1>
       <p className="page-subtitle">Consulte os atendimentos de toda a equipe e filtre por data, profissional ou situação.</p>
 
-      <section className="mt-6 grid gap-4 rounded-2xl border border-background-300 bg-background-50 p-5 shadow-sm sm:grid-cols-3">
+      <section className="surface-card mt-6 grid gap-4 p-5 sm:grid-cols-3">
         <Filter label="Data"><input type="date" value={date} onChange={(event) => setDate(event.target.value)} className="filter-input" /></Filter>
         <Filter label="Profissional"><select value={professionalId} onChange={(event) => setProfessionalId(event.target.value)} className="filter-input"><option value="">Todos</option>{employees.data?.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}{employee.active ? '' : ' (inativo)'}</option>)}</select></Filter>
         <Filter label="Situação"><select value={status} onChange={(event) => setStatus(event.target.value as StatusFilter)} className="filter-input"><option value="">Todas</option><option value="CONFIRMED">Confirmado</option><option value="COMPLETED">Concluído</option><option value="CANCELLED">Cancelado</option><option value="INVALIDATED">Invalidado</option></select></Filter>
         <button type="button" onClick={() => { setDate(''); setProfessionalId(''); setStatus('') }} className="text-left text-sm font-semibold text-text-600 hover:text-text-800 sm:col-span-3">Limpar filtros</button>
       </section>
 
-      {date && <section className="mt-6 rounded-2xl border border-background-300 bg-background-50 p-5 shadow-sm">
+      {date && <section className="surface-card mt-6 p-5">
         <div className="flex items-center gap-2"><Clock3 size={18} className="text-text-600" /><h2 className="font-semibold text-text-900">Jornada e indisponibilidades</h2></div>
         <p className="mt-1 text-sm text-text-600">Compromissos pessoais aparecem apenas como indisponíveis; os detalhes permanecem privados.</p>
         {teamAvailability.isLoading && <p className="mt-4 text-sm text-text-600">Carregando disponibilidade da equipe...</p>}
@@ -148,7 +148,7 @@ function AppointmentCard({
   const canCancel = appointment.status === 'CONFIRMED'
 
   return (
-    <article className="rounded-2xl border border-background-300 bg-background-50 p-5 shadow-sm">
+    <article className="surface-card p-5">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <div className="flex items-center gap-2"><Scissors size={18} className="text-text-600" /><h2 className="text-lg font-semibold text-text-900">{appointment.serviceName}</h2></div>
