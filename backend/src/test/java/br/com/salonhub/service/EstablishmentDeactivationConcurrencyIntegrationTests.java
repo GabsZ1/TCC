@@ -39,7 +39,7 @@ class EstablishmentDeactivationConcurrencyIntegrationTests {
     @Autowired private AppointmentRepository appointmentRepository;
 
     @Test
-    void deactivationMustBlockOnlyAppointmentsThatHaveNotAlreadyBeenCreated() throws Exception {
+    void bookingBlockMustRejectOnlyAppointmentsThatHaveNotAlreadyBeenCreated() throws Exception {
         String unique = UUID.randomUUID().toString();
         String cnpj = Long.toString(Math.abs(unique.hashCode()) + 10_000_000_000_000L);
         Establishment establishment = establishmentRepository.saveAndFlush(Establishment.builder()
@@ -67,10 +67,10 @@ class EstablishmentDeactivationConcurrencyIntegrationTests {
                     return false;
                 }
             });
-            Future<Boolean> deactivation = executor.submit(() -> {
+            Future<Boolean> blocking = executor.submit(() -> {
                 start.await();
                 try {
-                    establishmentManagementService.deactivate(administrator.getId());
+                    establishmentManagementService.blockBookings(administrator.getId());
                     return true;
                 } catch (RuntimeException exception) {
                     return false;
@@ -78,14 +78,15 @@ class EstablishmentDeactivationConcurrencyIntegrationTests {
             });
 
             boolean creationSucceeded = creation.get();
-            boolean deactivationSucceeded = deactivation.get();
-            assertThat(deactivationSucceeded).isTrue();
+            boolean blockingSucceeded = blocking.get();
+            assertThat(blockingSucceeded).isTrue();
 
             Establishment current = establishmentRepository.findById(establishment.getId()).orElseThrow();
             long appointments = appointmentRepository.findAll().stream()
                     .filter(item -> item.getEstablishment().getId().equals(establishment.getId()))
                     .count();
-            assertThat(current.isActive()).isFalse();
+            assertThat(current.isActive()).isTrue();
+            assertThat(current.isBookingsBlocked()).isTrue();
             assertThat(appointments).isEqualTo(creationSucceeded ? 1 : 0);
         }
     }

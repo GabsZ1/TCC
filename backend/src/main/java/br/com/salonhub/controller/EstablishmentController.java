@@ -12,7 +12,6 @@ import br.com.salonhub.service.EstablishmentManagementService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -64,14 +63,23 @@ public class EstablishmentController {
         return establishmentManagementService.update(Long.valueOf(jwt.getSubject()), request);
     }
 
-    @PatchMapping("/ativacao")
-    public EstablishmentResponse reactivate(@AuthenticationPrincipal Jwt jwt) {
-        return establishmentManagementService.reactivate(Long.valueOf(jwt.getSubject()));
+    @PatchMapping("/bloqueio-agendamentos")
+    public EstablishmentResponse blockBookings(@AuthenticationPrincipal Jwt jwt) {
+        return establishmentManagementService.blockBookings(Long.valueOf(jwt.getSubject()));
     }
 
-    @DeleteMapping
-    public ResponseEntity<Void> deactivate(@AuthenticationPrincipal Jwt jwt) {
-        establishmentManagementService.deactivate(Long.valueOf(jwt.getSubject()));
-        return ResponseEntity.noContent().build();
+    @DeleteMapping("/bloqueio-agendamentos")
+    public EstablishmentResponse allowBookings(@AuthenticationPrincipal Jwt jwt) {
+        return establishmentManagementService.allowBookings(Long.valueOf(jwt.getSubject()));
+    }
+
+    @PatchMapping("/pausa")
+    public EstablishmentResponse pause(@AuthenticationPrincipal Jwt jwt) {
+        return establishmentManagementService.pause(Long.valueOf(jwt.getSubject()));
+    }
+
+    @DeleteMapping("/pausa")
+    public EstablishmentResponse resume(@AuthenticationPrincipal Jwt jwt) {
+        return establishmentManagementService.resume(Long.valueOf(jwt.getSubject()));
     }
 }

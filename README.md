@@ -143,6 +143,14 @@ Para criar o administrador da plataforma no primeiro início do backend, configu
 
 Esse usuário recebe o perfil `SYSTEM_ADMIN`, não fica vinculado a um estabelecimento e acessa a tela de gestão de estabelecimentos após o login.
 
+### Estados operacionais do estabelecimento
+
+- **Agendamentos bloqueados:** impede novas reservas e remarcações, preservando todos os atendimentos existentes.
+- **Pausado:** só pode ser aplicado quando não há atendimentos confirmados e bloqueia o acesso dos profissionais; o administrador do estabelecimento continua com acesso.
+- **Site desativado:** ação do administrador do sistema que bloqueia todos os usuários vinculados e cancela definitivamente os atendimentos confirmados com o motivo `Site desativado`.
+
+Os três estados são reversíveis, mas reativar o site não restaura agendamentos cancelados. Quando o administrador do sistema aplica o bloqueio de agendamentos ou a pausa, somente ele pode remover essa restrição.
+
 Por fim, dentro de `frontend`, instale as dependências e execute a aplicação:
 
 ```bash

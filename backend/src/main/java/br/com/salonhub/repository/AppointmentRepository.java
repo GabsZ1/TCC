@@ -46,6 +46,10 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     boolean existsByEstablishmentIdAndStatusAndEndsAtGreaterThan(
             Long establishmentId, AppointmentStatus status, LocalDateTime after);
 
+    boolean existsByEstablishmentIdAndStatus(Long establishmentId, AppointmentStatus status);
+
+    List<Appointment> findByEstablishmentIdAndStatus(Long establishmentId, AppointmentStatus status);
+
     List<Appointment> findByEstablishmentIdAndStatusAndEndsAtGreaterThanOrderByStartsAt(
             Long establishmentId, AppointmentStatus status, LocalDateTime after);
 

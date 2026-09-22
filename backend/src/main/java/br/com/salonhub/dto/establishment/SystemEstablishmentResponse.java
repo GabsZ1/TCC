@@ -11,6 +11,10 @@ public record SystemEstablishmentResponse(
         String email,
         String phone,
         boolean active,
+        boolean paused,
+        boolean pausedBySystem,
+        boolean bookingsBlocked,
+        boolean bookingsBlockedBySystem,
         OffsetDateTime createdAt
 ) {
     public static SystemEstablishmentResponse fromEntity(Establishment establishment) {
@@ -21,6 +25,10 @@ public record SystemEstablishmentResponse(
                 establishment.getEmail(),
                 establishment.getPhone(),
                 establishment.isActive(),
+                establishment.isPaused(),
+                establishment.isPausedBySystem(),
+                establishment.isBookingsBlocked(),
+                establishment.isBookingsBlockedBySystem(),
                 establishment.getCreatedAt());
     }
 }

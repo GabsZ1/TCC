@@ -74,37 +74,107 @@ public class EstablishmentManagementService {
     }
 
     @Transactional
-    public void deactivate(Long administratorId) {
-        Establishment identityEstablishment = findEstablishment(administratorId);
-        deactivateEstablishment(identityEstablishment.getId());
+    public EstablishmentResponse blockBookings(Long administratorId) {
+        Establishment establishment = lockMine(administratorId);
+        establishment.blockBookings(false);
+        return response(establishment);
+    }
+
+    @Transactional
+    public EstablishmentResponse allowBookings(Long administratorId) {
+        Establishment establishment = lockMine(administratorId);
+        if (establishment.isBookingsBlockedBySystem()) {
+            throw new ConflictException("O bloqueio foi aplicado pelo administrador do sistema e só pode ser removido por ele.");
+        }
+        establishment.allowBookings();
+        return response(establishment);
+    }
+
+    @Transactional
+    public EstablishmentResponse pause(Long administratorId) {
+        Establishment establishment = lockMine(administratorId);
+        requireNoPendingAppointments(establishment);
+        establishment.pause(false);
+        return response(establishment);
+    }
+
+    @Transactional
+    public EstablishmentResponse resume(Long administratorId) {
+        Establishment establishment = lockMine(administratorId);
+        if (establishment.isPausedBySystem()) {
+            throw new ConflictException("A pausa foi aplicada pelo administrador do sistema e só pode ser removida por ele.");
+        }
+        establishment.resume();
+        return response(establishment);
+    }
+
+    @Transactional
+    public void blockBookingsAsSystemAdministrator(Long systemAdministratorId, Long establishmentId) {
+        tenantAuthorizationService.requireSystemAdministrator(systemAdministratorId);
+        lockEstablishment(establishmentId).blockBookings(true);
+    }
+
+    @Transactional
+    public void allowBookingsAsSystemAdministrator(Long systemAdministratorId, Long establishmentId) {
+        tenantAuthorizationService.requireSystemAdministrator(systemAdministratorId);
+        lockEstablishment(establishmentId).allowBookings();
+    }
+
+    @Transactional
+    public void pauseAsSystemAdministrator(Long systemAdministratorId, Long establishmentId) {
+        tenantAuthorizationService.requireSystemAdministrator(systemAdministratorId);
+        Establishment establishment = lockEstablishment(establishmentId);
+        requireNoPendingAppointments(establishment);
+        establishment.pause(true);
+    }
+
+    @Transactional
+    public void resumeAsSystemAdministrator(Long systemAdministratorId, Long establishmentId) {
+        tenantAuthorizationService.requireSystemAdministrator(systemAdministratorId);
+        lockEstablishment(establishmentId).resume();
     }
 
     @Transactional
     public void deactivateAsSystemAdministrator(Long systemAdministratorId, Long establishmentId) {
-        tenantAuthorizationService.requireSystemAdministrator(systemAdministratorId);
-        deactivateEstablishment(establishmentId);
+        var systemAdministrator = tenantAuthorizationService.requireSystemAdministrator(systemAdministratorId);
+        Establishment establishment = lockEstablishment(establishmentId);
+        if (!establishment.isActive()) {
+            return;
+        }
+        LocalDateTime now = LocalDateTime.now(clock);
+        appointmentRepository.findByEstablishmentIdAndStatus(establishmentId, AppointmentStatus.CONFIRMED)
+                .forEach(appointment -> appointment.cancelByAdministrator(
+                        "Site desativado", systemAdministrator, now));
+        establishment.deactivate();
     }
 
     @Transactional
-    public EstablishmentResponse reactivate(Long administratorId) {
-        Establishment establishment = findEstablishment(administratorId);
-        if (establishment.isActive()) {
-            throw new ConflictException("O estabelecimento já está ativo.");
-        }
-        establishment.reactivate();
-        return response(establishment);
+    public void reactivateAsSystemAdministrator(Long systemAdministratorId, Long establishmentId) {
+        tenantAuthorizationService.requireSystemAdministrator(systemAdministratorId);
+        lockEstablishment(establishmentId).reactivate();
     }
 
     private Establishment findEstablishment(Long administratorId) {
         return tenantAuthorizationService.requireAdministratorIdentity(administratorId).getEstablishment();
     }
 
-    private void deactivateEstablishment(Long establishmentId) {
-        Establishment establishment = establishmentRepository.findByIdForUpdate(establishmentId)
+    private Establishment lockMine(Long administratorId) {
+        Establishment identityEstablishment = findEstablishment(administratorId);
+        return lockEstablishment(identityEstablishment.getId());
+    }
+
+    private Establishment lockEstablishment(Long establishmentId) {
+        return establishmentRepository.findByIdForUpdate(establishmentId)
                 .orElseThrow(() -> new br.com.salonhub.exception.ResourceNotFoundException(
                         "Estabelecimento não encontrado."));
-        if (establishment.isActive()) {
-            establishment.deactivate();
+    }
+
+    private void requireNoPendingAppointments(Establishment establishment) {
+        if (appointmentRepository.existsByEstablishmentIdAndStatus(
+                establishment.getId(), AppointmentStatus.CONFIRMED)) {
+            throw new ConflictException(
+                    "Não é possível pausar enquanto houver atendimentos pendentes. "
+                            + "Cancele ou conclua todos os atendimentos confirmados.");
         }
     }
 

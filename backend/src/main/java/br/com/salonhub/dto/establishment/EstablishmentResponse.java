@@ -10,6 +10,10 @@ public record EstablishmentResponse(
         String email,
         String phone,
         boolean active,
+        boolean paused,
+        boolean pausedBySystem,
+        boolean bookingsBlocked,
+        boolean bookingsBlockedBySystem,
         List<BusinessHourResponse> businessHours,
         Integer minimumAdvanceHours,
         Integer maximumAdvanceDays
@@ -22,6 +26,10 @@ public record EstablishmentResponse(
                 establishment.getEmail(),
                 establishment.getPhone(),
                 establishment.isActive(),
+                establishment.isPaused(),
+                establishment.isPausedBySystem(),
+                establishment.isBookingsBlocked(),
+                establishment.isBookingsBlockedBySystem(),
                 businessHours,
                 establishment.getMinimumAdvanceMinutes() / 60,
                 establishment.getMaximumAdvanceDays()
