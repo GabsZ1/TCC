@@ -164,13 +164,13 @@ export function EmployeesListPage() {
   return (
     <div className="p-6">
       <div className="flex items-center justify-between">
-        <h1 className="font-[var(--font-display)] text-2xl text-brand-900">Funcionários</h1>
+        <h1 className="font-[var(--font-display)] text-2xl text-text-900">Funcionários</h1>
         <button
           onClick={() => {
             setRemovalMessage(null)
             setModalState({ mode: 'create' })
           }}
-          className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+          className="flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-on-primary hover:bg-primary-700"
         >
           <Plus size={16} />
           Novo funcionário
@@ -178,27 +178,27 @@ export function EmployeesListPage() {
       </div>
 
       {removalMessage && (
-        <p role="status" className="mt-4 rounded-xl bg-sage-50 px-3 py-2 text-sm text-sage-600">
+        <p role="status" className="mt-4 rounded-xl bg-success-50 px-3 py-2 text-sm text-success-600">
           {removalMessage}
         </p>
       )}
 
       {firstAccessInvitation && (
-        <div className="mt-4 rounded-xl bg-sage-50 p-4 text-sm text-brand-800">
+        <div className="mt-4 rounded-xl bg-success-50 p-4 text-sm text-text-800">
           <p className="font-medium">Funcionário cadastrado. Envie este link de primeiro acesso para {firstAccessInvitation.employeeName}:</p>
           <input
             aria-label="Link de primeiro acesso"
             readOnly
             value={firstAccessInvitation.link}
-            className="mt-2 w-full rounded-lg border border-brand-200 bg-white px-3 py-2"
+            className="mt-2 w-full rounded-lg border border-background-300 bg-background-50 px-3 py-2"
           />
-          <p className="mt-2 text-brand-600">O link é exibido apenas neste cadastro e expira em {new Date(firstAccessInvitation.expiresAt).toLocaleString('pt-BR')}.</p>
+          <p className="mt-2 text-text-600">O link é exibido apenas neste cadastro e expira em {new Date(firstAccessInvitation.expiresAt).toLocaleString('pt-BR')}.</p>
         </div>
       )}
 
-      <div className="mt-6 overflow-x-auto rounded-2xl border border-brand-100 bg-white shadow-sm">
+      <div className="mt-6 overflow-x-auto rounded-2xl border border-background-300 bg-background-50 shadow-sm">
         <table className="w-full min-w-[44rem] text-left text-sm">
-          <thead className="bg-sand-100 text-brand-700">
+          <thead className="bg-background-100 text-text-700">
             <tr>
               <th className="px-4 py-3 font-medium">Nome</th>
               <th className="px-4 py-3 font-medium">E-mail</th>
@@ -209,7 +209,7 @@ export function EmployeesListPage() {
           <tbody>
             {isLoading && (
               <tr>
-                <td className="px-4 py-6 text-brand-500" colSpan={4}>
+                <td className="px-4 py-6 text-text-600" colSpan={4}>
                   Carregando funcionários...
                 </td>
               </tr>
@@ -225,7 +225,7 @@ export function EmployeesListPage() {
 
             {!isLoading && !isError && sortedEmployees.length === 0 && (
               <tr>
-                <td className="px-4 py-6 text-brand-500" colSpan={4}>
+                <td className="px-4 py-6 text-text-600" colSpan={4}>
                   Nenhum funcionário cadastrado ainda.
                 </td>
               </tr>
@@ -234,16 +234,16 @@ export function EmployeesListPage() {
             {!isLoading &&
               !isError &&
               sortedEmployees.map((employee) => (
-                <tr key={employee.id} className="border-t border-brand-100">
-                  <td className="px-4 py-3 text-brand-900">{employee.name}</td>
-                  <td className="px-4 py-3 text-brand-700">{employee.email}</td>
+                <tr key={employee.id} className="border-t border-background-300">
+                  <td className="px-4 py-3 text-text-900">{employee.name}</td>
+                  <td className="px-4 py-3 text-text-700">{employee.email}</td>
                   <td className="px-4 py-3">
                     {employee.active ? (
-                      <span className="inline-flex items-center rounded-full bg-sage-50 px-2.5 py-1 text-xs font-medium text-sage-600">
+                      <span className="inline-flex items-center rounded-full bg-success-50 px-2.5 py-1 text-xs font-medium text-success-600">
                         Ativo
                       </span>
                     ) : (
-                      <span className="inline-flex items-center rounded-full bg-brand-100 px-2.5 py-1 text-xs font-medium text-brand-600">
+                      <span className="inline-flex items-center rounded-full bg-background-200 px-2.5 py-1 text-xs font-medium text-text-600">
                         Inativo
                       </span>
                     )}
@@ -253,7 +253,7 @@ export function EmployeesListPage() {
                       <button
                         type="button"
                         onClick={() => setServicesEmployee(employee)}
-                        className="flex items-center gap-1 text-brand-600 hover:text-brand-800"
+                        className="flex items-center gap-1 text-text-600 hover:text-text-800"
                         aria-label={`Gerenciar serviços de ${employee.name}`}
                       >
                         <Scissors size={16} />
@@ -264,7 +264,7 @@ export function EmployeesListPage() {
                           setRemovalMessage(null)
                           setModalState({ mode: 'edit', employee })
                         }}
-                        className="flex items-center gap-1 text-brand-600 hover:text-brand-800"
+                        className="flex items-center gap-1 text-text-600 hover:text-text-800"
                         aria-label={`Editar ${employee.name}`}
                       >
                         <Pencil size={16} />
@@ -277,7 +277,7 @@ export function EmployeesListPage() {
                             setRemovalMessage(null)
                             setEmployeeToDeactivate(employee)
                           }}
-                          className="flex items-center gap-1 text-danger-600 hover:text-danger-500"
+                          className="flex items-center gap-1 text-danger-600 hover:text-danger-600"
                           aria-label={`Desativar ${employee.name}`}
                         >
                           <Power size={16} />
@@ -293,7 +293,7 @@ export function EmployeesListPage() {
                             setRemovalMessage(null)
                             reactivateMutation.mutate(employee.id)
                           }}
-                          className="flex items-center gap-1 text-sage-600 hover:text-sage-500 disabled:cursor-not-allowed disabled:opacity-60"
+                          className="flex items-center gap-1 text-success-600 hover:text-success-600 disabled:cursor-not-allowed disabled:opacity-60"
                           aria-label={`Reativar ${employee.name}`}
                         >
                           <RotateCcw size={16} />
@@ -308,7 +308,7 @@ export function EmployeesListPage() {
                           setRemovalMessage(null)
                           setEmployeeToDelete(employee)
                         }}
-                        className="flex items-center gap-1 text-danger-600 hover:text-danger-500 disabled:opacity-60"
+                        className="flex items-center gap-1 text-danger-600 hover:text-danger-600 disabled:opacity-60"
                         aria-label={`Excluir definitivamente ${employee.name}`}
                       >
                         <Trash2 size={16} />

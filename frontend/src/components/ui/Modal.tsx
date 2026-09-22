@@ -62,13 +62,13 @@ export function Modal({ title, onClose, children, size = 'md' }: ModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-brand-900/40 px-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-overlay px-4"
       onClick={onClose}
       role="presentation"
     >
       <div
         ref={dialogRef}
-        className={`max-h-[calc(100dvh-2rem)] w-full overflow-y-auto rounded-2xl border border-brand-100 bg-white p-4 shadow-lg sm:p-6 ${size === 'lg' ? 'max-w-3xl' : 'max-w-md'}`}
+        className={`max-h-[calc(100dvh-2rem)] w-full overflow-y-auto rounded-2xl border border-background-300 bg-background-50 p-4 shadow-lg sm:p-6 ${size === 'lg' ? 'max-w-3xl' : 'max-w-md'}`}
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -76,13 +76,13 @@ export function Modal({ title, onClose, children, size = 'md' }: ModalProps) {
         tabIndex={-1}
       >
         <div className="flex items-center justify-between">
-          <h2 id={titleId} className="font-[var(--font-display)] text-xl text-brand-900">
+          <h2 id={titleId} className="font-[var(--font-display)] text-xl text-text-900">
             {title}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-1 text-brand-400 hover:bg-sand-100 hover:text-brand-700"
+            className="rounded-md p-1 text-text-600 hover:bg-background-100 hover:text-text-700"
             aria-label="Fechar"
           >
             <X size={18} />

@@ -1,0 +1,104 @@
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { describe, expect, it } from 'vitest'
+
+const css = readFileSync(fileURLToPath(new URL('./index.css', import.meta.url)), 'utf8')
+
+const MINIMUM_NORMAL_TEXT_CONTRAST = 4.5
+type ThemeTokens = Record<string, string>
+
+function themeBlock(selector: string) {
+  const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const match = css.match(new RegExp(`${escapedSelector}\\s*\\{([\\s\\S]*?)\\}`))
+  if (!match) throw new Error(`Bloco de tema não encontrado: ${selector}`)
+
+  const rawTokens = Object.fromEntries(
+    [...match[1].matchAll(/--([a-z0-9-]+):\s*([^;]+);/gi)]
+      .map((token) => [token[1], token[2].trim()]),
+  )
+
+  const resolve = (name: string, trail: string[] = []): string => {
+    if (trail.includes(name)) throw new Error(`Referência circular: ${[...trail, name].join(' -> ')}`)
+    const value = rawTokens[name]
+    if (!value) throw new Error(`Token não encontrado: ${name}`)
+    if (value.startsWith('#')) return normalizeHex(value)
+    const reference = value.match(/^var\(--([a-z0-9-]+)\)$/i)?.[1]
+    if (!reference) throw new Error(`Valor de cor não suportado em ${name}: ${value}`)
+    return resolve(reference, [...trail, name])
+  }
+
+  return Object.fromEntries(
+    Object.keys(rawTokens)
+      .filter((name) => rawTokens[name].startsWith('#') || rawTokens[name].startsWith('var('))
+      .map((name) => [name, resolve(name)]),
+  )
+}
+
+function normalizeHex(hex: string) {
+  if (hex.length === 4) return `#${[...hex.slice(1)].map((digit) => digit.repeat(2)).join('')}`
+  return hex.toLowerCase()
+}
+
+function relativeLuminance(hex: string) {
+  const channels = hex.slice(1).match(/.{2}/g)?.map((channel) => Number.parseInt(channel, 16) / 255)
+  if (!channels || channels.length !== 3) throw new Error(`Cor inválida: ${hex}`)
+  const [red, green, blue] = channels.map((channel) =>
+    channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4,
+  )
+  return 0.2126 * red + 0.7152 * green + 0.0722 * blue
+}
+
+function contrast(foreground: string, background: string) {
+  const foregroundLuminance = relativeLuminance(foreground)
+  const backgroundLuminance = relativeLuminance(background)
+  return (Math.max(foregroundLuminance, backgroundLuminance) + 0.05)
+    / (Math.min(foregroundLuminance, backgroundLuminance) + 0.05)
+}
+
+const combinations = [
+  ['text-600', 'background-50'],
+  ['text-600', 'background-100'],
+  ['text-600', 'primary-50'],
+  ['text-600', 'primary-100'],
+  ['text-700', 'background-50'],
+  ['text-700', 'primary-50'],
+  ['text-800', 'background-50'],
+  ['text-900', 'background-50'],
+  ['success-600', 'background-50'],
+  ['success-600', 'success-50'],
+  ['success-700', 'success-50'],
+  ['warning-700', 'background-50'],
+  ['warning-700', 'warning-100'],
+  ['warning-800', 'warning-50'],
+  ['coral-700', 'background-50'],
+  ['coral-700', 'coral-50'],
+  ['danger-600', 'background-50'],
+  ['primary-600', 'background-50'],
+  ['on-primary', 'primary-600'],
+  ['on-primary', 'primary-700'],
+  ['on-primary', 'primary-900'],
+  ['on-secondary', 'secondary-600'],
+  ['on-success', 'success-600'],
+  ['on-warning', 'warning-700'],
+  ['text-100', 'primary-900'],
+  ['on-danger', 'danger-500'],
+  ['on-danger', 'danger-600'],
+] as const
+
+function verifyTheme(themeName: string, tokens: ThemeTokens) {
+  describe(themeName, () => {
+    it.each(combinations)('%s sobre %s atende WCAG AA', (foregroundToken, backgroundToken) => {
+      const foreground = tokens[foregroundToken]
+      const background = tokens[backgroundToken]
+      expect(foreground, `${foregroundToken} não foi definido`).toBeTruthy()
+      expect(background, `${backgroundToken} não foi definido`).toBeTruthy()
+      expect(
+        contrast(foreground, background),
+        `${foregroundToken} (${foreground}) sobre ${backgroundToken} (${background})`,
+      ).toBeGreaterThanOrEqual(MINIMUM_NORMAL_TEXT_CONTRAST)
+    })
+  })
+}
+
+verifyTheme('tema claro', themeBlock(':root'))
+verifyTheme('tema escuro', themeBlock(':root[data-theme="dark"]'))

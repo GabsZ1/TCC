@@ -24,10 +24,10 @@ export function AppLayout() {
         : [{ to: '/', label: 'Início', icon: House }]
 
   return (
-    <div className="min-h-screen bg-sand-50 md:flex md:h-screen md:overflow-hidden">
-      <aside className="hidden w-64 shrink-0 flex-col border-r border-brand-100 bg-white md:sticky md:top-0 md:flex md:h-screen">
-        <div className="border-b border-brand-100 px-5 py-5">
-          <span className="font-[var(--font-display)] text-lg text-brand-900">SalonHub</span>
+    <div className="min-h-screen bg-background-100 md:flex md:h-screen md:overflow-hidden">
+      <aside className="hidden w-64 shrink-0 flex-col border-r border-background-300 bg-background-50 md:sticky md:top-0 md:flex md:h-screen">
+        <div className="border-b border-background-300 px-5 py-5">
+          <span className="font-[var(--font-display)] text-lg text-primary-600">SalonHub</span>
         </div>
 
         <nav className="flex-1 space-y-1 px-3 py-4">
@@ -39,8 +39,8 @@ export function AppLayout() {
               className={({ isActive }) =>
                 `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
                   isActive
-                    ? 'bg-brand-100 text-brand-800'
-                    : 'text-brand-600 hover:bg-sand-100 hover:text-brand-800'
+                    ? 'bg-primary-100 text-text-800'
+                    : 'text-text-600 hover:bg-background-100 hover:text-text-800'
                 }`
               }
             >
@@ -49,11 +49,11 @@ export function AppLayout() {
           ))}
         </nav>
 
-        <div className="border-t border-brand-100 px-4 py-4">
-          <p className="truncate text-sm font-medium text-brand-900">{user?.name}</p>
+        <div className="border-t border-background-300 px-4 py-4">
+          <p className="truncate text-sm font-medium text-text-900">{user?.name}</p>
           <button
             onClick={logout}
-            className="mt-2 text-sm text-brand-500 hover:text-brand-700"
+            className="mt-2 text-sm text-text-600 hover:text-text-700"
           >
             Sair
           </button>
@@ -61,10 +61,10 @@ export function AppLayout() {
       </aside>
 
       <div className="min-w-0 flex-1 md:h-screen md:overflow-y-auto">
-        <header className="border-b border-brand-100 bg-white px-4 py-3 md:hidden">
-          <div className="flex items-center justify-between"><span className="font-[var(--font-display)] text-lg text-brand-900">SalonHub</span><button onClick={logout} className="text-sm font-medium text-brand-600">Sair</button></div>
+        <header className="border-b border-background-300 bg-background-50 px-4 py-3 md:hidden">
+          <div className="flex items-center justify-between"><span className="font-[var(--font-display)] text-lg text-primary-600">SalonHub</span><button onClick={logout} className="text-sm font-medium text-text-600">Sair</button></div>
           <nav className="mt-3 flex gap-2 overflow-x-auto">
-            {navItems.map((item) => <NavLink key={item.to} to={item.to} end={item.to === '/'} className={({ isActive }) => `whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium ${isActive ? 'bg-brand-100 text-brand-800' : 'text-brand-600'}`}>{item.label}</NavLink>)}
+            {navItems.map((item) => <NavLink key={item.to} to={item.to} end={item.to === '/'} className={({ isActive }) => `whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium ${isActive ? 'bg-primary-100 text-text-800' : 'text-text-600'}`}>{item.label}</NavLink>)}
           </nav>
         </header>
         <main><Outlet /></main>

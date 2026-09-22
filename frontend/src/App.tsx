@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { ProtectedRoute } from '@/routes/ProtectedRoute'
 import { AppLayout } from '@/components/layout/AppLayout'
+import { ThemeToggle } from '@/components/ui/ThemeToggle'
 
 const LoginPage = lazy(() => import('@/features/auth/pages/LoginPage').then((module) => ({ default: module.LoginPage })))
 const ForbiddenPage = lazy(() => import('@/features/auth/pages/ForbiddenPage').then((module) => ({ default: module.ForbiddenPage })))
@@ -22,8 +23,7 @@ const AppointmentsReportPage = lazy(() => import('@/features/reports/Appointment
 
 function App() {
   return (
-    <Suspense fallback={<RouteLoading />}>
-      <Routes>
+    <><ThemeToggle /><Suspense fallback={<RouteLoading />}><Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/cadastro" element={<InitialRegistrationPage />} />
       <Route path="/cadastro-cliente" element={<ClientRegistrationPage />} />
@@ -56,13 +56,12 @@ function App() {
           </Route>
         </Route>
       </Route>
-      </Routes>
-    </Suspense>
+      </Routes></Suspense></>
   )
 }
 
 function RouteLoading() {
-  return <div className="grid min-h-screen place-items-center bg-sand-50 text-sm font-medium text-brand-600">Carregando página...</div>
+  return <div className="grid min-h-screen place-items-center bg-background-100 text-sm font-medium text-text-600">Carregando página...</div>
 }
 
 export default App
