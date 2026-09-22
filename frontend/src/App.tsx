@@ -20,6 +20,7 @@ const EstablishmentPage = lazy(() => import('@/features/establishment/Establishm
 const AdminAgendaPage = lazy(() => import('@/features/appointments/AdminAgendaPage').then((module) => ({ default: module.AdminAgendaPage })))
 const CommissionReportPage = lazy(() => import('@/features/commissions/CommissionReportPage').then((module) => ({ default: module.CommissionReportPage })))
 const AppointmentsReportPage = lazy(() => import('@/features/reports/AppointmentsReportPage').then((module) => ({ default: module.AppointmentsReportPage })))
+const SystemEstablishmentsPage = lazy(() => import('@/features/system-admin/SystemEstablishmentsPage').then((module) => ({ default: module.SystemEstablishmentsPage })))
 
 function App() {
   return (
@@ -34,6 +35,10 @@ function App() {
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
           <Route path="/" element={<DashboardPage />} />
+
+          <Route element={<ProtectedRoute allowedRoles={['SYSTEM_ADMIN']} />}>
+            <Route path="/admin/estabelecimentos" element={<SystemEstablishmentsPage />} />
+          </Route>
 
           {/* Exemplo de restrição por perfil: apenas admin do estabelecimento */}
           <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>

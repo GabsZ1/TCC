@@ -92,7 +92,7 @@ public class AppointmentCommandService {
 
     @Transactional
     public AppointmentResponse cancelAsAdministrator(Long administratorId, Long appointmentId, String reason) {
-        User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
+        User administrator = tenantAuthorizationService.requireAdministratorIdentity(administratorId);
         Appointment appointment = appointmentRepository
                 .findByIdAndEstablishmentId(appointmentId, administrator.getEstablishment().getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Agendamento não encontrado."));
@@ -144,9 +144,6 @@ public class AppointmentCommandService {
 
         if (!isOwningProfessional && !isEstablishmentAdministrator) {
             throw new AccessDeniedException("Você não tem permissão para concluir este agendamento.");
-        }
-        if (!appointment.getEstablishment().isActive()) {
-            throw new AccessDeniedException("O estabelecimento está inativo. A conclusão de atendimentos está bloqueada.");
         }
     }
 

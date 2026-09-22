@@ -16,6 +16,18 @@ public class TenantAuthorizationService {
     private final UserRepository userRepository;
 
     @Transactional(readOnly = true)
+    public User requireSystemAdministrator(Long userId) {
+        User user = userRepository.findById(userId)
+                .filter(User::isActive)
+                .orElseThrow(() -> new UnauthorizedException("Usuário inválido ou inativo"));
+
+        if (user.getRole() != UserRole.SYSTEM_ADMIN) {
+            throw new AccessDeniedException("Acesso permitido apenas para administradores do sistema");
+        }
+        return user;
+    }
+
+    @Transactional(readOnly = true)
     public User requireAdministrator(Long userId) {
         User user = requireAdministratorIdentity(userId);
         if (!user.getEstablishment().isActive()) {

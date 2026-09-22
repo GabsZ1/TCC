@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowRight, CalendarDays, CalendarPlus, Clock3, MapPin, Scissors, UserRound } from 'lucide-react'
+import { ArrowRight, CalendarPlus, Clock3, MapPin, Scissors, UserRound } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { AppointmentEditModal } from '@/features/appointments/AppointmentEditModal'
