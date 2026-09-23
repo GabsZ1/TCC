@@ -1,6 +1,5 @@
 package br.com.salonhub;
 
-qqlil
 
 
 import org.springframework.boot.SpringApplication;
