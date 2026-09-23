@@ -55,7 +55,7 @@ export function EstablishmentProfilePage() {
 
   return (
     <PageContainer>
-      <header>
+      <header className="border-b border-background-300 pb-7">
         <p className="eyebrow">Presença pública</p>
         <h1 className="page-title mt-2">Perfil do estabelecimento</h1>
         <p className="page-subtitle">Defina as informações que os clientes verão ao consultar os detalhes do seu estabelecimento.</p>

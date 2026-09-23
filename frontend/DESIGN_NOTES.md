@@ -1,25 +1,29 @@
-# SalonHub — redesign visual
+# SalonHub — direção visual v3
 
-Direção adotada: **warm editorial SaaS**. A interface foi redesenhada para funcionar visualmente tanto para salão de beleza quanto para barbearia, spa e outros negócios de cuidado e bem-estar, sem depender de rosa, roxo ou estética excessivamente “beauty”.
+Direção adotada: **editorial utility / cobalt blue**. O objetivo foi sair do visual genérico de dashboard SaaS e aproximar o produto de marcas contemporâneas de beleza, hospitalidade e bem-estar, sem cair em uma estética exclusivamente feminina ou masculina.
 
 ## Identidade
 
-- Base: marfim/pedra quente, grafite e branco suave.
-- Cor principal: verde eucalipto profundo, usada em ações e estados selecionados.
-- Acento: bronze/areia, usado com moderação para dar personalidade sem “generificar” a marca.
-- Tipografia: Inter para interface e Fraunces para títulos editoriais.
-- Cantos, sombras e superfícies têm mais presença que um minimalismo extremo, mas sem excesso de gradientes ou glassmorphism.
+- Base clara: branco e cinza-azulado muito suave.
+- Cor principal: azul cobalto (`#2457D6`) com marinho profundo para superfícies de alto contraste.
+- Verde aparece somente em estados semânticos de sucesso; não faz parte da identidade da marca.
+- Tipografia: Manrope na interface e Instrument Serif apenas em momentos editoriais de destaque.
+- Bordas finas, sombras discretas, cantos menos exagerados e menos "cards soltos".
+- Sem gradientes decorativos, glassmorphism ou blobs típicos de landing pages geradas por IA.
 
-## Componentes refeitos
+## Decisões de UX
 
-- Layout principal com sidebar desktop e drawer mobile.
-- Marca SalonHub e navegação agrupada por contexto.
-- Dashboard administrativo.
-- Login, cadastro inicial, cadastro de cliente, primeiro acesso e acesso negado.
-- Modais e diálogos de confirmação.
-- Gestão de funcionários e vínculos de serviços.
-- Gestão de serviços.
-- Agendamentos do cliente e fluxo de novo agendamento.
-- Tema claro/escuro e estilos globais do calendário.
+- Sidebar escura com navegação simples e indicador azul de estado ativo.
+- Dashboard administrativo com faixa contínua de indicadores em vez de uma grade de cartões iguais.
+- Atalhos agrupados em um painel operacional único.
+- Fluxo de agendamento consolidado em um único painel dividido por etapas, reduzindo fragmentação visual.
+- Login/cadastro com composição editorial e uma agenda ilustrativa, conectando a identidade visual diretamente ao uso real do sistema.
+- Tema escuro removido para reduzir complexidade visual e evitar combinações de contraste inconsistentes.
 
-A lógica de negócio e as chamadas de API existentes foram preservadas; o trabalho concentrou-se na experiência visual, responsividade, hierarquia, consistência e microinterações.
+## Acessibilidade
+
+A paleta possui teste automatizado de contraste em `src/themeContrast.test.ts`. As combinações de texto usadas em superfícies, botões, estados e sidebar devem atingir no mínimo **WCAG AA (4.5:1)** para texto normal.
+
+### Verificação atual
+
+Na revisão desta versão foram verificadas 22 combinações críticas de foreground/background. Todas passaram em **4.5:1 ou mais**; a menor razão encontrada entre os pares testados foi **4.79:1** (`text-400` sobre superfície branca). O teste automatizado mantém esses pares registrados para evitar regressões futuras.

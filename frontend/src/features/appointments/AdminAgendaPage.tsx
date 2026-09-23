@@ -48,8 +48,11 @@ export function AdminAgendaPage() {
 
   return (
     <div className="page-shell">
-      <h1 className="page-title">Agenda do estabelecimento</h1>
-      <p className="page-subtitle">Consulte os atendimentos de toda a equipe e filtre por data, profissional ou situação.</p>
+      <header className="border-b border-background-300 pb-7">
+        <p className="eyebrow">Operação</p>
+        <h1 className="page-title mt-3">Agenda do estabelecimento</h1>
+        <p className="page-subtitle">Consulte os atendimentos de toda a equipe e filtre por data, profissional ou situação.</p>
+      </header>
 
       <section className="surface-card mt-6 grid gap-4 p-5 sm:grid-cols-3">
         <Filter label="Data"><input type="date" value={date} onChange={(event) => setDate(event.target.value)} className="filter-input" /></Filter>

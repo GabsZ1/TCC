@@ -78,14 +78,14 @@ function EstablishmentContent({ establishment }: { establishment: Awaited<Return
 
   return (
     <PageContainer>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div><p className="eyebrow">Administração</p><h1 className="page-title mt-2">Configurações do estabelecimento</h1><p className="page-subtitle">Gerencie os dados cadastrais, a agenda e o estado operacional do estabelecimento.</p></div>
+      <header className="flex flex-col gap-4 border-b border-background-300 pb-7 sm:flex-row sm:items-start sm:justify-between">
+        <div><p className="eyebrow">Administração</p><h1 className="page-title mt-3">Configurações do estabelecimento</h1><p className="page-subtitle">Gerencie os dados cadastrais, a agenda e o estado operacional do estabelecimento.</p></div>
         <div className="flex flex-wrap gap-2">
           <span className="status-pill bg-success-50 text-success-700">Ativo</span>
           {establishment.paused && <span className="status-pill bg-warning-100 text-warning-700">Pausado{establishment.pausedBySystem ? ' pelo sistema' : ''}</span>}
           {establishment.bookingsBlocked && <span className="status-pill bg-danger-50 text-danger-600">Agendamentos bloqueados{establishment.bookingsBlockedBySystem ? ' pelo sistema' : ''}</span>}
         </div>
-      </div>
+      </header>
       {message && <p role="status" className="mt-5 rounded-xl bg-success-50 px-4 py-3 text-sm text-success-600">{message}</p>}
       {errorMessage && <p role="alert" className="mt-5 rounded-xl border border-danger-500/30 bg-danger-500/5 px-4 py-3 text-sm text-danger-600">{errorMessage}</p>}
       {(establishment.pausedBySystem || establishment.bookingsBlockedBySystem) && <p className="mt-5 rounded-xl border border-warning-500/30 bg-warning-100 px-4 py-3 text-sm text-warning-700">Uma ou mais restrições foram aplicadas pelo administrador do sistema e somente ele poderá removê-las.</p>}

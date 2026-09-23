@@ -57,8 +57,7 @@ public class EstablishmentManagementService {
 
         establishment.updateRegistration(
                 request.name().trim(),
-                normalizeOptionalText(request.email()),
-                normalizeOptionalText(request.phone())
+                normalizeOptionalText(request.email())
         );
         if (request.businessHours() != null) {
             updateBusinessHours(establishment, request.businessHours());

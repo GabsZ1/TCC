@@ -52,7 +52,7 @@ export function ServicesPage() {
 
   return (
     <div className="page-shell">
-      <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+      <header className="flex flex-col gap-5 border-b border-background-300 pb-7 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="eyebrow">Catálogo</p>
           <h1 className="page-title mt-2">Serviços</h1>

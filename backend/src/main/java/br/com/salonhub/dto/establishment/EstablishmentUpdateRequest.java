@@ -17,9 +17,6 @@ public record EstablishmentUpdateRequest(
         @Size(max = 150, message = "O e-mail deve ter no máximo 150 caracteres")
         String email,
 
-        @Size(max = 20, message = "O telefone deve ter no máximo 20 caracteres")
-        String phone,
-
         @Size(min = 7, max = 7, message = "Informe os horários dos sete dias da semana")
         List<@Valid BusinessHourRequest> businessHours,
 

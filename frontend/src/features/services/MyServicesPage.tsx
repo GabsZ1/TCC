@@ -13,10 +13,11 @@ export function MyServicesPage() {
 
   return (
     <div className="page-shell">
-      <div>
-        <h1 className="page-title">Meus serviços</h1>
+      <header className="border-b border-background-300 pb-7">
+        <p className="eyebrow">Perfil profissional</p>
+        <h1 className="page-title mt-3">Meus serviços</h1>
         <p className="page-subtitle">Serviços que você está habilitado a realizar.</p>
-      </div>
+      </header>
 
       {servicesQuery.data?.allServices && (
         <p className="mt-4 rounded-xl border border-background-300 bg-background-200 px-4 py-3 text-sm text-text-700">

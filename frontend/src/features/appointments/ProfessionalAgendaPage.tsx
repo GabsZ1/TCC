@@ -50,10 +50,10 @@ export function ProfessionalAgendaPage() {
   }
 
   return <div className="page-shell">
-    <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <div><h1 className="page-title">Minha agenda</h1><p className="page-subtitle">Visualize atendimentos, organize sua jornada e bloqueie horários pessoais.</p></div>
+    <header className="mb-6 flex flex-col gap-4 border-b border-background-300 pb-7 sm:flex-row sm:items-end sm:justify-between">
+      <div><p className="eyebrow">Operação</p><h1 className="page-title mt-3">Minha agenda</h1><p className="page-subtitle">Visualize atendimentos, organize sua jornada e bloqueie horários pessoais.</p></div>
       <div className="flex flex-wrap gap-2"><button type="button" onClick={() => setScheduleOpen(true)} className="inline-flex items-center gap-2 rounded-xl border border-background-300 bg-background-50 px-4 py-2.5 text-sm font-semibold text-text-700 hover:bg-primary-50"><Settings2 size={17} /> Jornada</button><button type="button" onClick={() => { const start = contextualEventStart(calendarRef.current?.getApi().getDate(), schedule.data ?? [], agendaTimeZone); openNewEvent(start, addHours(start, 1), false) }} className="primary-button"><Plus size={18} /> Novo compromisso</button></div>
-    </div>
+    </header>
     <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
       <div className="inline-flex rounded-xl border border-background-300 bg-background-50 p-1" aria-label="Visualização da agenda">{(['day', 'week', 'month'] as CalendarView[]).map((option) => <button key={option} type="button" aria-pressed={view === option} onClick={() => changeView(option)} className={`rounded-lg px-3 py-1.5 text-sm font-medium ${view === option ? 'bg-primary-600 text-on-primary' : 'text-text-700 hover:bg-primary-50'}`}>{VIEW_LABELS[option]}</button>)}</div>
       <label className="flex items-center gap-2 text-sm font-medium text-text-700"><span>Exibir</span><select value={filter} onChange={(event) => setFilter(event.target.value as AgendaFilter)} className="rounded-lg border border-background-300 bg-background-50 px-3 py-2"><option value="active">Ativos</option><option value="finished">Encerrados</option><option value="all">Todos</option></select></label>
