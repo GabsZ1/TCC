@@ -9,6 +9,7 @@ import br.com.salonhub.service.AppointmentsReportService;
 import br.com.salonhub.service.CommissionReportService;
 import br.com.salonhub.service.DashboardService;
 import br.com.salonhub.service.EstablishmentManagementService;
+import br.com.salonhub.service.EstablishmentOperationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -24,6 +25,7 @@ import java.time.LocalDate;
 public class EstablishmentController {
 
     private final EstablishmentManagementService establishmentManagementService;
+    private final EstablishmentOperationService establishmentOperationService;
     private final DashboardService dashboardService;
     private final CommissionReportService commissionReportService;
     private final AppointmentsReportService appointmentsReportService;
@@ -65,21 +67,21 @@ public class EstablishmentController {
 
     @PatchMapping("/bloqueio-agendamentos")
     public EstablishmentResponse blockBookings(@AuthenticationPrincipal Jwt jwt) {
-        return establishmentManagementService.blockBookings(Long.valueOf(jwt.getSubject()));
+        return establishmentOperationService.blockBookings(Long.valueOf(jwt.getSubject()));
     }
 
     @DeleteMapping("/bloqueio-agendamentos")
     public EstablishmentResponse allowBookings(@AuthenticationPrincipal Jwt jwt) {
-        return establishmentManagementService.allowBookings(Long.valueOf(jwt.getSubject()));
+        return establishmentOperationService.allowBookings(Long.valueOf(jwt.getSubject()));
     }
 
     @PatchMapping("/pausa")
     public EstablishmentResponse pause(@AuthenticationPrincipal Jwt jwt) {
-        return establishmentManagementService.pause(Long.valueOf(jwt.getSubject()));
+        return establishmentOperationService.pause(Long.valueOf(jwt.getSubject()));
     }
 
     @DeleteMapping("/pausa")
     public EstablishmentResponse resume(@AuthenticationPrincipal Jwt jwt) {
-        return establishmentManagementService.resume(Long.valueOf(jwt.getSubject()));
+        return establishmentOperationService.resume(Long.valueOf(jwt.getSubject()));
     }
 }

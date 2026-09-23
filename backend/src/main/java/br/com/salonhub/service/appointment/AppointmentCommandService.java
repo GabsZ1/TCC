@@ -92,7 +92,7 @@ public class AppointmentCommandService {
 
     @Transactional
     public AppointmentResponse cancelAsAdministrator(Long administratorId, Long appointmentId, String reason) {
-        User administrator = tenantAuthorizationService.requireAdministratorIdentity(administratorId);
+        User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
         Appointment appointment = appointmentRepository
                 .findByIdAndEstablishmentId(appointmentId, administrator.getEstablishment().getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Agendamento não encontrado."));

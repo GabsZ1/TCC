@@ -56,7 +56,9 @@ jobs:
         run: chmod +x mvnw
 
       - name: Run backend tests
-        run: ./mvnw --batch-mode test
+        # Mantém o runner em UTC de forma explícita para detectar dependências acidentais
+        # do fuso da máquina; os testes de domínio devem usar o Clock da aplicação.
+        run: ./mvnw --batch-mode --no-transfer-progress -Duser.timezone=UTC test
 
   frontend-checks:
     name: Frontend checks

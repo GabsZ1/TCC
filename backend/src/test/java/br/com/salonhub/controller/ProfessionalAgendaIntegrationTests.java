@@ -18,6 +18,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -37,6 +38,9 @@ class ProfessionalAgendaIntegrationTests {
     private MockMvc mockMvc;
 
     @Autowired
+    private Clock clock;
+
+    @Autowired
     private AppointmentRepository appointmentRepository;
 
     @Autowired
@@ -51,7 +55,7 @@ class ProfessionalAgendaIntegrationTests {
     @Test
     void shouldManageProfessionalScheduleEventsAndUnifiedAgenda() throws Exception {
         TestContext context = createContext();
-        LocalDate date = LocalDate.now().plusDays(2);
+        LocalDate date = LocalDate.now(clock).plusDays(2);
         LocalDateTime eventStart = date.atTime(10, 0);
         LocalDateTime eventEnd = date.atTime(12, 0);
 
@@ -138,7 +142,7 @@ class ProfessionalAgendaIntegrationTests {
     @Test
     void shouldValidateAllDayEventsAndForbidOtherRoles() throws Exception {
         TestContext context = createContext();
-        LocalDate date = LocalDate.now().plusDays(3);
+        LocalDate date = LocalDate.now(clock).plusDays(3);
 
         mockMvc.perform(post("/api/profissionais/me/agenda/eventos")
                         .header("Authorization", bearer(context.professionalToken()))
@@ -161,7 +165,7 @@ class ProfessionalAgendaIntegrationTests {
     @Test
     void shouldRejectCreatingCalendarEventThatAlreadyEnded() throws Exception {
         TestContext context = createContext();
-        LocalDateTime end = LocalDateTime.now().minusMinutes(5);
+        LocalDateTime end = LocalDateTime.now(clock).minusMinutes(5);
 
         mockMvc.perform(post("/api/profissionais/me/agenda/eventos")
                         .header("Authorization", bearer(context.professionalToken()))
@@ -184,7 +188,7 @@ class ProfessionalAgendaIntegrationTests {
                         .content(establishmentWeeklyHours("09:15", "18:00")))
                 .andExpect(status().isOk());
 
-        LocalDate date = LocalDate.now().plusDays(2);
+        LocalDate date = LocalDate.now(clock).plusDays(2);
         mockMvc.perform(get("/api/estabelecimentos/{id}/agendamentos/disponibilidade", context.establishmentId())
                         .header("Authorization", bearer(context.clientToken()))
                         .param("serviceId", context.serviceId().toString())
@@ -213,7 +217,7 @@ class ProfessionalAgendaIntegrationTests {
                         .content(weeklySchedule()))
                 .andExpect(status().isOk());
 
-        LocalDate date = LocalDate.now().plusDays(2);
+        LocalDate date = LocalDate.now(clock).plusDays(2);
         mockMvc.perform(get("/api/estabelecimentos/{id}/agendamentos/disponibilidade", context.establishmentId())
                         .header("Authorization", bearer(context.clientToken()))
                         .param("serviceId", context.serviceId().toString())
@@ -292,7 +296,7 @@ class ProfessionalAgendaIntegrationTests {
     @Test
     void shouldBlockScheduleChangeThatWouldOrphanFutureConfirmedAppointment() throws Exception {
         TestContext context = createContext();
-        LocalDate date = LocalDate.now().plusDays(2);
+        LocalDate date = LocalDate.now(clock).plusDays(2);
         DayOfWeek day = date.getDayOfWeek();
 
         mockMvc.perform(post("/api/estabelecimentos/{id}/agendamentos", context.establishmentId())
@@ -343,7 +347,7 @@ class ProfessionalAgendaIntegrationTests {
         Long clientId = fetchUserId(context.clientToken());
         User client = userRepository.findById(clientId).orElseThrow();
 
-        LocalDateTime startsAt = LocalDateTime.now().minusMinutes(10);
+        LocalDateTime startsAt = LocalDateTime.now(clock).minusMinutes(10);
         DayOfWeek day = startsAt.getDayOfWeek();
         Appointment inProgress = Appointment.schedule(establishment, client, professional, service, startsAt);
         appointmentRepository.saveAndFlush(inProgress);

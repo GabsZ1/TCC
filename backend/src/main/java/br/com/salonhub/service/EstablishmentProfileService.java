@@ -43,14 +43,14 @@ public class EstablishmentProfileService {
     @Transactional(readOnly = true)
     public EstablishmentProfileResponse findMine(Long administratorId) {
         Establishment establishment = tenantAuthorizationService
-                .requireAdministratorIdentity(administratorId).getEstablishment();
+                .requireAdministrator(administratorId).getEstablishment();
         return response(establishment, profileRepository.findByEstablishmentId(establishment.getId()).orElse(null));
     }
 
     @Transactional
     public EstablishmentProfileResponse updateMine(Long administratorId, EstablishmentProfileRequest request) {
         Establishment establishment = tenantAuthorizationService
-                .requireAdministratorIdentity(administratorId).getEstablishment();
+                .requireAdministrator(administratorId).getEstablishment();
         if (!establishment.isActive()) {
             throw new ConflictException("Não é possível editar o perfil de um estabelecimento inativo.");
         }
