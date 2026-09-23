@@ -151,7 +151,17 @@ public class EmployeeService {
     @Transactional
     public AuthenticatedUserResponse deactivate(Long administratorId, Long employeeId) {
         User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
-        User employee = findEmployee(employeeId, administrator.getEstablishment().getId());
+        Long establishmentId = administrator.getEstablishment().getId();
+
+        // Appointment creation/remapping already locks the professional before writing.
+        // Taking the same row lock here serializes deactivation with those flows.
+        // This transaction does not acquire client or establishment locks afterwards,
+        // so it remains a valid subset of the global lock order.
+        User employee = userRepository.findByIdForUpdate(employeeId)
+                .filter(candidate -> candidate.getRole() == UserRole.PROFESSIONAL)
+                .filter(candidate -> candidate.getEstablishment() != null)
+                .filter(candidate -> candidate.getEstablishment().getId().equals(establishmentId))
+                .orElseThrow(() -> new ResourceNotFoundException("Funcionário não encontrado."));
         if (!employee.isActive()) {
             throw new ConflictException("O funcionário já está desativado.");
         }
