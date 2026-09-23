@@ -189,7 +189,7 @@ function MetricLine({ icon: Icon, label, helper, value, bordered = false }: { ic
   )
 }
 
-function QuickAction({ to, icon: Icon, label, bordered = false }: { to: string; icon: ComponentType<{ size?: number }>; label: string; bordered?: boolean }) {
+function QuickAction({ to, icon: Icon, label, bordered = false }: { to: string; icon: ComponentType<{ size?: number; className?: string }>; label: string; bordered?: boolean }) {
   return (
     <Link to={to} className={`group flex items-center justify-between gap-3 px-1 py-4 text-sm font-bold text-white sm:px-4 ${bordered ? 'border-t border-white/10 sm:border-l sm:border-t-0' : ''}`}>
       <span className="flex items-center gap-2.5"><Icon size={17} className="text-primary-300" /> {label}</span>
