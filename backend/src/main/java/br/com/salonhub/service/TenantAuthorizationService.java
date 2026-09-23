@@ -17,9 +17,7 @@ public class TenantAuthorizationService {
 
     @Transactional(readOnly = true)
     public User requireSystemAdministrator(Long userId) {
-        User user = userRepository.findById(userId)
-                .filter(User::isActive)
-                .orElseThrow(() -> new UnauthorizedException("Usuário inválido ou inativo"));
+        User user = requireActiveUser(userId);
 
         if (user.getRole() != UserRole.SYSTEM_ADMIN) {
             throw new AccessDeniedException("Acesso permitido apenas para administradores do sistema");
@@ -29,14 +27,7 @@ public class TenantAuthorizationService {
 
     @Transactional(readOnly = true)
     public User requireAdministrator(Long userId) {
-        return requireAdministratorIdentity(userId);
-    }
-
-    @Transactional(readOnly = true)
-    public User requireAdministratorIdentity(Long userId) {
-        User user = userRepository.findById(userId)
-                .filter(User::isActive)
-                .orElseThrow(() -> new UnauthorizedException("Usuário inválido ou inativo"));
+        User user = requireActiveUser(userId);
 
         if (user.getRole() != UserRole.ADMIN) {
             throw new AccessDeniedException("Acesso permitido apenas para administradores");
@@ -53,9 +44,7 @@ public class TenantAuthorizationService {
 
     @Transactional(readOnly = true)
     public User requireClient(Long userId) {
-        User user = userRepository.findById(userId)
-                .filter(User::isActive)
-                .orElseThrow(() -> new UnauthorizedException("Usuário inválido ou inativo"));
+        User user = requireActiveUser(userId);
 
         if (user.getRole() != UserRole.CLIENT) {
             throw new AccessDeniedException("Acesso permitido apenas para clientes");
@@ -65,15 +54,8 @@ public class TenantAuthorizationService {
     }
 
     @Transactional(readOnly = true)
-    public User requireProfessionalAtActiveEstablishment(Long userId) {
-        return requireProfessional(userId);
-    }
-
-    @Transactional(readOnly = true)
     public User requireProfessional(Long userId) {
-        User user = userRepository.findById(userId)
-                .filter(User::isActive)
-                .orElseThrow(() -> new UnauthorizedException("Usuário inválido ou inativo"));
+        User user = requireActiveUser(userId);
 
         if (user.getRole() != UserRole.PROFESSIONAL) {
             throw new AccessDeniedException("Acesso permitido apenas para profissionais");
@@ -86,5 +68,11 @@ public class TenantAuthorizationService {
         }
 
         return user;
+    }
+
+    private User requireActiveUser(Long userId) {
+        return userRepository.findById(userId)
+                .filter(User::isActive)
+                .orElseThrow(() -> new UnauthorizedException("Usuário inválido ou inativo"));
     }
 }

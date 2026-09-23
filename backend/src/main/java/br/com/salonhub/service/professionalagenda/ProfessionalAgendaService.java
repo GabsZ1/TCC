@@ -275,7 +275,7 @@ public class ProfessionalAgendaService {
     }
 
     private User lockProfessional(Long professionalId) {
-        authorizationService.requireProfessionalAtActiveEstablishment(professionalId);
+        authorizationService.requireProfessional(professionalId);
         return userRepository.findByIdForUpdate(professionalId)
                 .filter(User::isActive)
                 .filter(user -> user.getRole() == UserRole.PROFESSIONAL && user.getEstablishment() != null)
@@ -283,7 +283,7 @@ public class ProfessionalAgendaService {
     }
 
     private User requireActiveProfessionalWithEstablishment(Long professionalId) {
-        User professional = authorizationService.requireProfessionalAtActiveEstablishment(professionalId);
+        User professional = authorizationService.requireProfessional(professionalId);
         if (professional.getEstablishment() == null) {
             throw new ResourceNotFoundException("Profissional não possui estabelecimento vinculado.");
         }

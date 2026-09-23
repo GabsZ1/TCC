@@ -31,7 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class EstablishmentDeactivationConcurrencyIntegrationTests {
 
     @Autowired private AppointmentCommandService appointmentCommandService;
-    @Autowired private EstablishmentManagementService establishmentManagementService;
+    @Autowired private EstablishmentOperationService establishmentOperationService;
     @Autowired private EstablishmentRepository establishmentRepository;
     @Autowired private EstablishmentBusinessHourRepository businessHourRepository;
     @Autowired private EstablishmentServiceRepository serviceRepository;
@@ -70,7 +70,7 @@ class EstablishmentDeactivationConcurrencyIntegrationTests {
             Future<Boolean> blocking = executor.submit(() -> {
                 start.await();
                 try {
-                    establishmentManagementService.blockBookings(administrator.getId());
+                    establishmentOperationService.blockBookings(administrator.getId());
                     return true;
                 } catch (RuntimeException exception) {
                     return false;

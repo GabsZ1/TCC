@@ -64,7 +64,7 @@ public class AppointmentQueryService {
     @Transactional(readOnly = true)
     public List<AppointmentResponse> findEstablishmentAgenda(
             Long administratorId, LocalDate date, Long professionalId, AppointmentStatus status) {
-        User administrator = tenantAuthorizationService.requireAdministratorIdentity(administratorId);
+        User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
         LocalDateTime dayStart = date == null ? null : date.atStartOfDay();
         LocalDateTime dayEnd = date == null ? null : date.plusDays(1).atStartOfDay();
 
