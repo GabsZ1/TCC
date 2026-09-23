@@ -56,18 +56,26 @@ public class AppointmentCommandService {
     @Transactional
     public AppointmentResponse update(Long clientId, Long appointmentId, AppointmentCreateRequest request) {
         User client = lockClient(clientId);
-        Appointment appointment = appointmentRepository.findByIdAndClientId(appointmentId, client.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Agendamento não encontrado."));
-        if (appointment.getStatus() != AppointmentStatus.CONFIRMED
-                || !appointment.getStartsAt().isAfter(LocalDateTime.now(clock))) {
-            throw new ConflictException("Apenas agendamentos futuros e confirmados podem ser editados.");
-        }
 
-        Long establishmentId = appointment.getEstablishment().getId();
+        // This first read only discovers the establishment needed by the global lock order.
+        // State and ownership are checked again after the appointment row is locked.
+        Long establishmentId = appointmentRepository
+                .findEstablishmentIdByIdAndClientId(appointmentId, client.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Agendamento não encontrado."));
+
         Establishment establishment = findActiveEstablishmentForUpdate(establishmentId);
         EstablishmentService service = findActiveService(request.serviceId(), establishmentId);
         User professional = findAndLockProfessional(request.professionalId(), establishmentId);
         requireProfessionalOffersService(professional, service);
+
+        Appointment appointment = appointmentRepository
+                .findByIdAndClientIdForUpdate(appointmentId, client.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Agendamento não encontrado."));
+        if (!appointment.getEstablishment().getId().equals(establishmentId)
+                || appointment.getStatus() != AppointmentStatus.CONFIRMED
+                || !appointment.getStartsAt().isAfter(LocalDateTime.now(clock))) {
+            throw new ConflictException("Apenas agendamentos futuros e confirmados podem ser editados.");
+        }
 
         LocalDateTime startsAt = request.startsAt();
         LocalDateTime endsAt = startsAt.plusMinutes(service.getDurationMinutes());
@@ -80,7 +88,7 @@ public class AppointmentCommandService {
     @Transactional
     public AppointmentResponse cancel(Long clientId, Long appointmentId) {
         User client = tenantAuthorizationService.requireClient(clientId);
-        Appointment appointment = appointmentRepository.findByIdAndClientId(appointmentId, client.getId())
+        Appointment appointment = appointmentRepository.findByIdAndClientIdForUpdate(appointmentId, client.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Agendamento não encontrado."));
         if (appointment.getStatus() != AppointmentStatus.CONFIRMED
                 || !appointment.getStartsAt().isAfter(LocalDateTime.now(clock))) {
@@ -94,7 +102,7 @@ public class AppointmentCommandService {
     public AppointmentResponse cancelAsAdministrator(Long administratorId, Long appointmentId, String reason) {
         User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
         Appointment appointment = appointmentRepository
-                .findByIdAndEstablishmentId(appointmentId, administrator.getEstablishment().getId())
+                .findByIdAndEstablishmentIdForUpdate(appointmentId, administrator.getEstablishment().getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Agendamento não encontrado."));
         if (appointment.getStatus() != AppointmentStatus.CONFIRMED) {
             throw new ConflictException("Apenas agendamentos confirmados podem ser cancelados.");
@@ -104,7 +112,7 @@ public class AppointmentCommandService {
     }
     @Transactional
     public AppointmentResponse complete(Long userId, Long appointmentId) {
-        Appointment appointment = appointmentRepository.findById(appointmentId)
+        Appointment appointment = appointmentRepository.findByIdForUpdate(appointmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Agendamento não encontrado."));
         requireOwningProfessionalOrAdministrator(userId, appointment);
         if (appointment.getStatus() != AppointmentStatus.CONFIRMED) {
@@ -122,7 +130,7 @@ public class AppointmentCommandService {
     public AppointmentResponse invalidate(Long administratorId, Long appointmentId, String reason) {
         User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
         Appointment appointment = appointmentRepository
-                .findByIdAndEstablishmentId(appointmentId, administrator.getEstablishment().getId())
+                .findByIdAndEstablishmentIdForUpdate(appointmentId, administrator.getEstablishment().getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Agendamento não encontrado."));
         if (appointment.getStatus() != AppointmentStatus.COMPLETED) {
             throw new ConflictException("Apenas agendamentos concluídos podem ser invalidados.");

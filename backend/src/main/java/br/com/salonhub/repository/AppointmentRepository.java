@@ -3,8 +3,11 @@ package br.com.salonhub.repository;
 import br.com.salonhub.entity.Appointment;
 import br.com.salonhub.entity.AppointmentStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import jakarta.persistence.LockModeType;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -12,6 +15,53 @@ import java.util.List;
 import java.util.Optional;
 
 public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
+
+    @Query("""
+            select appointment.establishment.id
+            from Appointment appointment
+            where appointment.id = :id
+              and appointment.client.id = :clientId
+            """)
+    Optional<Long> findEstablishmentIdByIdAndClientId(
+            @Param("id") Long id,
+            @Param("clientId") Long clientId);
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select appointment from Appointment appointment where appointment.id = :id")
+    Optional<Appointment> findByIdForUpdate(@Param("id") Long id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select appointment
+            from Appointment appointment
+            where appointment.id = :id
+              and appointment.client.id = :clientId
+            """)
+    Optional<Appointment> findByIdAndClientIdForUpdate(
+            @Param("id") Long id,
+            @Param("clientId") Long clientId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select appointment
+            from Appointment appointment
+            where appointment.id = :id
+              and appointment.establishment.id = :establishmentId
+            """)
+    Optional<Appointment> findByIdAndEstablishmentIdForUpdate(
+            @Param("id") Long id,
+            @Param("establishmentId") Long establishmentId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select appointment
+            from Appointment appointment
+            where appointment.establishment.id = :establishmentId
+              and appointment.status = :status
+            order by appointment.id
+            """)
+    List<Appointment> findByEstablishmentIdAndStatusForUpdate(
+            @Param("establishmentId") Long establishmentId,
+            @Param("status") AppointmentStatus status);
 
     boolean existsByProfessionalIdAndStatusAndStartsAtLessThanAndEndsAtGreaterThan(
             Long professionalId,
