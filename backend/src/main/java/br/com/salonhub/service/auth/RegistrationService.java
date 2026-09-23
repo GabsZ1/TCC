@@ -6,11 +6,13 @@ import br.com.salonhub.dto.auth.InitialRegistrationRequest;
 import br.com.salonhub.dto.auth.InitialRegistrationResponse;
 import br.com.salonhub.entity.Establishment;
 import br.com.salonhub.entity.EstablishmentBusinessHour;
+import br.com.salonhub.entity.EstablishmentProfile;
 import br.com.salonhub.entity.User;
 import br.com.salonhub.entity.UserRole;
 import br.com.salonhub.exception.ConflictException;
 import br.com.salonhub.repository.EstablishmentBusinessHourRepository;
 import br.com.salonhub.repository.EstablishmentRepository;
+import br.com.salonhub.repository.EstablishmentProfileRepository;
 import br.com.salonhub.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -27,6 +29,7 @@ import java.util.Locale;
 public class RegistrationService {
 
     private final EstablishmentRepository establishmentRepository;
+    private final EstablishmentProfileRepository profileRepository;
     private final EstablishmentBusinessHourRepository businessHourRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -48,8 +51,18 @@ public class RegistrationService {
                         .name(request.establishmentName().trim())
                         .cnpj(cnpj)
                         .email(normalizeOptionalText(request.establishmentEmail()))
-                        .phone(normalizeOptionalText(request.establishmentPhone()))
                         .build());
+
+        String establishmentPhone = normalizeOptionalText(request.establishmentPhone());
+        if (establishmentPhone != null) {
+            String normalizedPhone = establishmentPhone.replaceAll("[^0-9+]", "");
+            if (!normalizedPhone.isBlank()) {
+                profileRepository.save(EstablishmentProfile.builder()
+                        .establishment(establishment)
+                        .phone(normalizedPhone)
+                        .build());
+            }
+        }
 
         createDefaultBusinessHours(establishment);
         User administrator = userRepository.save(

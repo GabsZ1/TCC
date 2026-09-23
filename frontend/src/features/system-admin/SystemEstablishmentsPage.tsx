@@ -47,7 +47,7 @@ export function SystemEstablishmentsPage() {
 
   return (
     <div className="page-shell">
-      <header><p className="eyebrow">Administração do sistema</p><h1 className="page-title mt-2">Estabelecimentos</h1><p className="page-subtitle">Controle reservas, operação e acesso à plataforma sem apagar o histórico.</p></header>
+      <header className="border-b border-background-300 pb-7"><p className="eyebrow">Administração do sistema</p><h1 className="page-title mt-2">Estabelecimentos</h1><p className="page-subtitle">Controle reservas, operação e acesso à plataforma sem apagar o histórico.</p></header>
       {message && <p role="status" className="mt-6 rounded-xl bg-success-50 px-4 py-3 text-sm text-success-700">{message}</p>}
       {stateMutation.isError && <p role="alert" className="mt-6 rounded-xl bg-danger-50 px-4 py-3 text-sm text-danger-600">{getApiErrorMessage(stateMutation.error, 'Não foi possível alterar o estado do estabelecimento.')}</p>}
       <section className="surface-card mt-7 overflow-hidden">

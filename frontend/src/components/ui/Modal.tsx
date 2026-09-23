@@ -65,7 +65,7 @@ export function Modal({ title, onClose, children, size = 'md' }: ModalProps) {
     >
       <div
         ref={dialogRef}
-        className={`max-h-[calc(100dvh-2rem)] w-full overflow-y-auto rounded-[1.35rem] border border-background-300 bg-background-50 shadow-[var(--shadow-popover)] ${size === 'lg' ? 'max-w-3xl' : 'max-w-md'}`}
+        className={`max-h-[calc(100dvh-2rem)] w-full overflow-y-auto rounded-[1rem] border border-background-300 bg-background-50 shadow-[var(--shadow-popover)] ${size === 'lg' ? 'max-w-3xl' : 'max-w-md'}`}
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -74,15 +74,15 @@ export function Modal({ title, onClose, children, size = 'md' }: ModalProps) {
       >
         <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-background-300 bg-background-50/95 px-5 py-4 backdrop-blur-xl sm:px-6">
           <div>
-            <p className="text-[0.62rem] font-bold uppercase tracking-[0.14em] text-text-400">SalonHub</p>
-            <h2 id={titleId} className="mt-1 font-[var(--font-display)] text-xl font-semibold tracking-[-0.025em] text-text-950">
+            <p className="text-[0.6rem] font-extrabold uppercase tracking-[0.16em] text-primary-700">SalonHub</p>
+            <h2 id={titleId} className="mt-1 text-xl font-extrabold tracking-[-0.035em] text-text-950">
               {title}
             </h2>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="grid size-9 shrink-0 place-items-center rounded-xl border border-background-300 text-text-500 hover:bg-background-200 hover:text-text-800"
+            className="grid size-9 shrink-0 place-items-center rounded-[0.65rem] border border-background-300 text-text-500 hover:bg-background-200 hover:text-text-800"
             aria-label="Fechar"
           >
             <X size={17} />

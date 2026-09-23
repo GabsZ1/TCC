@@ -159,7 +159,7 @@ export function EmployeesListPage() {
 
   return (
     <div className="page-shell">
-      <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+      <header className="flex flex-col gap-5 border-b border-background-300 pb-7 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="eyebrow">Gestão de equipe</p>
           <h1 className="page-title mt-2">Funcionários</h1>
@@ -170,10 +170,10 @@ export function EmployeesListPage() {
         </button>
       </header>
 
-      <section className="mt-7 grid gap-3 sm:grid-cols-3">
-        <MiniMetric icon={<UsersRound size={18} />} label="Total" value={sortedEmployees.length} />
-        <MiniMetric icon={<UserCheck size={18} />} label="Ativos" value={activeCount} tone="success" />
-        <MiniMetric icon={<UserX size={18} />} label="Inativos" value={inactiveCount} tone="muted" />
+      <section className="surface-card mt-7 grid overflow-hidden sm:grid-cols-3">
+        <MiniMetric icon={<UsersRound size={17} />} label="Total" value={sortedEmployees.length} />
+        <MiniMetric icon={<UserCheck size={17} />} label="Ativos" value={activeCount} tone="success" bordered />
+        <MiniMetric icon={<UserX size={17} />} label="Inativos" value={inactiveCount} tone="muted" bordered />
       </section>
 
       {removalMessage && (
@@ -269,9 +269,9 @@ export function EmployeesListPage() {
   )
 }
 
-function MiniMetric({ icon, label, value, tone = 'primary' }: { icon: React.ReactNode; label: string; value: number; tone?: 'primary' | 'success' | 'muted' }) {
-  const styles = tone === 'success' ? 'bg-success-50 text-success-700' : tone === 'muted' ? 'bg-background-200 text-text-600' : 'bg-primary-100 text-primary-700'
-  return <div className="surface-card flex items-center gap-3 p-4"><span className={`grid size-9 place-items-center rounded-xl ${styles}`}>{icon}</span><div><p className="text-xl font-bold tracking-[-0.03em] text-text-950">{value}</p><p className="text-xs font-medium text-text-500">{label}</p></div></div>
+function MiniMetric({ icon, label, value, tone = 'primary', bordered = false }: { icon: React.ReactNode; label: string; value: number; tone?: 'primary' | 'success' | 'muted'; bordered?: boolean }) {
+  const iconStyle = tone === 'success' ? 'text-success-700' : tone === 'muted' ? 'text-text-600' : 'text-primary-700'
+  return <div className={`flex items-center gap-3 p-4 sm:p-5 ${bordered ? 'border-t border-background-300 sm:border-l sm:border-t-0' : ''}`}><span className={`grid size-8 place-items-center ${iconStyle}`}>{icon}</span><div><p className="text-xl font-extrabold tracking-[-0.04em] text-text-950">{value}</p><p className="text-xs font-semibold text-text-500">{label}</p></div></div>
 }
 
 function EmployeeAvatar({ name }: { name: string }) {

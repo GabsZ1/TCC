@@ -63,6 +63,11 @@ class AuthControllerIntegrationTests {
                 .andExpect(jsonPath("$.email").value("auth.integration@salonhub.test"))
                 .andExpect(jsonPath("$.role").value("ADMIN"))
                 .andExpect(jsonPath("$.establishmentName").value("Salão Integração"));
+
+        mockMvc.perform(get("/api/estabelecimentos/me/perfil")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.phone").value("44999999999"));
     }
 
     @Test

@@ -2,7 +2,6 @@ import { lazy, Suspense } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { ProtectedRoute } from '@/routes/ProtectedRoute'
 import { AppLayout } from '@/components/layout/AppLayout'
-import { ThemeToggle } from '@/components/ui/ThemeToggle'
 
 const LoginPage = lazy(() => import('@/features/auth/pages/LoginPage').then((module) => ({ default: module.LoginPage })))
 const ForbiddenPage = lazy(() => import('@/features/auth/pages/ForbiddenPage').then((module) => ({ default: module.ForbiddenPage })))
@@ -25,50 +24,57 @@ const SystemEstablishmentsPage = lazy(() => import('@/features/system-admin/Syst
 
 function App() {
   return (
-    <><ThemeToggle /><Suspense fallback={<RouteLoading />}><Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/cadastro" element={<InitialRegistrationPage />} />
-      <Route path="/cadastro-cliente" element={<ClientRegistrationPage />} />
-      <Route path="/primeiro-acesso" element={<FirstAccessPage />} />
-      <Route path="/sem-permissao" element={<ForbiddenPage />} />
+    <Suspense fallback={<RouteLoading />}>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/cadastro" element={<InitialRegistrationPage />} />
+        <Route path="/cadastro-cliente" element={<ClientRegistrationPage />} />
+        <Route path="/primeiro-acesso" element={<FirstAccessPage />} />
+        <Route path="/sem-permissao" element={<ForbiddenPage />} />
 
-      {/* Rotas autenticadas, dentro do layout com sidebar */}
-      <Route element={<ProtectedRoute />}>
-        <Route element={<AppLayout />}>
-          <Route path="/" element={<DashboardPage />} />
+        <Route element={<ProtectedRoute />}>
+          <Route element={<AppLayout />}>
+            <Route path="/" element={<DashboardPage />} />
 
-          <Route element={<ProtectedRoute allowedRoles={['SYSTEM_ADMIN']} />}>
-            <Route path="/admin/estabelecimentos" element={<SystemEstablishmentsPage />} />
-          </Route>
+            <Route element={<ProtectedRoute allowedRoles={['SYSTEM_ADMIN']} />}>
+              <Route path="/admin/estabelecimentos" element={<SystemEstablishmentsPage />} />
+            </Route>
 
-          {/* Exemplo de restrição por perfil: apenas admin do estabelecimento */}
-          <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
-            <Route path="/funcionarios" element={<EmployeesListPage />} />
-            <Route path="/servicos" element={<ServicesPage />} />
-            <Route path="/estabelecimento" element={<EstablishmentPage />} />
-            <Route path="/perfil-estabelecimento" element={<EstablishmentProfilePage />} />
-            <Route path="/agenda" element={<AdminAgendaPage />} />
-            <Route path="/relatorio-comissoes" element={<CommissionReportPage />} />
-            <Route path="/relatorio-atendimentos" element={<AppointmentsReportPage />} />
-          </Route>
+            <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
+              <Route path="/funcionarios" element={<EmployeesListPage />} />
+              <Route path="/servicos" element={<ServicesPage />} />
+              <Route path="/estabelecimento" element={<EstablishmentPage />} />
+              <Route path="/perfil-estabelecimento" element={<EstablishmentProfilePage />} />
+              <Route path="/agenda" element={<AdminAgendaPage />} />
+              <Route path="/relatorio-comissoes" element={<CommissionReportPage />} />
+              <Route path="/relatorio-atendimentos" element={<AppointmentsReportPage />} />
+            </Route>
 
-          <Route element={<ProtectedRoute allowedRoles={['CLIENT']} />}>
-            <Route path="/agendamentos" element={<AppointmentsPage />} />
-            <Route path="/estabelecimentos/:establishmentId/agendar" element={<BookingPage />} />
-          </Route>
+            <Route element={<ProtectedRoute allowedRoles={['CLIENT']} />}>
+              <Route path="/agendamentos" element={<AppointmentsPage />} />
+              <Route path="/estabelecimentos/:establishmentId/agendar" element={<BookingPage />} />
+            </Route>
 
-          <Route element={<ProtectedRoute allowedRoles={['PROFESSIONAL']} />}>
-            <Route path="/minha-agenda" element={<ProfessionalAgendaPage />} />
-            <Route path="/meus-servicos" element={<MyServicesPage />} />
+            <Route element={<ProtectedRoute allowedRoles={['PROFESSIONAL']} />}>
+              <Route path="/minha-agenda" element={<ProfessionalAgendaPage />} />
+              <Route path="/meus-servicos" element={<MyServicesPage />} />
+            </Route>
           </Route>
         </Route>
-      </Route>
-      </Routes></Suspense></>
+      </Routes>
+    </Suspense>
   )
 }
 
 function RouteLoading() {
-  return <div className="grid min-h-screen place-items-center bg-background-100 text-sm font-medium text-text-600">Carregando página...</div>
+  return (
+    <div className="grid min-h-screen place-items-center bg-background-100">
+      <div className="flex items-center gap-3 text-sm font-bold text-text-600">
+        <span className="size-2 animate-pulse rounded-full bg-primary-600" />
+        Carregando SalonHub
+      </div>
+    </div>
+  )
 }
 
 export default App

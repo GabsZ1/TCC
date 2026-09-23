@@ -30,7 +30,7 @@ class EstablishmentControllerIntegrationTests {
 
     private static final String ENDPOINT = "/api/estabelecimentos/me";
     private static final String VALID_UPDATE = """
-            {"name":"  Salão Atualizado  ","email":"contato@salonhub.test","phone":" 44999999999 "}
+            {"name":"  Salão Atualizado  ","email":"contato@salonhub.test"}
             """;
 
     @Autowired private MockMvc mockMvc;
@@ -61,8 +61,7 @@ class EstablishmentControllerIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(firstId))
                 .andExpect(jsonPath("$.name").value("Salão Atualizado"))
-                .andExpect(jsonPath("$.cnpj").value("12345678000195"))
-                .andExpect(jsonPath("$.phone").value("44999999999"));
+                .andExpect(jsonPath("$.cnpj").value("12345678000195"));
 
         entityManager.flush();
         entityManager.clear();
@@ -81,12 +80,11 @@ class EstablishmentControllerIntegrationTests {
         mockMvc.perform(put(ENDPOINT).header("Authorization", bearer(first))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":"Novo nome","email":"","phone":" "}
+                                {"name":"Novo nome","email":""}
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.cnpj").value("12345678000195"))
-                .andExpect(jsonPath("$.email").isEmpty())
-                .andExpect(jsonPath("$.phone").isEmpty());
+                .andExpect(jsonPath("$.email").isEmpty());
     }
 
     @Test
@@ -96,7 +94,7 @@ class EstablishmentControllerIntegrationTests {
         mockMvc.perform(put(ENDPOINT).header("Authorization", bearer(admin))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":"Nome atualizado","email":"","phone":" "}
+                                {"name":"Nome atualizado","email":""}
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.cnpj").value("12345678000195"));
@@ -109,13 +107,12 @@ class EstablishmentControllerIntegrationTests {
         mockMvc.perform(put(ENDPOINT).header("Authorization", bearer(admin))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":" ","email":"invalido","phone":"123456789012345678901"}
+                                {"name":" ","email":"invalido"}
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Dados inválidos"))
                 .andExpect(jsonPath("$.fields.name").value("O nome do estabelecimento é obrigatório"))
-                .andExpect(jsonPath("$.fields.email").value("E-mail em formato inválido"))
-                .andExpect(jsonPath("$.fields.phone").value("O telefone deve ter no máximo 20 caracteres"));
+                .andExpect(jsonPath("$.fields.email").value("E-mail em formato inválido"));
     }
 
     @Test

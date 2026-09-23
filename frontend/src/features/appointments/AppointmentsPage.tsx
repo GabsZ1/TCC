@@ -92,22 +92,22 @@ export function AppointmentsPage() {
           </div>
         </section>
 
-        <aside className="h-fit overflow-hidden rounded-[1.35rem] bg-primary-900 text-white shadow-[var(--shadow-lifted)] xl:sticky xl:top-7">
+        <aside className="h-fit overflow-hidden rounded-[1rem] bg-secondary-700 text-white shadow-[var(--shadow-lifted)] xl:sticky xl:top-7">
           <div className="relative p-6">
-            <div className="pointer-events-none absolute -right-12 -top-12 size-40 rounded-full border border-white/10" />
-            <span className="grid size-11 place-items-center rounded-xl bg-white/10 text-primary-200"><CalendarPlus size={20} /></span>
-            <h2 className="mt-5 font-[var(--font-display)] text-2xl font-semibold tracking-[-0.03em]">Marcar um horário</h2>
-            <p className="mt-2 text-sm leading-6 text-primary-100">Conheça cada estabelecimento ou vá direto para o agendamento.</p>
+            <div className="absolute inset-y-0 right-0 w-[4px] bg-primary-500" aria-hidden="true" />
+            <span className="grid size-10 place-items-center rounded-[0.65rem] bg-white/[0.08] text-primary-300"><CalendarPlus size={19} /></span>
+            <h2 className="mt-5 text-2xl font-extrabold tracking-[-0.04em]">Marcar um horário</h2>
+            <p className="mt-2 text-sm leading-6 text-[#c3cde0]">Conheça cada estabelecimento ou vá direto para o agendamento.</p>
             <div className="mt-6 space-y-3">
-              {establishments.isLoading && <p className="rounded-xl bg-white/10 px-4 py-3 text-sm text-primary-100">Carregando estabelecimentos...</p>}
+              {establishments.isLoading && <p className="rounded-xl bg-white/10 px-4 py-3 text-sm text-[#c3cde0]">Carregando estabelecimentos...</p>}
               {establishments.isError && <p className="mt-3 text-sm text-danger-700">{getApiErrorMessage(establishments.error, 'Não foi possível carregar os estabelecimentos.')}</p>}
-              {!establishments.isLoading && !establishments.isError && establishments.data?.length === 0 && <p className="mt-3 text-sm text-primary-100">Nenhum estabelecimento está disponível no momento.</p>}
+              {!establishments.isLoading && !establishments.isError && establishments.data?.length === 0 && <p className="mt-3 text-sm text-[#c3cde0]">Nenhum estabelecimento está disponível no momento.</p>}
               {establishments.data?.map((establishment) => (
-                <article key={establishment.id} className="rounded-xl border border-white/15 bg-white/10 p-3.5">
+                <article key={establishment.id} className="rounded-[0.75rem] border border-white/12 bg-white/[0.055] p-3.5">
                   <p className="font-semibold text-white">{establishment.name}</p>
                   <div className="mt-3 grid grid-cols-2 gap-2">
-                    <button type="button" onClick={() => setDetails(establishment)} className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-white/20 px-3 py-2 text-xs font-semibold text-white hover:bg-white/10"><Eye size={14} /> Detalhes</button>
-                    <button type="button" onClick={() => navigate(`/estabelecimentos/${establishment.id}/agendar`)} className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-white px-3 py-2 text-xs font-semibold text-primary-900 hover:bg-primary-50">Agendar <ArrowRight size={14} /></button>
+                    <button type="button" onClick={() => setDetails(establishment)} className="inline-flex items-center justify-center gap-1.5 rounded-[0.6rem] border border-white/20 px-3 py-2 text-xs font-semibold text-white hover:bg-white/10"><Eye size={14} /> Detalhes</button>
+                    <button type="button" onClick={() => navigate(`/estabelecimentos/${establishment.id}/agendar`)} className="inline-flex items-center justify-center gap-1.5 rounded-[0.6rem] bg-white px-3 py-2 text-xs font-semibold text-primary-900 hover:bg-primary-50">Agendar <ArrowRight size={14} /></button>
                   </div>
                 </article>
               ))}

@@ -31,8 +31,8 @@ export function ConfirmDialog({
 
   return (
     <Modal title={title} onClose={onCancel}>
-      <div className="flex items-start gap-3 rounded-xl border border-warning-500/20 bg-warning-50 p-4">
-        <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-warning-100 text-warning-700">
+      <div className="flex items-start gap-3 rounded-[0.8rem] border border-warning-500/20 bg-warning-50 p-4">
+        <span className="grid size-9 shrink-0 place-items-center rounded-[0.65rem] bg-warning-100 text-warning-700">
           <AlertTriangle size={17} />
         </span>
         <p className="pt-1 text-sm leading-6 text-text-700">{message}</p>
@@ -55,7 +55,7 @@ export function ConfirmDialog({
       )}
 
       {errorMessage && (
-        <p role="alert" className="mt-4 rounded-xl border border-danger-500/20 bg-danger-50 px-3.5 py-3 text-sm text-danger-600">
+        <p role="alert" className="mt-4 rounded-[0.8rem] border border-danger-500/20 bg-danger-50 px-3.5 py-3 text-sm text-danger-600">
           {errorMessage}
         </p>
       )}
@@ -66,7 +66,7 @@ export function ConfirmDialog({
           type="button"
           onClick={onConfirm}
           disabled={isConfirmDisabled}
-          className="inline-flex items-center justify-center rounded-xl bg-danger-600 px-4 py-2.5 text-sm font-semibold text-on-danger shadow-sm hover:bg-danger-500 disabled:cursor-not-allowed disabled:opacity-55"
+          className="inline-flex items-center justify-center rounded-[0.72rem] bg-danger-600 px-4 py-2.5 text-sm font-bold text-on-danger shadow-sm hover:bg-danger-500 disabled:cursor-not-allowed disabled:opacity-55"
         >
           {isLoading ? 'Aguarde...' : confirmLabel}
         </button>

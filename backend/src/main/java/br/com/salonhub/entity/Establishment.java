@@ -37,9 +37,6 @@ public class Establishment {
     @Column(length = 150)
     private String email;
 
-    @Column(length = 20)
-    private String phone;
-
     @Column(nullable = false)
     @Builder.Default
     private boolean active = true;
@@ -76,10 +73,9 @@ public class Establishment {
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
-    public void updateRegistration(String name, String email, String phone) {
+    public void updateRegistration(String name, String email) {
         this.name = name;
         this.email = email;
-        this.phone = phone;
     }
 
     public void updateAppointmentAdvancePolicy(int minimumAdvanceMinutes, int maximumAdvanceDays) {
