@@ -23,7 +23,17 @@ public class JwtConfig {
 
     @Bean
     SecretKey jwtSecretKey(@Value("${app.jwt.secret}") String secret) {
-        byte[] decoded = Base64.getDecoder().decode(secret);
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalArgumentException(
+                    "JWT_SECRET e obrigatorio e deve possuir ao menos 256 bits em Base64");
+        }
+
+        byte[] decoded;
+        try {
+            decoded = Base64.getDecoder().decode(secret.trim());
+        } catch (IllegalArgumentException exception) {
+            throw new IllegalArgumentException("JWT_SECRET deve ser um valor Base64 valido", exception);
+        }
         if (decoded.length < 32) {
             throw new IllegalArgumentException("JWT_SECRET deve possuir ao menos 256 bits em Base64");
         }
