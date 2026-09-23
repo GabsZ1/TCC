@@ -105,30 +105,33 @@ public class ProfessionalAgendaService {
     }
 
     /**
-     * Impede salvar uma jornada que tornaria agendamentos futuros já confirmados incompatíveis
-     * com o novo horário (ex.: fechar um dia ou reduzir o expediente exatamente no horário de
-     * um atendimento já marcado). Sem essa checagem, a agenda ficava contraditória: um
-     * atendimento CONFIRMED existindo num horário em que o profissional formalmente "não
-     * trabalha mais".
+     * Impede salvar uma jornada que tornaria agendamentos já confirmados (futuros ou em
+     * andamento) incompatíveis com o novo horário (ex.: fechar um dia ou reduzir o expediente
+     * exatamente no horário de um atendimento já marcado ou que já esteja em curso). Usa o
+     * término do agendamento (não o início) como corte, para cobrir também um atendimento que
+     * já começou mas ainda não terminou — mesmo critério usado em EmployeeService.deactivate()
+     * e EstablishmentManagementService.deactivate(). Sem essa checagem, a agenda ficava
+     * contraditória: um atendimento CONFIRMED existindo num horário em que o profissional
+     * formalmente "não trabalha mais".
      */
     private void requireNoConflictingFutureAppointments(
             User professional,
             Map<DayOfWeek, EstablishmentBusinessHour> establishmentHours,
             Map<DayOfWeek, ProfessionalHourRequest> requestByDay) {
-        List<Appointment> futureConfirmed = appointmentRepository
-                .findByProfessionalIdAndStatusAndStartsAtGreaterThanOrderByStartsAt(
+        List<Appointment> relevantConfirmed = appointmentRepository
+                .findByProfessionalIdAndStatusAndEndsAtGreaterThanOrderByStartsAt(
                         professional.getId(), AppointmentStatus.CONFIRMED, LocalDateTime.now(clock));
-        if (futureConfirmed.isEmpty()) {
+        if (relevantConfirmed.isEmpty()) {
             return;
         }
-        long conflicting = futureConfirmed.stream()
+        long conflicting = relevantConfirmed.stream()
                 .filter(appointment -> fallsOutsideNewSchedule(appointment, establishmentHours, requestByDay))
                 .count();
         if (conflicting > 0) {
             throw new ConflictException(
                     "Não foi possível alterar a jornada: " + conflicting
-                            + " agendamento(s) confirmado(s) ficariam fora do novo horário. Cancele-os, "
-                            + "aguarde a conclusão ou ajuste a jornada para mantê-los dentro do expediente.");
+                            + " agendamento(s) confirmado(s) futuro(s) ou em andamento ficariam fora do novo horário. "
+                            + "Cancele-os, aguarde a conclusão ou ajuste a jornada para mantê-los dentro do expediente.");
         }
     }
 
@@ -167,6 +170,10 @@ public class ProfessionalAgendaService {
     public CalendarEventResponse createEvent(Long professionalId, CalendarEventRequest request) {
         User professional = lockProfessional(professionalId);
         validateEvent(request, professional.getId(), null);
+        LocalDateTime now = LocalDateTime.now(clock);
+        if (!request.endsAt().isAfter(now)) {
+            throw new InvalidRequestException("Não é possível criar um compromisso que já terminou.");
+        }
         ProfessionalCalendarEvent event = ProfessionalCalendarEvent.create(
                 professional.getEstablishment(), professional, request.title(), request.description(),
                 request.startsAt(), request.endsAt(), request.allDay());
@@ -268,7 +275,7 @@ public class ProfessionalAgendaService {
     }
 
     private User lockProfessional(Long professionalId) {
-        authorizationService.requireProfessionalAtActiveEstablishment(professionalId);
+        authorizationService.requireProfessional(professionalId);
         return userRepository.findByIdForUpdate(professionalId)
                 .filter(User::isActive)
                 .filter(user -> user.getRole() == UserRole.PROFESSIONAL && user.getEstablishment() != null)
@@ -276,7 +283,7 @@ public class ProfessionalAgendaService {
     }
 
     private User requireActiveProfessionalWithEstablishment(Long professionalId) {
-        User professional = authorizationService.requireProfessionalAtActiveEstablishment(professionalId);
+        User professional = authorizationService.requireProfessional(professionalId);
         if (professional.getEstablishment() == null) {
             throw new ResourceNotFoundException("Profissional não possui estabelecimento vinculado.");
         }

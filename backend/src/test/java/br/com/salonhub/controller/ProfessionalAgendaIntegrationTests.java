@@ -1,5 +1,13 @@
 package br.com.salonhub.controller;
 
+import br.com.salonhub.entity.Appointment;
+import br.com.salonhub.entity.Establishment;
+import br.com.salonhub.entity.EstablishmentService;
+import br.com.salonhub.entity.User;
+import br.com.salonhub.repository.AppointmentRepository;
+import br.com.salonhub.repository.EstablishmentRepository;
+import br.com.salonhub.repository.EstablishmentServiceRepository;
+import br.com.salonhub.repository.UserRepository;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +18,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -28,12 +37,32 @@ class ProfessionalAgendaIntegrationTests {
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private Clock clock;
+
+    @Autowired
+    private AppointmentRepository appointmentRepository;
+
+    @Autowired
+    private EstablishmentRepository establishmentRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private EstablishmentServiceRepository establishmentServiceRepository;
+
     @Test
     void shouldManageProfessionalScheduleEventsAndUnifiedAgenda() throws Exception {
         TestContext context = createContext();
-        LocalDate date = LocalDate.now().plusDays(2);
+        LocalDate date = LocalDate.now(clock).plusDays(2);
         LocalDateTime eventStart = date.atTime(10, 0);
         LocalDateTime eventEnd = date.atTime(12, 0);
+
+        mockMvc.perform(get("/api/profissionais/me/agenda/configuracao")
+                        .header("Authorization", bearer(context.professionalToken())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.timeZone").value("America/Sao_Paulo"));
 
         mockMvc.perform(get("/api/profissionais/me/agenda/horarios")
                         .header("Authorization", bearer(context.professionalToken())))
@@ -113,7 +142,7 @@ class ProfessionalAgendaIntegrationTests {
     @Test
     void shouldValidateAllDayEventsAndForbidOtherRoles() throws Exception {
         TestContext context = createContext();
-        LocalDate date = LocalDate.now().plusDays(3);
+        LocalDate date = LocalDate.now(clock).plusDays(3);
 
         mockMvc.perform(post("/api/profissionais/me/agenda/eventos")
                         .header("Authorization", bearer(context.professionalToken()))
@@ -134,6 +163,20 @@ class ProfessionalAgendaIntegrationTests {
     }
 
     @Test
+    void shouldRejectCreatingCalendarEventThatAlreadyEnded() throws Exception {
+        TestContext context = createContext();
+        LocalDateTime end = LocalDateTime.now(clock).minusMinutes(5);
+
+        mockMvc.perform(post("/api/profissionais/me/agenda/eventos")
+                        .header("Authorization", bearer(context.professionalToken()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(eventPayload("Compromisso passado", end.minusHours(1), end, false)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message")
+                        .value("Não é possível criar um compromisso que já terminou."));
+    }
+
+    @Test
     void shouldNeverOfferAvailabilitySlotsThatCreationWouldReject() throws Exception {
         TestContext context = createContext();
         // Expediente do salão abrindo em um minuto que não é múltiplo de 30 (caso relatado:
@@ -145,7 +188,7 @@ class ProfessionalAgendaIntegrationTests {
                         .content(establishmentWeeklyHours("09:15", "18:00")))
                 .andExpect(status().isOk());
 
-        LocalDate date = LocalDate.now().plusDays(2);
+        LocalDate date = LocalDate.now(clock).plusDays(2);
         mockMvc.perform(get("/api/estabelecimentos/{id}/agendamentos/disponibilidade", context.establishmentId())
                         .header("Authorization", bearer(context.clientToken()))
                         .param("serviceId", context.serviceId().toString())
@@ -174,7 +217,7 @@ class ProfessionalAgendaIntegrationTests {
                         .content(weeklySchedule()))
                 .andExpect(status().isOk());
 
-        LocalDate date = LocalDate.now().plusDays(2);
+        LocalDate date = LocalDate.now(clock).plusDays(2);
         mockMvc.perform(get("/api/estabelecimentos/{id}/agendamentos/disponibilidade", context.establishmentId())
                         .header("Authorization", bearer(context.clientToken()))
                         .param("serviceId", context.serviceId().toString())
@@ -253,7 +296,7 @@ class ProfessionalAgendaIntegrationTests {
     @Test
     void shouldBlockScheduleChangeThatWouldOrphanFutureConfirmedAppointment() throws Exception {
         TestContext context = createContext();
-        LocalDate date = LocalDate.now().plusDays(2);
+        LocalDate date = LocalDate.now(clock).plusDays(2);
         DayOfWeek day = date.getDayOfWeek();
 
         mockMvc.perform(post("/api/estabelecimentos/{id}/agendamentos", context.establishmentId())
@@ -286,6 +329,57 @@ class ProfessionalAgendaIntegrationTests {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(scheduleWithCustomDay(day, "09:00", "12:00", false)))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void shouldBlockScheduleChangeThatWouldOrphanAppointmentInProgress() throws Exception {
+        TestContext context = createContext();
+
+        // Agendamento já em andamento: começou há 10 minutos e só termina em 50 (serviço de
+        // 60 min de duração). Inserido direto no repositório porque a API não permite criar
+        // um agendamento com início no passado — mas é exatamente esse o caso que a checagem
+        // baseada em "início no futuro" deixava passar antes da correção.
+        Establishment establishment = establishmentRepository.findById(context.establishmentId().longValue())
+                .orElseThrow();
+        User professional = userRepository.findById(context.professionalId().longValue()).orElseThrow();
+        EstablishmentService service = establishmentServiceRepository
+                .findById(context.serviceId().longValue()).orElseThrow();
+        Long clientId = fetchUserId(context.clientToken());
+        User client = userRepository.findById(clientId).orElseThrow();
+
+        LocalDateTime startsAt = LocalDateTime.now(clock).minusMinutes(10);
+        DayOfWeek day = startsAt.getDayOfWeek();
+        Appointment inProgress = Appointment.schedule(establishment, client, professional, service, startsAt);
+        appointmentRepository.saveAndFlush(inProgress);
+
+        // Fechar o dia do agendamento em andamento é rejeitado, mesmo o início já estando no
+        // passado — é justamente o caso que "início no futuro" não cobria.
+        MvcResult blocked = mockMvc.perform(put("/api/profissionais/me/agenda/horarios")
+                        .header("Authorization", bearer(context.professionalToken()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(scheduleWithCustomDay(day, null, null, true)))
+                .andExpect(status().isConflict())
+                .andReturn();
+        assertThat(blocked.getResponse().getContentAsString()).contains("em andamento");
+
+        // Depois de concluído, o agendamento deixa de ser CONFIRMED e para de bloquear a
+        // mudança de jornada.
+        mockMvc.perform(patch("/api/agendamentos/{id}/conclusao", inProgress.getId())
+                        .header("Authorization", bearer(context.professionalToken())))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(put("/api/profissionais/me/agenda/horarios")
+                        .header("Authorization", bearer(context.professionalToken()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(scheduleWithCustomDay(day, null, null, true)))
+                .andExpect(status().isOk());
+    }
+
+    private Long fetchUserId(String token) throws Exception {
+        MvcResult result = mockMvc.perform(get("/api/auth/me").header("Authorization", bearer(token)))
+                .andExpect(status().isOk()).andReturn();
+        Number id = JsonPath.read(result.getResponse().getContentAsString(), "$.id");
+        return id.longValue();
     }
 
     private TestContext createContext() throws Exception {

@@ -145,9 +145,6 @@ public class AppointmentCommandService {
         if (!isOwningProfessional && !isEstablishmentAdministrator) {
             throw new AccessDeniedException("Você não tem permissão para concluir este agendamento.");
         }
-        if (!appointment.getEstablishment().isActive()) {
-            throw new AccessDeniedException("O estabelecimento está inativo. A conclusão de atendimentos está bloqueada.");
-        }
     }
 
     private void validateSchedule(
@@ -176,15 +173,9 @@ public class AppointmentCommandService {
 
     private Establishment findActiveEstablishmentForUpdate(Long establishmentId) {
         return establishmentRepository.findByIdForUpdate(establishmentId)
-                .filter(Establishment::isActive)
+                .filter(Establishment::acceptsNewAppointments)
                 .orElseThrow(() -> new ResourceNotFoundException("Estabelecimento não encontrado."));
     }
-    private Establishment findActiveEstablishment(Long establishmentId) {
-        return establishmentRepository.findById(establishmentId)
-                .filter(Establishment::isActive)
-                .orElseThrow(() -> new ResourceNotFoundException("Estabelecimento não encontrado."));
-    }
-
     private EstablishmentService findActiveService(Long serviceId, Long establishmentId) {
         return serviceRepository.findByIdAndEstablishmentIdAndActiveTrue(serviceId, establishmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Serviço não encontrado."));

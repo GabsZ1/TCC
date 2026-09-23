@@ -24,7 +24,7 @@ public class CatalogService {
 
     @Transactional(readOnly = true)
     public List<CatalogServiceResponse> findServices(Long establishmentId) {
-        requireActiveEstablishment(establishmentId);
+        requireBookableEstablishment(establishmentId);
         return serviceRepository.findByEstablishmentIdAndActiveTrue(establishmentId)
                 .stream()
                 .map(CatalogServiceResponse::fromEntity)
@@ -33,7 +33,7 @@ public class CatalogService {
 
     @Transactional(readOnly = true)
     public List<CatalogProfessionalResponse> findProfessionals(Long establishmentId, Long serviceId) {
-        requireActiveEstablishment(establishmentId);
+        requireBookableEstablishment(establishmentId);
         if (serviceId != null) {
             serviceRepository.findByIdAndEstablishmentIdAndActiveTrue(serviceId, establishmentId)
                     .orElseThrow(() -> new ResourceNotFoundException("Serviço não encontrado."));
@@ -44,9 +44,9 @@ public class CatalogService {
                 .toList();
     }
 
-    private Establishment requireActiveEstablishment(Long establishmentId) {
+    private Establishment requireBookableEstablishment(Long establishmentId) {
         return establishmentRepository.findById(establishmentId)
-                .filter(Establishment::isActive)
+                .filter(Establishment::acceptsNewAppointments)
                 .orElseThrow(() -> new ResourceNotFoundException("Estabelecimento não encontrado."));
     }
 }

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, CheckCircle2, Clock3 } from 'lucide-react'
+import { ArrowLeft, Check, CheckCircle2, Clock3, MapPin, Scissors, UserRound } from 'lucide-react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { createAppointment, fetchActiveEstablishments, fetchAvailability, fetchCatalogProfessionals, fetchCatalogServices } from '@/features/appointments/appointmentsApi'
 import { getApiErrorMessage } from '@/lib/apiError'
@@ -38,16 +38,17 @@ export function BookingPage() {
   })
 
   if (!Number.isInteger(establishmentId) || establishmentId <= 0) {
-    return <div className="p-8"><p className="text-danger-600">Código de estabelecimento inválido.</p><Link to="/agendamentos" className="mt-4 inline-block text-brand-700 underline">Voltar</Link></div>
+    return <div className="page-shell"><div className="surface-card max-w-lg p-7"><p className="text-danger-600">Código de estabelecimento inválido.</p><Link to="/agendamentos" className="secondary-button mt-5"><ArrowLeft size={16} /> Voltar</Link></div></div>
   }
 
   if (success) {
     return (
-      <div className="mx-auto max-w-xl p-5 sm:p-10">
-        <section className="rounded-3xl border border-sage-500/30 bg-white p-8 text-center shadow-sm">
-          <CheckCircle2 className="mx-auto text-sage-600" size={48} />
-          <h1 className="mt-5 font-[var(--font-display)] text-3xl text-brand-900">Agendamento confirmado</h1>
-          <p className="mt-3 text-brand-600">{selectedService?.name} com {selectedProfessional?.name}, em {formatDate(date)} às {shortTime(time!)}.</p>
+      <div className="page-shell flex min-h-[75vh] items-center justify-center">
+        <section className="surface-card w-full max-w-xl p-8 text-center sm:p-10">
+          <span className="mx-auto grid size-16 place-items-center rounded-2xl bg-success-50 text-success-600"><CheckCircle2 size={32} /></span>
+          <p className="eyebrow mt-6 justify-center">Reserva concluída</p>
+          <h1 className="mt-2 font-[var(--font-display)] text-3xl font-semibold tracking-[-0.04em] text-text-950">Agendamento confirmado</h1>
+          <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-text-600">{selectedService?.name} com {selectedProfessional?.name}, em {formatDate(date)} às {shortTime(time!)}.</p>
           <button onClick={() => navigate('/agendamentos')} className="primary-button mx-auto mt-7">Ver meus agendamentos</button>
         </section>
       </div>
@@ -55,68 +56,81 @@ export function BookingPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl p-5 sm:p-7 lg:p-9">
-      <Link to="/agendamentos" className="inline-flex items-center gap-2 text-sm font-semibold text-brand-600 hover:text-brand-800"><ArrowLeft size={17} /> Voltar</Link>
-      <h1 className="page-title mt-5">Novo agendamento</h1>
-      <p className="page-subtitle">Estabelecimento #{establishmentId}</p>
+    <div className="page-shell">
+      <Link to="/agendamentos" className="ghost-button -ml-3 w-fit"><ArrowLeft size={16} /> Voltar</Link>
+      <div className="mt-5 flex flex-col gap-2">
+        <p className="eyebrow">Novo horário</p>
+        <h1 className="page-title">Agendar atendimento</h1>
+        <p className="page-subtitle flex items-center gap-2"><MapPin size={15} /> {establishment?.name ?? `Estabelecimento #${establishmentId}`}</p>
+      </div>
 
-      <div className="mt-7 grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <section className="space-y-5">
+      <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem]">
+        <section className="surface-card divide-y divide-background-300 overflow-hidden">
           {(services.isError || professionals.isError) && (
-            <div role="alert" className="rounded-2xl border border-danger-500/30 bg-white p-4 text-sm text-danger-600">
+            <div role="alert" className="rounded-xl border border-danger-500/20 bg-danger-50 p-4 text-sm text-danger-600">
               {getApiErrorMessage(services.error ?? professionals.error, 'Não foi possível carregar o catálogo deste estabelecimento.')}
             </div>
           )}
-          <BookingStep number="1" title="Escolha o serviço">
+
+          <BookingStep number="01" title="Escolha o serviço" subtitle="O serviço define duração e valor do atendimento.">
             <div className="grid gap-3 sm:grid-cols-2">
-              {services.data?.map((service) => <ChoiceButton key={service.id} selected={service.id === serviceId} onClick={() => { setServiceId(service.id); setProfessionalId(null); setTime(null) }} title={service.name} detail={`${formatMoney(service.price)} · ${service.durationMinutes} min`} />)}
-              {services.isLoading && <p className="text-brand-500">Carregando serviços...</p>}
-              {services.data?.length === 0 && <p className="text-brand-500">Nenhum serviço disponível.</p>}
+              {services.data?.map((service) => <ChoiceButton key={service.id} selected={service.id === serviceId} onClick={() => { setServiceId(service.id); setProfessionalId(null); setTime(null) }} icon={<Scissors size={17} />} title={service.name} detail={`${formatMoney(service.price)} · ${service.durationMinutes} min`} />)}
+              {services.isLoading && <Hint>Carregando serviços...</Hint>}
+              {services.data?.length === 0 && <Hint>Nenhum serviço disponível.</Hint>}
             </div>
           </BookingStep>
 
-          <BookingStep number="2" title="Escolha o profissional">
+          <BookingStep number="02" title="Escolha o profissional" subtitle="Mostramos apenas profissionais habilitados para o serviço selecionado.">
             <div className="grid gap-3 sm:grid-cols-2">
-              {professionals.data?.map((professional) => <ChoiceButton key={professional.id} selected={professional.id === professionalId} onClick={() => { setProfessionalId(professional.id); setTime(null) }} title={professional.name} detail="Profissional disponível" />)}
-              {professionals.isLoading && <p className="text-brand-500">Carregando profissionais...</p>}
-              {professionals.data?.length === 0 && <p className="text-brand-500">Nenhum profissional disponível.</p>}
-              {!serviceId && <p className="text-brand-500">Selecione um serviço primeiro.</p>}
+              {professionals.data?.map((professional) => <ChoiceButton key={professional.id} selected={professional.id === professionalId} onClick={() => { setProfessionalId(professional.id); setTime(null) }} icon={<UserRound size={17} />} title={professional.name} detail="Profissional disponível" />)}
+              {professionals.isLoading && <Hint>Carregando profissionais...</Hint>}
+              {professionals.data?.length === 0 && serviceId && <Hint>Nenhum profissional disponível.</Hint>}
+              {!serviceId && <Hint>Selecione um serviço primeiro.</Hint>}
             </div>
           </BookingStep>
 
-          <BookingStep number="3" title="Escolha a data e o horário">
-            <input type="date" min={today()} max={establishment ? addDays(establishment.maximumAdvanceDays) : undefined} value={date} onChange={(event) => { setDate(event.target.value); setTime(null) }} className="rounded-xl border border-brand-200 px-3.5 py-2.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
-            {establishment && <p className="mt-2 text-sm text-brand-500">Agendamentos entre {establishment.minimumAdvanceHours}h e {establishment.maximumAdvanceDays} dias de antecedência.</p>}
-            <div className="mt-4 flex flex-wrap gap-2">
-              {availability.isFetching && <p className="text-sm text-brand-500">Buscando horários...</p>}
+          <BookingStep number="03" title="Data e horário" subtitle="Escolha uma data e depois um dos horários livres.">
+            <input type="date" min={today()} max={establishment ? addDays(establishment.maximumAdvanceDays) : undefined} value={date} onChange={(event) => { setDate(event.target.value); setTime(null) }} className="field-control mt-0 max-w-xs" />
+            {establishment && <p className="mt-2 text-xs leading-5 text-text-500">Reservas permitidas entre {establishment.minimumAdvanceHours}h e {establishment.maximumAdvanceDays} dias de antecedência.</p>}
+            <div className="mt-5 flex flex-wrap gap-2">
+              {availability.isFetching && <Hint>Buscando horários...</Hint>}
               {availability.data?.availableTimes.map((availableTime) => (
-                <button key={availableTime} type="button" onClick={() => setTime(availableTime)} className={`rounded-xl border px-3.5 py-2 text-sm font-semibold ${time === availableTime ? 'border-brand-600 bg-brand-600 text-white' : 'border-brand-200 bg-white text-brand-700 hover:border-brand-400'}`}>{shortTime(availableTime)}</button>
+                <button key={availableTime} type="button" onClick={() => setTime(availableTime)} className={`rounded-[0.68rem] border px-3.5 py-2.5 text-sm font-semibold ${time === availableTime ? 'border-primary-600 bg-primary-600 text-on-primary shadow-sm' : 'border-background-300 bg-background-50 text-text-700 hover:border-primary-300 hover:bg-primary-50'}`}>{shortTime(availableTime)}</button>
               ))}
-              {availability.data && availability.data.availableTimes.length === 0 && <p className="text-sm text-brand-500">Não há horários disponíveis nesta data.</p>}
+              {availability.data && availability.data.availableTimes.length === 0 && <Hint>Não há horários disponíveis nesta data.</Hint>}
               {availability.isError && <p className="text-sm text-danger-600">{getApiErrorMessage(availability.error, 'Não foi possível consultar os horários.')}</p>}
-              {!serviceId || !professionalId ? <p className="text-sm text-brand-500">Selecione o serviço e o profissional para consultar os horários.</p> : null}
+              {(!serviceId || !professionalId) && <Hint>Selecione o serviço e o profissional para consultar horários.</Hint>}
             </div>
           </BookingStep>
         </section>
 
-        <aside className="h-fit rounded-2xl border border-brand-100 bg-white p-5 shadow-sm lg:sticky lg:top-6">
-          <h2 className="font-[var(--font-display)] text-xl text-brand-900">Resumo</h2>
-          <Summary label="Serviço" value={selectedService?.name} />
-          <Summary label="Profissional" value={selectedProfessional?.name} />
-          <Summary label="Data" value={date ? formatDate(date) : undefined} />
-          <Summary label="Horário" value={time ? shortTime(time) : undefined} />
-          {selectedService && <p className="mt-4 flex items-center gap-2 border-t border-brand-100 pt-4 text-sm text-brand-600"><Clock3 size={16} /> Duração de {selectedService.durationMinutes} minutos</p>}
-          {createMutation.isError && <p role="alert" className="mt-4 text-sm text-danger-600">{getApiErrorMessage(createMutation.error, 'Não foi possível confirmar o agendamento.')}</p>}
-          <button disabled={!serviceId || !professionalId || !date || !time || createMutation.isPending} onClick={() => createMutation.mutate()} className="primary-button mt-5 w-full justify-center disabled:cursor-not-allowed disabled:opacity-50">{createMutation.isPending ? 'Confirmando...' : 'Confirmar agendamento'}</button>
+        <aside className="surface-card h-fit overflow-hidden lg:sticky lg:top-6">
+          <div className="border-b border-background-300 bg-background-100/60 p-5">
+            <p className="text-[0.65rem] font-bold uppercase tracking-[0.13em] text-text-400">Resumo</p>
+            <h2 className="mt-1 font-[var(--font-display)] text-xl font-semibold tracking-[-0.03em] text-text-950">Seu agendamento</h2>
+          </div>
+          <div className="p-5">
+            <Summary icon={<Scissors size={15} />} label="Serviço" value={selectedService?.name} />
+            <Summary icon={<UserRound size={15} />} label="Profissional" value={selectedProfessional?.name} />
+            <Summary icon={<Clock3 size={15} />} label="Data e horário" value={date ? `${formatDate(date)}${time ? ` · ${shortTime(time)}` : ''}` : undefined} />
+            {selectedService && <div className="mt-5 rounded-[0.75rem] bg-primary-50 p-4"><p className="text-xs font-semibold text-primary-700">Valor do serviço</p><p className="mt-1 text-xl font-bold tracking-[-0.03em] text-text-950">{formatMoney(selectedService.price)}</p><p className="mt-1 text-xs text-text-500">Duração estimada: {selectedService.durationMinutes} min</p></div>}
+            {createMutation.isError && <p role="alert" className="mt-4 text-sm text-danger-600">{getApiErrorMessage(createMutation.error, 'Não foi possível confirmar o agendamento.')}</p>}
+            <button disabled={!serviceId || !professionalId || !date || !time || createMutation.isPending} onClick={() => createMutation.mutate()} className="primary-button mt-5 w-full">{createMutation.isPending ? 'Confirmando...' : 'Confirmar agendamento'}</button>
+          </div>
         </aside>
       </div>
     </div>
   )
 }
 
-function BookingStep({ number, title, children }: { number: string; title: string; children: React.ReactNode }) { return <section className="rounded-2xl border border-brand-100 bg-white p-5 shadow-sm"><div className="mb-4 flex items-center gap-3"><span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-700">{number}</span><h2 className="text-lg font-semibold text-brand-900">{title}</h2></div>{children}</section> }
-function ChoiceButton({ selected, onClick, title, detail }: { selected: boolean; onClick: () => void; title: string; detail: string }) { return <button type="button" onClick={onClick} className={`rounded-xl border p-4 text-left ${selected ? 'border-brand-600 bg-brand-50 ring-1 ring-brand-600' : 'border-brand-100 hover:border-brand-300'}`}><span className="block font-semibold text-brand-900">{title}</span><span className="mt-1 block text-sm text-brand-600">{detail}</span></button> }
-function Summary({ label, value }: { label: string; value?: string }) { return <div className="mt-4"><p className="text-xs font-semibold uppercase tracking-wide text-brand-400">{label}</p><p className="mt-1 text-sm text-brand-800">{value ?? 'Não selecionado'}</p></div> }
+function BookingStep({ number, title, subtitle, children }: { number: string; title: string; subtitle: string; children: React.ReactNode }) {
+  return <section className="p-5 sm:p-6"><div className="mb-5 flex items-start gap-4"><span className="pt-0.5 font-mono text-[0.68rem] font-extrabold tracking-[0.12em] text-primary-700">{number}</span><div><h2 className="text-lg font-extrabold tracking-[-0.03em] text-text-950">{title}</h2><p className="mt-1 text-sm text-text-500">{subtitle}</p></div></div>{children}</section>
+}
+function ChoiceButton({ selected, onClick, icon, title, detail }: { selected: boolean; onClick: () => void; icon: React.ReactNode; title: string; detail: string }) {
+  return <button type="button" onClick={onClick} className={`group flex items-start gap-3 rounded-[0.75rem] border p-4 text-left ${selected ? 'border-primary-400 bg-primary-50 ring-2 ring-primary-100' : 'border-background-300 bg-background-50 hover:border-primary-300 hover:bg-primary-50/60'}`}><span className={`grid size-9 shrink-0 place-items-center rounded-[0.65rem] ${selected ? 'bg-primary-600 text-on-primary' : 'bg-background-200 text-text-600 group-hover:bg-primary-100 group-hover:text-primary-700'}`}>{selected ? <Check size={16} /> : icon}</span><span><span className="block font-semibold text-text-900">{title}</span><span className="mt-1 block text-sm text-text-500">{detail}</span></span></button>
+}
+function Summary({ icon, label, value }: { icon: React.ReactNode; label: string; value?: string }) { return <div className="mb-4 flex gap-3"><span className="mt-0.5 text-text-400">{icon}</span><div><p className="text-[0.63rem] font-bold uppercase tracking-[0.11em] text-text-400">{label}</p><p className="mt-1 text-sm font-medium text-text-800">{value ?? 'Não selecionado'}</p></div></div> }
+function Hint({ children }: { children: React.ReactNode }) { return <p className="text-sm text-text-500">{children}</p> }
 function today() { const date = new Date(); const offset = date.getTimezoneOffset(); return new Date(date.getTime() - offset * 60000).toISOString().slice(0, 10) }
 function addDays(days: number) { const date = new Date(); date.setDate(date.getDate() + days); const offset = date.getTimezoneOffset(); return new Date(date.getTime() - offset * 60000).toISOString().slice(0, 10) }
 function normalizeTime(value: string) { return value.length === 5 ? `${value}:00` : value }

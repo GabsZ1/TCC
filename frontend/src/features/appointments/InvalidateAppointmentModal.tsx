@@ -27,13 +27,13 @@ export function InvalidateAppointmentModal({ appointment, onInvalidated, onClose
 
   return (
     <Modal title="Invalidar atendimento" onClose={onClose}>
-      <p className="text-sm text-brand-700">
+      <p className="text-sm text-text-700">
         Esta ação anula o atendimento de <strong>{appointment.serviceName}</strong> com {appointment.clientName}, já
         concluído, e remove a comissão correspondente do cálculo do mês. Descreva o motivo para manter o histórico.
       </p>
 
       <div className="mt-4">
-        <label className="text-sm font-medium text-brand-800" htmlFor="invalidation-reason">
+        <label className="text-sm font-medium text-text-800" htmlFor="invalidation-reason">
           Motivo da invalidação
         </label>
         <textarea
@@ -44,7 +44,7 @@ export function InvalidateAppointmentModal({ appointment, onInvalidated, onClose
           rows={3}
           maxLength={500}
           placeholder="Ex.: serviço não foi realmente prestado, lançamento em duplicidade..."
-          className="mt-2 w-full rounded-lg border border-brand-200 px-3 py-2 text-sm text-brand-900 focus:border-brand-500 focus:outline-none"
+          className="mt-2 w-full rounded-lg border border-background-300 px-3 py-2 text-sm text-text-900 focus:border-primary-500 focus:outline-none"
         />
       </div>
 
@@ -58,7 +58,7 @@ export function InvalidateAppointmentModal({ appointment, onInvalidated, onClose
         <button
           type="button"
           onClick={onClose}
-          className="rounded-lg border border-brand-200 px-4 py-2 text-sm font-medium text-brand-700 hover:bg-sand-100"
+          className="rounded-lg border border-background-300 px-4 py-2 text-sm font-medium text-text-700 hover:bg-background-100"
         >
           Cancelar
         </button>
@@ -66,7 +66,7 @@ export function InvalidateAppointmentModal({ appointment, onInvalidated, onClose
           type="button"
           onClick={() => invalidateMutation.mutate()}
           disabled={!isReasonValid || invalidateMutation.isPending}
-          className="rounded-lg bg-danger-600 px-4 py-2 text-sm font-medium text-white hover:bg-danger-500 disabled:opacity-60"
+          className="rounded-lg bg-danger-600 px-4 py-2 text-sm font-medium text-on-danger hover:bg-danger-500 disabled:opacity-60"
         >
           {invalidateMutation.isPending ? 'Aguarde...' : 'Invalidar atendimento'}
         </button>

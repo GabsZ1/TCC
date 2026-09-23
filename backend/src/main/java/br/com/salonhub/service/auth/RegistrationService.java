@@ -6,12 +6,13 @@ import br.com.salonhub.dto.auth.InitialRegistrationRequest;
 import br.com.salonhub.dto.auth.InitialRegistrationResponse;
 import br.com.salonhub.entity.Establishment;
 import br.com.salonhub.entity.EstablishmentBusinessHour;
+import br.com.salonhub.entity.EstablishmentProfile;
 import br.com.salonhub.entity.User;
 import br.com.salonhub.entity.UserRole;
 import br.com.salonhub.exception.ConflictException;
-import br.com.salonhub.exception.InvalidRequestException;
 import br.com.salonhub.repository.EstablishmentBusinessHourRepository;
 import br.com.salonhub.repository.EstablishmentRepository;
+import br.com.salonhub.repository.EstablishmentProfileRepository;
 import br.com.salonhub.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -28,6 +29,7 @@ import java.util.Locale;
 public class RegistrationService {
 
     private final EstablishmentRepository establishmentRepository;
+    private final EstablishmentProfileRepository profileRepository;
     private final EstablishmentBusinessHourRepository businessHourRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -44,21 +46,23 @@ public class RegistrationService {
             throw new ConflictException("E-mail já cadastrado");
         }
 
-        int minimumAdvanceMinutes = (request.minimumAdvanceHours() == null
-                ? 2
-                : request.minimumAdvanceHours()) * 60;
-        int maximumAdvanceDays = request.maximumAdvanceDays() == null ? 60 : request.maximumAdvanceDays();
-        validateAdvancePolicy(minimumAdvanceMinutes, maximumAdvanceDays);
-
         Establishment establishment = establishmentRepository.save(
                 Establishment.builder()
                         .name(request.establishmentName().trim())
                         .cnpj(cnpj)
                         .email(normalizeOptionalText(request.establishmentEmail()))
-                        .phone(normalizeOptionalText(request.establishmentPhone()))
-                        .minimumAdvanceMinutes(minimumAdvanceMinutes)
-                        .maximumAdvanceDays(maximumAdvanceDays)
                         .build());
+
+        String establishmentPhone = normalizeOptionalText(request.establishmentPhone());
+        if (establishmentPhone != null) {
+            String normalizedPhone = establishmentPhone.replaceAll("[^0-9+]", "");
+            if (!normalizedPhone.isBlank()) {
+                profileRepository.save(EstablishmentProfile.builder()
+                        .establishment(establishment)
+                        .phone(normalizedPhone)
+                        .build());
+            }
+        }
 
         createDefaultBusinessHours(establishment);
         User administrator = userRepository.save(
@@ -106,13 +110,6 @@ public class RegistrationService {
                         .closingTime(LocalTime.of(18, 0))
                         .build())
                 .toList());
-    }
-
-    private void validateAdvancePolicy(int minimumMinutes, int maximumDays) {
-        if (minimumMinutes > maximumDays * 1440) {
-            throw new InvalidRequestException(
-                    "A antecedência mínima não pode ser maior que a janela máxima de agendamento.");
-        }
     }
 
     private String normalizeEmail(String email) {

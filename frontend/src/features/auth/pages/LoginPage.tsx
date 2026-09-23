@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { useAuth } from '@/hooks/useAuth'
 import axios from 'axios'
+import { AuthShell } from '@/features/auth/components/AuthShell'
+import { useAuth } from '@/hooks/useAuth'
 import type { UserRole } from '@/types/auth'
 
 const allowedPathsByRole: Record<UserRole, (path: string) => boolean> = {
-  ADMIN: (path) => path === '/' || ['/funcionarios', '/servicos', '/estabelecimento'].includes(path),
-  CLIENT: (path) => path === '/agendamentos' || /^\/estabelecimentos\/\d+\/agendar$/.test(path),
-  PROFESSIONAL: (path) => path === '/minha-agenda',
+  SYSTEM_ADMIN: (path) => path === '/' || path === '/admin/estabelecimentos',
+  ADMIN: (path) => path === '/' || ['/funcionarios', '/servicos', '/estabelecimento', '/agenda', '/relatorio-comissoes', '/relatorio-atendimentos'].includes(path),
+  CLIENT: (path) => path === '/' || path === '/agendamentos' || /^\/estabelecimentos\/\d+\/agendar$/.test(path),
+  PROFESSIONAL: (path) => path === '/' || ['/minha-agenda', '/meus-servicos'].includes(path),
 }
 
 export function LoginPage() {
@@ -18,10 +21,10 @@ export function LoginPage() {
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // RNF.01.01: foca automaticamente o campo de e-mail ao carregar a tela.
   useEffect(() => {
     emailRef.current?.focus()
   }, [])
@@ -34,9 +37,7 @@ export function LoginPage() {
     try {
       const user = await login({ email, password })
       const requestedPath = (location.state as { from?: Location })?.from?.pathname
-      const defaultPath = user.role === 'CLIENT'
-        ? '/agendamentos'
-        : user.role === 'PROFESSIONAL' ? '/minha-agenda' : '/'
+      const defaultPath = '/'
       const redirectTo = requestedPath && allowedPathsByRole[user.role](requestedPath)
         ? requestedPath
         : defaultPath
@@ -52,69 +53,81 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-sand-50 px-4 py-10">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-sm rounded-3xl border border-brand-100 bg-white p-8 shadow-sm"
-      >
-        <h1 className="font-[var(--font-display)] text-2xl text-brand-900">
-          Entrar no SalonHub
-        </h1>
-        <p className="mt-1 text-sm text-brand-600">Acesse com seu e-mail e senha.</p>
+    <AuthShell
+      eyebrow="Bem-vindo de volta"
+      title="Entre na sua conta"
+      subtitle="Acesse o painel do seu estabelecimento, sua agenda profissional ou seus agendamentos como cliente."
+      maxWidth="sm"
+    >
+      {(location.state as { message?: string } | null)?.message && (
+        <p className="mb-5 rounded-xl border border-success-500/20 bg-success-50 px-4 py-3 text-sm font-medium text-success-700">
+          {(location.state as { message: string }).message}
+        </p>
+      )}
 
-        {(location.state as { message?: string } | null)?.message && (
-          <p className="mt-4 rounded-xl bg-sage-50 px-3 py-2 text-sm text-sage-600">
-            {(location.state as { message: string }).message}
-          </p>
-        )}
-
-        <label className="mt-6 block text-sm font-medium text-brand-800" htmlFor="email">
+      <form onSubmit={handleSubmit}>
+        <label className="block text-sm font-semibold text-text-800" htmlFor="email">
           E-mail
         </label>
-        <input
-          ref={emailRef}
-          id="email"
-          type="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-brand-200 px-3 py-2 text-brand-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-        />
+        <div className="relative">
+          <Mail className="pointer-events-none absolute left-3.5 top-1/2 mt-1 size-[17px] -translate-y-1/2 text-text-400" />
+          <input
+            ref={emailRef}
+            id="email"
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="voce@exemplo.com"
+            className="auth-input pl-10"
+          />
+        </div>
 
-        <label className="mt-4 block text-sm font-medium text-brand-800" htmlFor="password">
-          Senha
-        </label>
-        <input
-          id="password"
-          type="password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-brand-200 px-3 py-2 text-brand-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-        />
+        <div className="mt-5 flex items-center justify-between">
+          <label className="text-sm font-semibold text-text-800" htmlFor="password">Senha</label>
+        </div>
+        <div className="relative">
+          <LockKeyhole className="pointer-events-none absolute left-3.5 top-1/2 mt-1 size-[17px] -translate-y-1/2 text-text-400" />
+          <input
+            id="password"
+            type={showPassword ? 'text' : 'password'}
+            autoComplete="current-password"
+            required
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="Sua senha"
+            className="auth-input px-10"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((current) => !current)}
+            className="absolute right-2.5 top-1/2 mt-1 grid size-8 -translate-y-1/2 place-items-center rounded-lg text-text-400 hover:bg-background-200 hover:text-text-700"
+            aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+          >
+            {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+          </button>
+        </div>
 
         {error && (
-          <p role="alert" className="mt-3 text-sm text-danger-600">
+          <p role="alert" className="mt-4 rounded-xl border border-danger-500/20 bg-danger-50 px-3.5 py-2.5 text-sm text-danger-600">
             {error}
           </p>
         )}
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="mt-6 w-full rounded-lg bg-brand-600 py-2.5 font-medium text-white transition hover:bg-brand-700 disabled:opacity-60"
-        >
+        <button type="submit" disabled={isSubmitting} className="primary-button mt-6 w-full py-3">
           {isSubmitting ? 'Entrando...' : 'Entrar'}
+          {!isSubmitting && <ArrowRight size={17} />}
         </button>
-
-        <div className="mt-6 border-t border-brand-100 pt-5 text-center text-sm text-brand-600">
-          <p>Novo por aqui?</p>
-          <div className="mt-2 flex justify-center gap-4">
-            <Link className="font-semibold text-brand-700 hover:underline" to="/cadastro-cliente">Sou cliente</Link>
-            <Link className="font-semibold text-brand-700 hover:underline" to="/cadastro">Tenho um estabelecimento</Link>
-          </div>
-        </div>
       </form>
-    </div>
+
+      <div className="mt-7 border-t border-background-300 pt-6">
+        <p className="text-center text-xs font-bold uppercase tracking-[0.13em] text-text-400">Primeiro acesso ao SalonHub?</p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <Link to="/cadastro-cliente" className="secondary-button py-3">Sou cliente</Link>
+          <Link to="/cadastro" className="secondary-button py-3">Tenho um negócio</Link>
+        </div>
+      </div>
+    </AuthShell>
   )
 }

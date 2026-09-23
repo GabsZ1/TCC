@@ -20,16 +20,16 @@ export function AdminCancelAppointmentModal({ appointment, onCancelled, onClose 
 
   return (
     <Modal title="Cancelar agendamento" onClose={onClose}>
-      <p className="text-sm text-brand-700">
+      <p className="text-sm text-text-700">
         Cancele o atendimento de <strong>{appointment.serviceName}</strong> com {appointment.clientName}.
         O motivo e seus dados de administrador ficarão registrados no histórico.
       </p>
-      <label className="mt-4 block text-sm font-medium text-brand-800" htmlFor="admin-cancellation-reason">Motivo do cancelamento</label>
-      <textarea id="admin-cancellation-reason" value={reason} onChange={(event) => setReason(event.target.value)} autoFocus rows={3} maxLength={500} placeholder="Ex.: estabelecimento indisponível nesta data..." className="mt-2 w-full rounded-lg border border-brand-200 px-3 py-2 text-sm text-brand-900 focus:border-brand-500 focus:outline-none" />
+      <label className="mt-4 block text-sm font-medium text-text-800" htmlFor="admin-cancellation-reason">Motivo do cancelamento</label>
+      <textarea id="admin-cancellation-reason" value={reason} onChange={(event) => setReason(event.target.value)} autoFocus rows={3} maxLength={500} placeholder="Ex.: estabelecimento indisponível nesta data..." className="mt-2 w-full rounded-lg border border-background-300 px-3 py-2 text-sm text-text-900 focus:border-primary-500 focus:outline-none" />
       {mutation.isError && <p role="alert" className="mt-3 text-sm text-danger-600">{getApiErrorMessage(mutation.error, 'Não foi possível cancelar o agendamento.')}</p>}
       <div className="mt-6 flex justify-end gap-3">
-        <button type="button" onClick={onClose} className="rounded-lg border border-brand-200 px-4 py-2 text-sm font-medium text-brand-700 hover:bg-sand-100">Voltar</button>
-        <button type="button" onClick={() => mutation.mutate()} disabled={!valid || mutation.isPending} className="rounded-lg bg-danger-600 px-4 py-2 text-sm font-medium text-white hover:bg-danger-500 disabled:opacity-60">{mutation.isPending ? 'Cancelando...' : 'Cancelar agendamento'}</button>
+        <button type="button" onClick={onClose} className="rounded-lg border border-background-300 px-4 py-2 text-sm font-medium text-text-700 hover:bg-background-100">Voltar</button>
+        <button type="button" onClick={() => mutation.mutate()} disabled={!valid || mutation.isPending} className="rounded-lg bg-danger-600 px-4 py-2 text-sm font-medium text-on-danger hover:bg-danger-500 disabled:opacity-60">{mutation.isPending ? 'Cancelando...' : 'Cancelar agendamento'}</button>
       </div>
     </Modal>
   )

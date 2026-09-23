@@ -36,6 +36,7 @@ public class AuthenticationService {
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
             throw new UnauthorizedException("E-mail ou senha inválidos");
         }
+        requireEstablishmentLoginAllowed(user);
 
         TokenService.GeneratedToken token = tokenService.generate(user);
         return new LoginResponse(
@@ -54,6 +55,7 @@ public class AuthenticationService {
         User user = userRepository.findByIdForUpdate(userId)
                 .filter(User::isActive)
                 .filter(candidate -> candidate.getRole() == UserRole.PROFESSIONAL)
+                .filter(this::isEstablishmentLoginAllowed)
                 .filter(candidate -> !candidate.isPasswordInitialized())
                 .orElseThrow(() -> new InvalidRequestException(
                         "Token de primeiro acesso inválido, expirado ou já utilizado."));
@@ -65,6 +67,23 @@ public class AuthenticationService {
         User user = userRepository.findById(userId)
                 .filter(User::isActive)
                 .orElseThrow(() -> new UnauthorizedException("Usuário inválido ou inativo"));
+        requireEstablishmentLoginAllowed(user);
         return AuthenticatedUserResponse.fromEntity(user);
+    }
+
+    private void requireEstablishmentLoginAllowed(User user) {
+        if (!isEstablishmentLoginAllowed(user)) {
+            throw new UnauthorizedException("O acesso ao estabelecimento está temporariamente indisponível.");
+        }
+    }
+
+    private boolean isEstablishmentLoginAllowed(User user) {
+        if (user.getEstablishment() == null) {
+            return true;
+        }
+        if (!user.getEstablishment().isActive()) {
+            return false;
+        }
+        return user.getRole() != UserRole.PROFESSIONAL || !user.getEstablishment().isPaused();
     }
 }

@@ -31,7 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class EstablishmentDeactivationConcurrencyIntegrationTests {
 
     @Autowired private AppointmentCommandService appointmentCommandService;
-    @Autowired private EstablishmentManagementService establishmentManagementService;
+    @Autowired private EstablishmentOperationService establishmentOperationService;
     @Autowired private EstablishmentRepository establishmentRepository;
     @Autowired private EstablishmentBusinessHourRepository businessHourRepository;
     @Autowired private EstablishmentServiceRepository serviceRepository;
@@ -39,7 +39,7 @@ class EstablishmentDeactivationConcurrencyIntegrationTests {
     @Autowired private AppointmentRepository appointmentRepository;
 
     @Test
-    void creationAndDeactivationMustNeverBothSucceed() throws Exception {
+    void bookingBlockMustRejectOnlyAppointmentsThatHaveNotAlreadyBeenCreated() throws Exception {
         String unique = UUID.randomUUID().toString();
         String cnpj = Long.toString(Math.abs(unique.hashCode()) + 10_000_000_000_000L);
         Establishment establishment = establishmentRepository.saveAndFlush(Establishment.builder()
@@ -67,10 +67,10 @@ class EstablishmentDeactivationConcurrencyIntegrationTests {
                     return false;
                 }
             });
-            Future<Boolean> deactivation = executor.submit(() -> {
+            Future<Boolean> blocking = executor.submit(() -> {
                 start.await();
                 try {
-                    establishmentManagementService.deactivate(administrator.getId());
+                    establishmentOperationService.blockBookings(administrator.getId());
                     return true;
                 } catch (RuntimeException exception) {
                     return false;
@@ -78,21 +78,16 @@ class EstablishmentDeactivationConcurrencyIntegrationTests {
             });
 
             boolean creationSucceeded = creation.get();
-            boolean deactivationSucceeded = deactivation.get();
-            assertThat(creationSucceeded && deactivationSucceeded).isFalse();
-            assertThat(creationSucceeded || deactivationSucceeded).isTrue();
+            boolean blockingSucceeded = blocking.get();
+            assertThat(blockingSucceeded).isTrue();
 
             Establishment current = establishmentRepository.findById(establishment.getId()).orElseThrow();
             long appointments = appointmentRepository.findAll().stream()
                     .filter(item -> item.getEstablishment().getId().equals(establishment.getId()))
                     .count();
-            if (creationSucceeded) {
-                assertThat(current.isActive()).isTrue();
-                assertThat(appointments).isEqualTo(1);
-            } else {
-                assertThat(current.isActive()).isFalse();
-                assertThat(appointments).isZero();
-            }
+            assertThat(current.isActive()).isTrue();
+            assertThat(current.isBookingsBlocked()).isTrue();
+            assertThat(appointments).isEqualTo(creationSucceeded ? 1 : 0);
         }
     }
 

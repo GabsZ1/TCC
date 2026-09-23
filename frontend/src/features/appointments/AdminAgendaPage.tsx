@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CalendarDays, Clock3, Scissors, User } from 'lucide-react'
+import { CalendarDays, Clock3, LockKeyhole, Scissors, User } from 'lucide-react'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { InvalidateAppointmentModal } from '@/features/appointments/InvalidateAppointmentModal'
 import { AdminCancelAppointmentModal } from '@/features/appointments/AdminCancelAppointmentModal'
-import { completeAppointment, fetchEstablishmentAgenda, type Appointment } from '@/features/appointments/appointmentsApi'
+import { completeAppointment, fetchEstablishmentAgenda, fetchTeamAvailability, type Appointment } from '@/features/appointments/appointmentsApi'
 import { fetchEmployees } from '@/features/employees/services/employeesApi'
 import { getApiErrorMessage } from '@/lib/apiError'
 
@@ -18,6 +19,7 @@ export function AdminAgendaPage() {
   const [status, setStatus] = useState<StatusFilter>('')
   const [invalidating, setInvalidating] = useState<Appointment | null>(null)
   const [cancelling, setCancelling] = useState<Appointment | null>(null)
+  const [completing, setCompleting] = useState<Appointment | null>(null)
   const employees = useQuery({ queryKey: ['employees'], queryFn: fetchEmployees })
   const agenda = useQuery({
     queryKey: [AGENDA_QUERY_KEY, date, professionalId, status],
@@ -26,11 +28,13 @@ export function AdminAgendaPage() {
       professionalId: professionalId ? Number(professionalId) : undefined,
       status: status || undefined,
     }),
+    refetchInterval: 30_000,
   })
-
-  const completeMutation = useMutation({
-    mutationFn: completeAppointment,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: [AGENDA_QUERY_KEY] }),
+  const teamAvailability = useQuery({
+    queryKey: ['team-availability', date, professionalId],
+    queryFn: () => fetchTeamAvailability(date, professionalId ? Number(professionalId) : undefined),
+    enabled: Boolean(date),
+    refetchInterval: 30_000,
   })
 
   function refreshAgenda() {
@@ -43,22 +47,32 @@ export function AdminAgendaPage() {
   }
 
   return (
-    <div className="p-5 sm:p-7 lg:p-9">
-      <h1 className="page-title">Agenda do estabelecimento</h1>
-      <p className="page-subtitle">Consulte os atendimentos de toda a equipe e filtre por data, profissional ou situação.</p>
+    <div className="page-shell">
+      <header className="border-b border-background-300 pb-7">
+        <p className="eyebrow">Operação</p>
+        <h1 className="page-title mt-3">Agenda do estabelecimento</h1>
+        <p className="page-subtitle">Consulte os atendimentos de toda a equipe e filtre por data, profissional ou situação.</p>
+      </header>
 
-      <section className="mt-6 grid gap-4 rounded-2xl border border-brand-100 bg-white p-5 shadow-sm sm:grid-cols-3">
+      <section className="surface-card mt-6 grid gap-4 p-5 sm:grid-cols-3">
         <Filter label="Data"><input type="date" value={date} onChange={(event) => setDate(event.target.value)} className="filter-input" /></Filter>
         <Filter label="Profissional"><select value={professionalId} onChange={(event) => setProfessionalId(event.target.value)} className="filter-input"><option value="">Todos</option>{employees.data?.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}{employee.active ? '' : ' (inativo)'}</option>)}</select></Filter>
         <Filter label="Situação"><select value={status} onChange={(event) => setStatus(event.target.value as StatusFilter)} className="filter-input"><option value="">Todas</option><option value="CONFIRMED">Confirmado</option><option value="COMPLETED">Concluído</option><option value="CANCELLED">Cancelado</option><option value="INVALIDATED">Invalidado</option></select></Filter>
-        <button type="button" onClick={() => { setDate(''); setProfessionalId(''); setStatus('') }} className="text-left text-sm font-semibold text-brand-600 hover:text-brand-800 sm:col-span-3">Limpar filtros</button>
+        <button type="button" onClick={() => { setDate(''); setProfessionalId(''); setStatus('') }} className="text-left text-sm font-semibold text-text-600 hover:text-text-800 sm:col-span-3">Limpar filtros</button>
       </section>
 
-      {completeMutation.isError && (
-        <p className="mt-4 rounded-xl border border-danger-500/30 bg-danger-500/5 px-4 py-3 text-sm text-danger-600">
-          {getApiErrorMessage(completeMutation.error, 'Não foi possível concluir o atendimento.')}
-        </p>
-      )}
+      {date && <section className="surface-card mt-6 p-5">
+        <div className="flex items-center gap-2"><Clock3 size={18} className="text-text-600" /><h2 className="font-semibold text-text-900">Jornada e indisponibilidades</h2></div>
+        <p className="mt-1 text-sm text-text-600">Compromissos pessoais aparecem apenas como indisponíveis; os detalhes permanecem privados.</p>
+        {teamAvailability.isLoading && <p className="mt-4 text-sm text-text-600">Carregando disponibilidade da equipe...</p>}
+        {teamAvailability.isError && <p role="alert" className="mt-4 text-sm text-danger-600">{getApiErrorMessage(teamAvailability.error, 'Não foi possível carregar a disponibilidade da equipe.')}</p>}
+        <div className="mt-4 grid gap-3 lg:grid-cols-2">
+          {teamAvailability.data?.map((professional) => <div key={professional.professionalId} className="rounded-xl bg-background-50 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2"><strong className="text-sm text-text-900">{professional.professionalName}</strong><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${professional.working ? 'bg-success-50 text-success-700' : 'bg-background-200 text-text-600'}`}>{professional.working ? `${formatTimeOnly(professional.openingTime)} às ${formatTimeOnly(professional.closingTime)}` : 'Não trabalha neste dia'}</span></div>
+            {professional.blocks.length === 0 ? <p className="mt-3 text-xs text-text-600">Sem bloqueios pessoais.</p> : <div className="mt-3 space-y-2">{professional.blocks.map((block) => <p key={block.id} className="flex items-center gap-2 rounded-lg bg-background-50 px-3 py-2 text-xs text-text-700"><LockKeyhole size={14} /> Indisponível · {block.allDay ? 'Dia inteiro' : `${formatTime(block.startsAt)} às ${formatTime(block.endsAt)}`}</p>)}</div>}
+          </div>)}
+        </div>
+      </section>}
 
       <div className="mt-6 space-y-4">
         {agenda.isLoading && <StateCard>Carregando agenda...</StateCard>}
@@ -68,14 +82,20 @@ export function AdminAgendaPage() {
           <AppointmentCard
             key={appointment.id}
             appointment={appointment}
-            onComplete={() => completeMutation.mutate(appointment.id)}
-            isCompleting={completeMutation.isPending && completeMutation.variables === appointment.id}
+            onComplete={() => setCompleting(appointment)}
             onInvalidate={() => setInvalidating(appointment)}
             onCancel={() => setCancelling(appointment)}
           />
         ))}
       </div>
 
+      {completing && (
+        <CompleteAppointmentDialog
+          appointment={completing}
+          onClose={() => setCompleting(null)}
+          onCompleted={() => { refreshAgenda(); setCompleting(null) }}
+        />
+      )}
       {cancelling && (
         <AdminCancelAppointmentModal
           appointment={cancelling}
@@ -94,16 +114,35 @@ export function AdminAgendaPage() {
   )
 }
 
+function CompleteAppointmentDialog({
+  appointment,
+  onClose,
+  onCompleted,
+}: {
+  appointment: Appointment
+  onClose: () => void
+  onCompleted: () => void
+}) {
+  const mutation = useMutation({ mutationFn: () => completeAppointment(appointment.id), onSuccess: onCompleted })
+  return <ConfirmDialog
+    title="Concluir atendimento"
+    message={`Confirmar a conclusão do atendimento de ${appointment.clientName} com ${appointment.professionalName}? Essa ação não pode ser desfeita.`}
+    confirmLabel={mutation.isPending ? 'Concluindo...' : 'Concluir atendimento'}
+    isLoading={mutation.isPending}
+    errorMessage={mutation.isError ? getApiErrorMessage(mutation.error, 'Não foi possível concluir o atendimento.') : null}
+    onConfirm={() => mutation.mutate()}
+    onCancel={onClose}
+  />
+}
+
 function AppointmentCard({
   appointment,
   onComplete,
-  isCompleting,
   onInvalidate,
   onCancel,
 }: {
   appointment: Appointment
   onComplete: () => void
-  isCompleting: boolean
   onInvalidate: () => void
   onCancel: () => void
 }) {
@@ -112,12 +151,12 @@ function AppointmentCard({
   const canCancel = appointment.status === 'CONFIRMED'
 
   return (
-    <article className="rounded-2xl border border-brand-100 bg-white p-5 shadow-sm">
+    <article className="surface-card p-5">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <div className="flex items-center gap-2"><Scissors size={18} className="text-brand-500" /><h2 className="text-lg font-semibold text-brand-900">{appointment.serviceName}</h2></div>
-          <p className="mt-2 flex items-center gap-2 text-sm text-brand-600"><User size={16} /> Cliente: {appointment.clientName}</p>
-          <p className="mt-1 text-sm text-brand-600">Profissional: {appointment.professionalName}</p>
+          <div className="flex items-center gap-2"><Scissors size={18} className="text-text-600" /><h2 className="text-lg font-semibold text-text-900">{appointment.serviceName}</h2></div>
+          <p className="mt-2 flex items-center gap-2 text-sm text-text-600"><User size={16} /> Cliente: {appointment.clientName}</p>
+          <p className="mt-1 text-sm text-text-600">Profissional: {appointment.professionalName}</p>
           {appointment.status === 'CANCELLED' && appointment.cancellationReason && (
             <p className="mt-2 max-w-sm text-sm text-danger-600">
               Motivo: {appointment.cancellationReason}
@@ -125,17 +164,17 @@ function AppointmentCard({
             </p>
           )}
           {appointment.status === 'INVALIDATED' && appointment.invalidationReason && (
-            <p className="mt-2 max-w-sm text-sm text-amber-700">Motivo: {appointment.invalidationReason}</p>
+            <p className="mt-2 max-w-sm text-sm text-warning-700">Motivo: {appointment.invalidationReason}</p>
           )}
         </div>
-        <div className="rounded-xl bg-brand-50 px-4 py-3 text-sm text-brand-800">
+        <div className="rounded-xl bg-background-200 px-4 py-3 text-sm text-text-800">
           <p className="flex items-center gap-2 font-semibold"><CalendarDays size={16} /> {formatDate(appointment.startsAt)}</p>
           <p className="mt-1 flex items-center gap-2"><Clock3 size={16} /> {formatTime(appointment.startsAt)} às {formatTime(appointment.endsAt)}</p>
         </div>
         <div className="text-sm lg:text-right">
           <StatusBadge status={appointment.status} />
-          <p className="mt-2 font-semibold text-brand-900">{formatMoney(appointment.agreedPrice)}</p>
-          <p className="text-brand-600">Comissão: {formatMoney(appointment.commissionAmount)}</p>
+          <p className="mt-2 font-semibold text-text-900">{formatMoney(appointment.agreedPrice)}</p>
+          <p className="text-text-600">Comissão: {formatMoney(appointment.commissionAmount)}</p>
           {(canComplete || canInvalidate || canCancel) && (
             <div className="mt-3 flex flex-wrap justify-end gap-2">
               {canCancel && (
@@ -147,10 +186,9 @@ function AppointmentCard({
                 <button
                   type="button"
                   onClick={onComplete}
-                  disabled={isCompleting}
-                  className="rounded-lg border border-sage-300 px-3 py-1.5 text-xs font-semibold text-sage-700 hover:bg-sage-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-lg border border-success-300 px-3 py-1.5 text-xs font-semibold text-success-700 hover:bg-success-50"
                 >
-                  {isCompleting ? 'Concluindo...' : 'Concluir'}
+                  Concluir
                 </button>
               )}
               {canInvalidate && (
@@ -170,20 +208,21 @@ function AppointmentCard({
   )
 }
 
-function Filter({ label, children }: { label: string; children: React.ReactNode }) { return <label className="text-sm font-medium text-brand-800">{label}{children}</label> }
+function Filter({ label, children }: { label: string; children: React.ReactNode }) { return <label className="text-sm font-medium text-text-800">{label}{children}</label> }
 function StatusBadge({ status }: { status: Appointment['status'] }) {
   const labels: Record<Appointment['status'], string> = { CONFIRMED: 'Confirmado', CANCELLED: 'Cancelado', COMPLETED: 'Concluído', INVALIDATED: 'Invalidado' }
   const styles: Record<Appointment['status'], string> = {
-    CONFIRMED: 'bg-sage-50 text-sage-600',
+    CONFIRMED: 'bg-primary-100 text-text-800',
     CANCELLED: 'bg-danger-500/10 text-danger-600',
-    COMPLETED: 'bg-brand-50 text-brand-700',
-    INVALIDATED: 'bg-amber-100 text-amber-700',
+    COMPLETED: 'bg-success-50 text-success-700',
+    INVALIDATED: 'bg-warning-100 text-warning-700',
   }
   return <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${styles[status]}`}>{labels[status]}</span>
 }
-function StateCard({ children, error = false }: { children: React.ReactNode; error?: boolean }) { return <div className={`rounded-2xl border bg-white p-8 text-center ${error ? 'border-danger-500/30 text-danger-600' : 'border-brand-100 text-brand-600'}`}>{children}</div> }
+function StateCard({ children, error = false }: { children: React.ReactNode; error?: boolean }) { return <div className={`rounded-2xl border bg-background-50 p-8 text-center ${error ? 'border-danger-500/30 text-danger-600' : 'border-background-300 text-text-600'}`}>{children}</div> }
 function today() { const date = new Date(); const offset = date.getTimezoneOffset(); return new Date(date.getTime() - offset * 60000).toISOString().slice(0, 10) }
 function hasStarted(appointment: Appointment) { return new Date(appointment.startsAt).getTime() <= Date.now() }
 function formatDate(value: string) { return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' }).format(new Date(value)) }
 function formatTime(value: string) { return value.slice(11, 16) }
+function formatTimeOnly(value: string | null) { return value?.slice(0, 5) ?? '--:--' }
 function formatMoney(value: number) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value) }

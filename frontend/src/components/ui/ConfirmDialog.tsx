@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { AlertTriangle } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
 
 interface ConfirmDialogProps {
@@ -8,14 +9,9 @@ interface ConfirmDialogProps {
   isLoading?: boolean
   onConfirm: () => void
   onCancel: () => void
-  /**
-   * Quando definido, o botão de confirmação só é liberado depois que o texto
-   * digitado no campo bater exatamente com esse valor (ex.: o nome do
-   * funcionário). Usado para ações destrutivas e potencialmente
-   * irreversíveis, como exige a RNF.01.01 (dupla confirmação).
-   */
   confirmationText?: string
   confirmationLabel?: string
+  errorMessage?: string | null
 }
 
 export function ConfirmDialog({
@@ -27,19 +23,24 @@ export function ConfirmDialog({
   onCancel,
   confirmationText,
   confirmationLabel,
+  errorMessage,
 }: ConfirmDialogProps) {
   const [typedValue, setTypedValue] = useState('')
   const requiresTypedConfirmation = Boolean(confirmationText)
-  const isConfirmDisabled =
-    isLoading || (requiresTypedConfirmation && typedValue.trim() !== confirmationText)
+  const isConfirmDisabled = isLoading || (requiresTypedConfirmation && typedValue.trim() !== confirmationText)
 
   return (
     <Modal title={title} onClose={onCancel}>
-      <p className="text-sm text-brand-700">{message}</p>
+      <div className="flex items-start gap-3 rounded-[0.8rem] border border-warning-500/20 bg-warning-50 p-4">
+        <span className="grid size-9 shrink-0 place-items-center rounded-[0.65rem] bg-warning-100 text-warning-700">
+          <AlertTriangle size={17} />
+        </span>
+        <p className="pt-1 text-sm leading-6 text-text-700">{message}</p>
+      </div>
 
       {requiresTypedConfirmation && (
-        <div className="mt-4">
-          <label className="text-sm font-medium text-brand-800">
+        <div className="mt-5">
+          <label className="text-sm font-semibold text-text-800">
             {confirmationLabel ?? `Digite "${confirmationText}" para confirmar`}
           </label>
           <input
@@ -47,25 +48,25 @@ export function ConfirmDialog({
             value={typedValue}
             onChange={(event) => setTypedValue(event.target.value)}
             autoFocus
-            className="mt-2 w-full rounded-lg border border-brand-200 px-3 py-2 text-sm text-brand-900 focus:border-brand-500 focus:outline-none"
+            className="field-control"
             placeholder={confirmationText}
           />
         </div>
       )}
 
-      <div className="mt-6 flex justify-end gap-3">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded-lg border border-brand-200 px-4 py-2 text-sm font-medium text-brand-700 hover:bg-sand-100"
-        >
-          Cancelar
-        </button>
+      {errorMessage && (
+        <p role="alert" className="mt-4 rounded-[0.8rem] border border-danger-500/20 bg-danger-50 px-3.5 py-3 text-sm text-danger-600">
+          {errorMessage}
+        </p>
+      )}
+
+      <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+        <button type="button" onClick={onCancel} className="secondary-button">Cancelar</button>
         <button
           type="button"
           onClick={onConfirm}
           disabled={isConfirmDisabled}
-          className="rounded-lg bg-danger-600 px-4 py-2 text-sm font-medium text-white hover:bg-danger-500 disabled:opacity-60"
+          className="inline-flex items-center justify-center rounded-[0.72rem] bg-danger-600 px-4 py-2.5 text-sm font-bold text-on-danger shadow-sm hover:bg-danger-500 disabled:cursor-not-allowed disabled:opacity-55"
         >
           {isLoading ? 'Aguarde...' : confirmLabel}
         </button>

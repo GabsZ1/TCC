@@ -14,51 +14,67 @@ const ServicesPage = lazy(() => import('@/features/services/ServicesPage').then(
 const AppointmentsPage = lazy(() => import('@/features/appointments/AppointmentsPage').then((module) => ({ default: module.AppointmentsPage })))
 const BookingPage = lazy(() => import('@/features/appointments/BookingPage').then((module) => ({ default: module.BookingPage })))
 const ProfessionalAgendaPage = lazy(() => import('@/features/appointments/ProfessionalAgendaPage').then((module) => ({ default: module.ProfessionalAgendaPage })))
+const MyServicesPage = lazy(() => import('@/features/services/MyServicesPage').then((module) => ({ default: module.MyServicesPage })))
 const EstablishmentPage = lazy(() => import('@/features/establishment/EstablishmentPage').then((module) => ({ default: module.EstablishmentPage })))
+const EstablishmentProfilePage = lazy(() => import('@/features/establishment/EstablishmentProfilePage').then((module) => ({ default: module.EstablishmentProfilePage })))
 const AdminAgendaPage = lazy(() => import('@/features/appointments/AdminAgendaPage').then((module) => ({ default: module.AdminAgendaPage })))
 const CommissionReportPage = lazy(() => import('@/features/commissions/CommissionReportPage').then((module) => ({ default: module.CommissionReportPage })))
+const AppointmentsReportPage = lazy(() => import('@/features/reports/AppointmentsReportPage').then((module) => ({ default: module.AppointmentsReportPage })))
+const SystemEstablishmentsPage = lazy(() => import('@/features/system-admin/SystemEstablishmentsPage').then((module) => ({ default: module.SystemEstablishmentsPage })))
 
 function App() {
   return (
     <Suspense fallback={<RouteLoading />}>
       <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/cadastro" element={<InitialRegistrationPage />} />
-      <Route path="/cadastro-cliente" element={<ClientRegistrationPage />} />
-      <Route path="/primeiro-acesso" element={<FirstAccessPage />} />
-      <Route path="/sem-permissao" element={<ForbiddenPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/cadastro" element={<InitialRegistrationPage />} />
+        <Route path="/cadastro-cliente" element={<ClientRegistrationPage />} />
+        <Route path="/primeiro-acesso" element={<FirstAccessPage />} />
+        <Route path="/sem-permissao" element={<ForbiddenPage />} />
 
-      {/* Rotas autenticadas, dentro do layout com sidebar */}
-      <Route element={<ProtectedRoute />}>
-        <Route element={<AppLayout />}>
-          <Route path="/" element={<DashboardPage />} />
+        <Route element={<ProtectedRoute />}>
+          <Route element={<AppLayout />}>
+            <Route path="/" element={<DashboardPage />} />
 
-          {/* Exemplo de restrição por perfil: apenas admin do estabelecimento */}
-          <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
-            <Route path="/funcionarios" element={<EmployeesListPage />} />
-            <Route path="/servicos" element={<ServicesPage />} />
-            <Route path="/estabelecimento" element={<EstablishmentPage />} />
-            <Route path="/agenda" element={<AdminAgendaPage />} />
-            <Route path="/relatorio-comissoes" element={<CommissionReportPage />} />
-          </Route>
+            <Route element={<ProtectedRoute allowedRoles={['SYSTEM_ADMIN']} />}>
+              <Route path="/admin/estabelecimentos" element={<SystemEstablishmentsPage />} />
+            </Route>
 
-          <Route element={<ProtectedRoute allowedRoles={['CLIENT']} />}>
-            <Route path="/agendamentos" element={<AppointmentsPage />} />
-            <Route path="/estabelecimentos/:establishmentId/agendar" element={<BookingPage />} />
-          </Route>
+            <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
+              <Route path="/funcionarios" element={<EmployeesListPage />} />
+              <Route path="/servicos" element={<ServicesPage />} />
+              <Route path="/estabelecimento" element={<EstablishmentPage />} />
+              <Route path="/perfil-estabelecimento" element={<EstablishmentProfilePage />} />
+              <Route path="/agenda" element={<AdminAgendaPage />} />
+              <Route path="/relatorio-comissoes" element={<CommissionReportPage />} />
+              <Route path="/relatorio-atendimentos" element={<AppointmentsReportPage />} />
+            </Route>
 
-          <Route element={<ProtectedRoute allowedRoles={['PROFESSIONAL']} />}>
-            <Route path="/minha-agenda" element={<ProfessionalAgendaPage />} />
+            <Route element={<ProtectedRoute allowedRoles={['CLIENT']} />}>
+              <Route path="/agendamentos" element={<AppointmentsPage />} />
+              <Route path="/estabelecimentos/:establishmentId/agendar" element={<BookingPage />} />
+            </Route>
+
+            <Route element={<ProtectedRoute allowedRoles={['PROFESSIONAL']} />}>
+              <Route path="/minha-agenda" element={<ProfessionalAgendaPage />} />
+              <Route path="/meus-servicos" element={<MyServicesPage />} />
+            </Route>
           </Route>
         </Route>
-      </Route>
       </Routes>
     </Suspense>
   )
 }
 
 function RouteLoading() {
-  return <div className="grid min-h-screen place-items-center bg-sand-50 text-sm font-medium text-brand-600">Carregando página...</div>
+  return (
+    <div className="grid min-h-screen place-items-center bg-background-100">
+      <div className="flex items-center gap-3 text-sm font-bold text-text-600">
+        <span className="size-2 animate-pulse rounded-full bg-primary-600" />
+        Carregando SalonHub
+      </div>
+    </div>
+  )
 }
 
 export default App

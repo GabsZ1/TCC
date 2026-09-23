@@ -51,8 +51,31 @@ export interface ActiveEstablishment {
   maximumAdvanceDays: number
 }
 
+export interface PublicEstablishmentProfile {
+  establishmentId: number
+  establishmentName: string
+  aboutUs: string | null
+  instagram: string | null
+  whatsapp: string | null
+  phone: string | null
+  postalCode: string | null
+  street: string | null
+  streetNumber: string | null
+  addressComplement: string | null
+  neighborhood: string | null
+  city: string | null
+  state: string | null
+  businessHours: Array<{ dayOfWeek: string; closed: boolean; openingTime: string | null; closingTime: string | null }>
+  professionals: CatalogProfessional[]
+  services: CatalogService[]
+}
+
 export function fetchActiveEstablishments() {
   return api.get<ActiveEstablishment[]>('/estabelecimentos').then((response) => response.data)
+}
+
+export function fetchEstablishmentProfile(establishmentId: number) {
+  return api.get<PublicEstablishmentProfile>(`/estabelecimentos/${establishmentId}/perfil`).then((response) => response.data)
 }
 
 export function fetchCatalogServices(establishmentId: number) {
@@ -105,6 +128,19 @@ export interface EstablishmentAgendaFilters {
   status?: Appointment['status']
 }
 
+export interface TeamAvailability {
+  professionalId: number
+  professionalName: string
+  working: boolean
+  openingTime: string | null
+  closingTime: string | null
+  blocks: Array<{ id: number; startsAt: string; endsAt: string; allDay: boolean }>
+}
+
 export function fetchEstablishmentAgenda(filters: EstablishmentAgendaFilters) {
   return api.get<Appointment[]>('/agendamentos/estabelecimento/me', { params: filters }).then((response) => response.data)
+}
+
+export function fetchTeamAvailability(date: string, professionalId?: number) {
+  return api.get<TeamAvailability[]>('/agendamentos/estabelecimento/me/disponibilidade-equipe', { params: { date, professionalId } }).then((response) => response.data)
 }

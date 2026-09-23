@@ -4,13 +4,15 @@ import br.com.salonhub.dto.commission.CommissionReportResponse;
 import br.com.salonhub.dto.dashboard.DashboardSummaryResponse;
 import br.com.salonhub.dto.establishment.EstablishmentResponse;
 import br.com.salonhub.dto.establishment.EstablishmentUpdateRequest;
+import br.com.salonhub.dto.report.AppointmentsReportResponse;
+import br.com.salonhub.service.AppointmentsReportService;
 import br.com.salonhub.service.CommissionReportService;
 import br.com.salonhub.service.DashboardService;
 import br.com.salonhub.service.EstablishmentManagementService;
+import br.com.salonhub.service.EstablishmentOperationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -23,8 +25,10 @@ import java.time.LocalDate;
 public class EstablishmentController {
 
     private final EstablishmentManagementService establishmentManagementService;
+    private final EstablishmentOperationService establishmentOperationService;
     private final DashboardService dashboardService;
     private final CommissionReportService commissionReportService;
+    private final AppointmentsReportService appointmentsReportService;
 
     @GetMapping
     public EstablishmentResponse findMine(@AuthenticationPrincipal Jwt jwt) {
@@ -45,6 +49,15 @@ public class EstablishmentController {
         return commissionReportService.getReport(Long.valueOf(jwt.getSubject()), startDate, endDate, professionalId);
     }
 
+    @GetMapping("/relatorio-atendimentos")
+    public AppointmentsReportResponse appointmentsReport(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) Long professionalId) {
+        return appointmentsReportService.getReport(Long.valueOf(jwt.getSubject()), startDate, endDate, professionalId);
+    }
+
     @PutMapping
     public EstablishmentResponse update(
             @AuthenticationPrincipal Jwt jwt,
@@ -52,14 +65,23 @@ public class EstablishmentController {
         return establishmentManagementService.update(Long.valueOf(jwt.getSubject()), request);
     }
 
-    @PatchMapping("/ativacao")
-    public EstablishmentResponse reactivate(@AuthenticationPrincipal Jwt jwt) {
-        return establishmentManagementService.reactivate(Long.valueOf(jwt.getSubject()));
+    @PatchMapping("/bloqueio-agendamentos")
+    public EstablishmentResponse blockBookings(@AuthenticationPrincipal Jwt jwt) {
+        return establishmentOperationService.blockBookings(Long.valueOf(jwt.getSubject()));
     }
 
-    @DeleteMapping
-    public ResponseEntity<Void> deactivate(@AuthenticationPrincipal Jwt jwt) {
-        establishmentManagementService.deactivate(Long.valueOf(jwt.getSubject()));
-        return ResponseEntity.noContent().build();
+    @DeleteMapping("/bloqueio-agendamentos")
+    public EstablishmentResponse allowBookings(@AuthenticationPrincipal Jwt jwt) {
+        return establishmentOperationService.allowBookings(Long.valueOf(jwt.getSubject()));
+    }
+
+    @PatchMapping("/pausa")
+    public EstablishmentResponse pause(@AuthenticationPrincipal Jwt jwt) {
+        return establishmentOperationService.pause(Long.valueOf(jwt.getSubject()));
+    }
+
+    @DeleteMapping("/pausa")
+    public EstablishmentResponse resume(@AuthenticationPrincipal Jwt jwt) {
+        return establishmentOperationService.resume(Long.valueOf(jwt.getSubject()));
     }
 }

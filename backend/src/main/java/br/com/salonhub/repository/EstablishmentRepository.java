@@ -19,5 +19,7 @@ public interface EstablishmentRepository extends JpaRepository<Establishment, Lo
     @Query("select e from Establishment e where e.id = :id")
     Optional<Establishment> findByIdForUpdate(@Param("id") Long id);
 
-    List<Establishment> findAllByActiveTrueOrderByNameAsc();
+    List<Establishment> findAllByActiveTrueAndPausedFalseAndBookingsBlockedFalseOrderByNameAsc();
+
+    List<Establishment> findAllByOrderByNameAsc();
 }

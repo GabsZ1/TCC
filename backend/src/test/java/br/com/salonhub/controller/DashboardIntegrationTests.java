@@ -20,6 +20,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -41,6 +42,9 @@ class DashboardIntegrationTests {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private Clock clock;
 
     @Autowired
     private AppointmentRepository appointmentRepository;
@@ -71,11 +75,11 @@ class DashboardIntegrationTests {
         Fixture fixture = setUp("dashboard-activity", "43000100010193");
 
         createCompletedAppointment(
-                fixture, LocalDateTime.now().minusMonths(2), LocalDateTime.now().minusHours(2));
+                fixture, LocalDateTime.now(clock).minusMonths(2), LocalDateTime.now(clock).minusHours(2));
         createCompletedAppointment(
-                fixture, LocalDateTime.now().minusHours(2), LocalDateTime.now().minusMonths(2));
-        createAppointment(fixture, LocalDateTime.now().plusHours(1));
-        Long toCancel = createAppointment(fixture, LocalDateTime.now().plusHours(2));
+                fixture, LocalDateTime.now(clock).minusHours(2), LocalDateTime.now(clock).minusMonths(2));
+        createAppointment(fixture, LocalDateTime.now(clock).plusHours(1));
+        Long toCancel = createAppointment(fixture, LocalDateTime.now(clock).plusHours(2));
         cancelAsClient(fixture, toCancel);
 
         mockMvc.perform(get("/api/estabelecimentos/me/dashboard")
@@ -90,7 +94,7 @@ class DashboardIntegrationTests {
     void shouldExcludeCommissionFromAppointmentsCompletedInAPreviousMonth() throws Exception {
         Fixture fixture = setUp("dashboard-previous-month", "43000200010209");
         createCompletedAppointment(
-                fixture, LocalDateTime.now().minusHours(1), LocalDateTime.now().minusMonths(2));
+                fixture, LocalDateTime.now(clock).minusHours(1), LocalDateTime.now(clock).minusMonths(2));
 
         mockMvc.perform(get("/api/estabelecimentos/me/dashboard")
                         .header("Authorization", bearer(fixture.administratorToken())))
@@ -146,7 +150,7 @@ class DashboardIntegrationTests {
     void shouldIsolateDashboardDataBetweenEstablishments() throws Exception {
         Fixture fixtureA = setUp("dashboard-tenant-a", "43000600010630");
         Fixture fixtureB = setUp("dashboard-tenant-b", "43000700010747");
-        completeAppointment(fixtureA, LocalDateTime.now().minusHours(1));
+        completeAppointment(fixtureA, LocalDateTime.now(clock).minusHours(1));
 
         mockMvc.perform(get("/api/estabelecimentos/me/dashboard")
                         .header("Authorization", bearer(fixtureB.administratorToken())))

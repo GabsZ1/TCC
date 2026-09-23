@@ -35,6 +35,7 @@ export interface CalendarEventInput {
 }
 
 export interface CalendarEvent extends CalendarEventInput { id: number }
+export interface ProfessionalAgendaConfiguration { timeZone: string }
 
 export interface ProfessionalAgendaItem {
   type: 'EVENT' | 'APPOINTMENT'
@@ -46,13 +47,19 @@ export interface ProfessionalAgendaItem {
   allDay: boolean
   status: 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'INVALIDATED' | null
   clientName: string | null
+  clientEmail: string | null
   serviceName: string | null
+  durationMinutes: number | null
+  agreedPrice: number | null
+  cancellationReason: string | null
+  invalidationReason: string | null
 }
 
 export function fetchProfessionalAgenda(startsAt: string, endsAt: string) {
   return api.get<ProfessionalAgendaItem[]>('/profissionais/me/agenda', { params: { startsAt, endsAt } }).then((response) => response.data)
 }
 export function fetchProfessionalSchedule() { return api.get<ProfessionalHour[]>('/profissionais/me/agenda/horarios').then((response) => response.data) }
+export function fetchProfessionalAgendaConfiguration() { return api.get<ProfessionalAgendaConfiguration>('/profissionais/me/agenda/configuracao').then((response) => response.data) }
 export function updateProfessionalSchedule(businessHours: ProfessionalHourInput[]) { return api.put<ProfessionalHour[]>('/profissionais/me/agenda/horarios', { businessHours }).then((response) => response.data) }
 export function createCalendarEvent(input: CalendarEventInput) { return api.post<CalendarEvent>('/profissionais/me/agenda/eventos', input).then((response) => response.data) }
 export function updateCalendarEvent(eventId: number, input: CalendarEventInput) { return api.put<CalendarEvent>(`/profissionais/me/agenda/eventos/${eventId}`, input).then((response) => response.data) }

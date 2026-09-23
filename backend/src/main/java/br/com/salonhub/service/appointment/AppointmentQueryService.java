@@ -1,6 +1,8 @@
 package br.com.salonhub.service.appointment;
 
 import br.com.salonhub.dto.appointment.AppointmentResponse;
+import br.com.salonhub.dto.appointment.AdministrativeCalendarBlockResponse;
+import br.com.salonhub.dto.appointment.AdministrativeProfessionalAvailabilityResponse;
 import br.com.salonhub.dto.appointment.AvailabilityResponse;
 import br.com.salonhub.entity.Appointment;
 import br.com.salonhub.entity.AppointmentStatus;
@@ -77,6 +79,40 @@ public class AppointmentQueryService {
     }
 
     @Transactional(readOnly = true)
+    public List<AdministrativeProfessionalAvailabilityResponse> findTeamAvailability(
+            Long administratorId, LocalDate date, Long professionalId) {
+        User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
+        Long establishmentId = administrator.getEstablishment().getId();
+        List<User> professionals = userRepository.findByEstablishmentIdAndRoleAndActiveTrue(
+                        establishmentId, UserRole.PROFESSIONAL).stream()
+                .filter(professional -> professionalId == null || professional.getId().equals(professionalId))
+                .toList();
+        if (professionalId != null && professionals.isEmpty()) {
+            throw new ResourceNotFoundException("Funcionário não encontrado.");
+        }
+
+        LocalDateTime dayStart = date.atStartOfDay();
+        LocalDateTime dayEnd = date.plusDays(1).atStartOfDay();
+        return professionals.stream().map(professional -> {
+            List<AdministrativeCalendarBlockResponse> blocks = calendarEventRepository
+                    .findByProfessionalIdAndStartsAtLessThanAndEndsAtGreaterThanOrderByStartsAt(
+                            professional.getId(), dayEnd, dayStart).stream()
+                    .map(AdministrativeCalendarBlockResponse::fromEntity)
+                    .toList();
+            try {
+                ProfessionalAvailabilityService.WorkingHours hours =
+                        professionalAvailabilityService.requireWorkingHours(professional, date);
+                return new AdministrativeProfessionalAvailabilityResponse(
+                        professional.getId(), professional.getName(), true,
+                        hours.openingTime(), hours.closingTime(), blocks);
+            } catch (ConflictException ignored) {
+                return new AdministrativeProfessionalAvailabilityResponse(
+                        professional.getId(), professional.getName(), false, null, null, blocks);
+            }
+        }).toList();
+    }
+
+    @Transactional(readOnly = true)
     public AvailabilityResponse findAvailability(
             Long clientId,
             Long establishmentId,
@@ -91,7 +127,7 @@ public class AppointmentQueryService {
         }
 
         Establishment establishment = establishmentRepository.findById(establishmentId)
-                .filter(Establishment::isActive)
+                .filter(Establishment::acceptsNewAppointments)
                 .orElseThrow(() -> new ResourceNotFoundException("Estabelecimento não encontrado."));
         LocalDateTime now = LocalDateTime.now(clock);
         LocalDateTime earliestStart = now.plusMinutes(establishment.getMinimumAdvanceMinutes());

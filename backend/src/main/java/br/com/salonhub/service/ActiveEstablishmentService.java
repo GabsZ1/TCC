@@ -15,7 +15,7 @@ public class ActiveEstablishmentService {
 
     @Transactional(readOnly = true)
     public List<ActiveEstablishmentResponse> findAll() {
-        return establishmentRepository.findAllByActiveTrueOrderByNameAsc().stream()
+        return establishmentRepository.findAllByActiveTrueAndPausedFalseAndBookingsBlockedFalseOrderByNameAsc().stream()
                 .map(establishment -> new ActiveEstablishmentResponse(
                         establishment.getId(),
                         establishment.getName(),

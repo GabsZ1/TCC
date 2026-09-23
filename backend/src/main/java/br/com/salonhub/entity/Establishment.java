@@ -37,12 +37,25 @@ public class Establishment {
     @Column(length = 150)
     private String email;
 
-    @Column(length = 20)
-    private String phone;
-
     @Column(nullable = false)
     @Builder.Default
     private boolean active = true;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean paused = false;
+
+    @Column(name = "paused_by_system", nullable = false)
+    @Builder.Default
+    private boolean pausedBySystem = false;
+
+    @Column(name = "bookings_blocked", nullable = false)
+    @Builder.Default
+    private boolean bookingsBlocked = false;
+
+    @Column(name = "bookings_blocked_by_system", nullable = false)
+    @Builder.Default
+    private boolean bookingsBlockedBySystem = false;
 
     @Column(name = "minimum_advance_minutes", nullable = false)
     @Builder.Default
@@ -60,10 +73,9 @@ public class Establishment {
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
-    public void updateRegistration(String name, String email, String phone) {
+    public void updateRegistration(String name, String email) {
         this.name = name;
         this.email = email;
-        this.phone = phone;
     }
 
     public void updateAppointmentAdvancePolicy(int minimumAdvanceMinutes, int maximumAdvanceDays) {
@@ -77,6 +89,34 @@ public class Establishment {
 
     public void deactivate() {
         this.active = false;
+    }
+
+    public void pause(boolean bySystemAdministrator) {
+        this.paused = true;
+        if (bySystemAdministrator) {
+            this.pausedBySystem = true;
+        }
+    }
+
+    public void resume() {
+        this.paused = false;
+        this.pausedBySystem = false;
+    }
+
+    public void blockBookings(boolean bySystemAdministrator) {
+        this.bookingsBlocked = true;
+        if (bySystemAdministrator) {
+            this.bookingsBlockedBySystem = true;
+        }
+    }
+
+    public void allowBookings() {
+        this.bookingsBlocked = false;
+        this.bookingsBlockedBySystem = false;
+    }
+
+    public boolean acceptsNewAppointments() {
+        return active && !paused && !bookingsBlocked;
     }
 
 }

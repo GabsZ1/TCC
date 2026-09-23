@@ -6,6 +6,7 @@ import br.com.salonhub.dto.establishment.BusinessHourRequest;
 import br.com.salonhub.dto.establishment.BusinessHourResponse;
 import br.com.salonhub.entity.Establishment;
 import br.com.salonhub.entity.EstablishmentBusinessHour;
+import br.com.salonhub.entity.Appointment;
 import br.com.salonhub.entity.AppointmentStatus;
 import br.com.salonhub.exception.ConflictException;
 import br.com.salonhub.exception.InvalidRequestException;
@@ -17,7 +18,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
+import java.time.DayOfWeek;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -36,15 +43,21 @@ public class EstablishmentManagementService {
 
     @Transactional
     public EstablishmentResponse update(Long administratorId, EstablishmentUpdateRequest request) {
-        Establishment establishment = findEstablishment(administratorId);
+        Establishment identityEstablishment = findEstablishment(administratorId);
+        Establishment establishment = establishmentRepository.findByIdForUpdate(identityEstablishment.getId())
+                .orElseThrow(() -> new IllegalStateException("Estabelecimento do administrador não encontrado."));
         if (!establishment.isActive()) {
             throw new ConflictException("Não é possível editar um estabelecimento inativo.");
         }
 
+        if (request.businessHours() != null) {
+            validateBusinessHours(request.businessHours());
+            requireNoConflictingConfirmedAppointments(establishment, request.businessHours());
+        }
+
         establishment.updateRegistration(
                 request.name().trim(),
-                normalizeOptionalText(request.email()),
-                normalizeOptionalText(request.phone())
+                normalizeOptionalText(request.email())
         );
         if (request.businessHours() != null) {
             updateBusinessHours(establishment, request.businessHours());
@@ -59,35 +72,8 @@ public class EstablishmentManagementService {
         return response(establishment);
     }
 
-    @Transactional
-    public void deactivate(Long administratorId) {
-        Establishment identityEstablishment = findEstablishment(administratorId);
-        Establishment establishment = establishmentRepository.findByIdForUpdate(identityEstablishment.getId())
-                .orElseThrow(() -> new IllegalStateException("Estabelecimento do administrador não encontrado."));
-        if (!establishment.isActive()) {
-            return;
-        }
-        if (appointmentRepository.existsByEstablishmentIdAndStatusAndEndsAtGreaterThan(
-                establishment.getId(), AppointmentStatus.CONFIRMED, LocalDateTime.now(clock))) {
-            throw new ConflictException(
-                    "O estabelecimento possui atendimentos confirmados futuros ou em andamento. "
-                            + "Cancele ou conclua os atendimentos pendentes antes de desativar.");
-        }
-        establishment.deactivate();
-    }
-
-    @Transactional
-    public EstablishmentResponse reactivate(Long administratorId) {
-        Establishment establishment = findEstablishment(administratorId);
-        if (establishment.isActive()) {
-            throw new ConflictException("O estabelecimento já está ativo.");
-        }
-        establishment.reactivate();
-        return response(establishment);
-    }
-
     private Establishment findEstablishment(Long administratorId) {
-        return tenantAuthorizationService.requireAdministratorIdentity(administratorId).getEstablishment();
+        return tenantAuthorizationService.requireAdministrator(administratorId).getEstablishment();
     }
 
     private String normalizeOptionalText(String value) {
@@ -95,14 +81,7 @@ public class EstablishmentManagementService {
     }
 
     private void updateBusinessHours(Establishment establishment, java.util.List<BusinessHourRequest> requests) {
-        if (requests.stream().map(BusinessHourRequest::dayOfWeek).distinct().count() != 7) {
-            throw new InvalidRequestException("Informe cada dia da semana uma única vez.");
-        }
         requests.forEach(request -> {
-            if (!request.closed() && (request.openingTime() == null || request.closingTime() == null
-                    || !request.openingTime().isBefore(request.closingTime()))) {
-                throw new InvalidRequestException("O horário de abertura deve ser anterior ao fechamento.");
-            }
             EstablishmentBusinessHour hour = businessHourRepository
                     .findByEstablishmentIdAndDayOfWeek(establishment.getId(), request.dayOfWeek())
                     .orElseGet(() -> EstablishmentBusinessHour.builder()
@@ -112,6 +91,61 @@ public class EstablishmentManagementService {
                 businessHourRepository.save(hour);
             }
         });
+    }
+
+    private void validateBusinessHours(List<BusinessHourRequest> requests) {
+        if (requests.stream().map(BusinessHourRequest::dayOfWeek).distinct().count() != 7) {
+            throw new InvalidRequestException("Informe cada dia da semana uma única vez.");
+        }
+        requests.forEach(request -> {
+            if (!request.closed() && (request.openingTime() == null || request.closingTime() == null
+                    || !request.openingTime().isBefore(request.closingTime()))) {
+                throw new InvalidRequestException("O horário de abertura deve ser anterior ao fechamento.");
+            }
+        });
+    }
+
+    /**
+     * Impede reduzir o expediente de forma que um atendimento confirmado futuro ou em
+     * andamento fique fora do novo horário. O estabelecimento é bloqueado antes desta
+     * verificação, usando a mesma ordem de lock da criação de agendamentos, para que uma
+     * nova reserva não possa entrar entre a validação e a gravação do expediente.
+     */
+    private void requireNoConflictingConfirmedAppointments(
+            Establishment establishment, List<BusinessHourRequest> requests) {
+        List<Appointment> relevantConfirmed = appointmentRepository
+                .findByEstablishmentIdAndStatusAndEndsAtGreaterThanOrderByStartsAt(
+                        establishment.getId(), AppointmentStatus.CONFIRMED, LocalDateTime.now(clock));
+        if (relevantConfirmed.isEmpty()) {
+            return;
+        }
+
+        Map<DayOfWeek, BusinessHourRequest> hoursByDay = requests.stream()
+                .collect(Collectors.toMap(BusinessHourRequest::dayOfWeek, Function.identity()));
+        long conflicting = relevantConfirmed.stream()
+                .filter(appointment -> fallsOutsideNewBusinessHours(appointment, hoursByDay))
+                .count();
+        if (conflicting > 0) {
+            throw new ConflictException(
+                    "Não foi possível alterar o expediente: " + conflicting
+                            + " agendamento(s) confirmado(s) futuro(s) ou em andamento ficariam fora do novo horário. "
+                            + "Cancele-os, aguarde a conclusão ou ajuste o expediente para mantê-los dentro do horário.");
+        }
+    }
+
+    private boolean fallsOutsideNewBusinessHours(
+            Appointment appointment, Map<DayOfWeek, BusinessHourRequest> hoursByDay) {
+        BusinessHourRequest hour = hoursByDay.get(appointment.getStartsAt().getDayOfWeek());
+        if (hour == null || hour.closed()) {
+            return true;
+        }
+        LocalTime opening = hour.openingTime();
+        LocalTime closing = hour.closingTime();
+        boolean changesDay = !appointment.getStartsAt().toLocalDate()
+                .equals(appointment.getEndsAt().toLocalDate());
+        return changesDay
+                || appointment.getStartsAt().toLocalTime().isBefore(opening)
+                || appointment.getEndsAt().toLocalTime().isAfter(closing);
     }
 
     private EstablishmentResponse response(Establishment establishment) {
