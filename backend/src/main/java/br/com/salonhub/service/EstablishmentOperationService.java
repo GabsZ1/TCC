@@ -98,7 +98,8 @@ public class EstablishmentOperationService {
         }
 
         LocalDateTime now = LocalDateTime.now(clock);
-        appointmentRepository.findByEstablishmentIdAndStatus(establishmentId, AppointmentStatus.CONFIRMED)
+        appointmentRepository.findByEstablishmentIdAndStatusForUpdate(
+                        establishmentId, AppointmentStatus.CONFIRMED)
                 .forEach(appointment -> appointment.cancelByAdministrator(
                         "Site desativado", systemAdministrator, now));
         establishment.deactivate();
