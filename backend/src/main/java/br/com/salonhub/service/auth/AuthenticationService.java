@@ -30,12 +30,18 @@ public class AuthenticationService {
     public LoginResponse authenticate(LoginRequest request) {
         String email = request.email().trim().toLowerCase(Locale.ROOT);
         User user = userRepository.findByEmailIgnoreCase(email)
-                .filter(User::isActive)
                 .filter(User::isPasswordInitialized)
                 .orElseThrow(() -> new UnauthorizedException("E-mail ou senha inválidos"));
 
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
             throw new UnauthorizedException("E-mail ou senha inválidos");
+        }
+        // US 2.4 CT04 / 2.17 CT06: o motivo específico só aparece depois de a senha
+        // conferir, para não revelar a terceiros quais e-mails existem ou estão inativos.
+        if (!user.isActive()) {
+            throw new UnauthorizedException(user.getRole() == UserRole.PROFESSIONAL
+                    ? "Funcionário está desativado"
+                    : "Esta conta está desativada.");
         }
         requireEstablishmentLoginAllowed(user);
 
