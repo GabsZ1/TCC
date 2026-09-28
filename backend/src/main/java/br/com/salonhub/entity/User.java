@@ -78,6 +78,10 @@ public class User {
         this.passwordInitialized = true;
     }
 
+    public void changePassword(String encodedPassword) {
+        this.password = encodedPassword;
+    }
+
     public Set<EstablishmentService> getOfferedServices() {
         return Collections.unmodifiableSet(offeredServices);
     }

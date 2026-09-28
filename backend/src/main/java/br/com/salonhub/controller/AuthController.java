@@ -7,6 +7,7 @@ import br.com.salonhub.dto.auth.LoginResponse;
 import br.com.salonhub.dto.auth.AuthenticatedUserResponse;
 import br.com.salonhub.dto.auth.ClientRegistrationRequest;
 import br.com.salonhub.dto.auth.FirstAccessRequest;
+import br.com.salonhub.dto.auth.PasswordChangeRequest;
 import br.com.salonhub.service.auth.AuthenticationService;
 import br.com.salonhub.service.auth.RegistrationService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -19,6 +20,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -84,5 +86,17 @@ public class AuthController {
     @ApiResponse(responseCode = "401", description = "Token ausente, inválido ou usuário inativo")
     public AuthenticatedUserResponse getCurrentUser(@AuthenticationPrincipal Jwt jwt) {
         return authenticationService.getCurrentUser(Long.valueOf(jwt.getSubject()));
+    }
+
+    @PatchMapping("/senha")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Alterar senha", description = "O usuário autenticado troca a própria senha informando a senha atual.")
+    @ApiResponse(responseCode = "204", description = "Senha alterada")
+    @ApiResponse(responseCode = "400", description = "Senha atual incorreta, confirmação divergente ou senha fraca")
+    @ApiResponse(responseCode = "401", description = "Token ausente, inválido ou usuário inativo")
+    public void changePassword(
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody PasswordChangeRequest request) {
+        authenticationService.changePassword(Long.valueOf(jwt.getSubject()), request);
     }
 }

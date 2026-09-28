@@ -4,6 +4,7 @@ import br.com.salonhub.dto.auth.AuthenticatedUserResponse;
 import br.com.salonhub.dto.auth.FirstAccessRequest;
 import br.com.salonhub.dto.auth.LoginRequest;
 import br.com.salonhub.dto.auth.LoginResponse;
+import br.com.salonhub.dto.auth.PasswordChangeRequest;
 import br.com.salonhub.entity.User;
 import br.com.salonhub.entity.UserRole;
 import br.com.salonhub.exception.UnauthorizedException;
@@ -60,6 +61,31 @@ public class AuthenticationService {
                 .orElseThrow(() -> new InvalidRequestException(
                         "Token de primeiro acesso inválido, expirado ou já utilizado."));
         user.initializePassword(passwordEncoder.encode(request.password()));
+    }
+
+    /**
+     * US 2.19 — o próprio usuário autenticado troca a senha informando a atual.
+     * Erros de validação respondem 400 (e não 401) para que o front não
+     * interprete uma senha atual errada como sessão expirada.
+     */
+    @Transactional
+    public void changePassword(Long userId, PasswordChangeRequest request) {
+        User user = userRepository.findByIdForUpdate(userId)
+                .filter(User::isActive)
+                .orElseThrow(() -> new UnauthorizedException("Usuário inválido ou inativo"));
+        requireEstablishmentLoginAllowed(user);
+
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
+            throw new InvalidRequestException("Senha atual incorreta");
+        }
+        if (!request.newPassword().equals(request.newPasswordConfirmation())) {
+            throw new InvalidRequestException("A nova senha e a confirmação não correspondem");
+        }
+        if (passwordEncoder.matches(request.newPassword(), user.getPassword())) {
+            throw new InvalidRequestException("A nova senha deve ser diferente da senha atual");
+        }
+
+        user.changePassword(passwordEncoder.encode(request.newPassword()));
     }
 
     @Transactional(readOnly = true)

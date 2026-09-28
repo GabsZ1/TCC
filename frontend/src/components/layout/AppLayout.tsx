@@ -6,6 +6,7 @@ import {
   CalendarDays,
   ClipboardList,
   House,
+  KeyRound,
   LogOut,
   Menu,
   Scissors,
@@ -21,7 +22,7 @@ type NavItem = {
   to: string
   label: string
   icon: ComponentType<{ size?: number; strokeWidth?: number; className?: string }>
-  group?: 'Visão geral' | 'Operação' | 'Gestão'
+  group?: 'Visão geral' | 'Operação' | 'Gestão' | 'Conta'
 }
 
 export function AppLayout() {
@@ -31,7 +32,7 @@ export function AppLayout() {
 
   useEffect(() => setMobileMenuOpen(false), [location.pathname])
 
-  const navItems: NavItem[] = user?.role === 'SYSTEM_ADMIN'
+  const roleNavItems: NavItem[] = user?.role === 'SYSTEM_ADMIN'
     ? [
         { to: '/', label: 'Início', icon: House, group: 'Visão geral' },
         { to: '/admin/estabelecimentos', label: 'Estabelecimentos', icon: Building2, group: 'Gestão' },
@@ -59,6 +60,11 @@ export function AppLayout() {
               { to: '/meus-servicos', label: 'Meus serviços', icon: Scissors, group: 'Gestão' },
             ]
           : [{ to: '/', label: 'Início', icon: House, group: 'Visão geral' }]
+
+  const navItems: NavItem[] = [
+    ...roleNavItems,
+    { to: '/alterar-senha', label: 'Alterar senha', icon: KeyRound, group: 'Conta' },
+  ]
 
   return (
     <div className="min-h-screen bg-background-100 md:flex md:h-screen md:overflow-hidden">

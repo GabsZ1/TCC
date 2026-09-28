@@ -201,6 +201,24 @@ Authorization: Bearer SEU_TOKEN
 
 O JWT contém o identificador do usuário, o perfil, o e-mail e, quando aplicável, o identificador do estabelecimento. A rota `/me` também consulta o banco para confirmar que o usuário continua ativo.
 
+Alteração de senha (qualquer perfil autenticado):
+
+```http
+PATCH /api/auth/senha
+Authorization: Bearer SEU_TOKEN
+Content-Type: application/json
+```
+
+```json
+{
+  "currentPassword": "senha123",
+  "newPassword": "novaSenha456",
+  "newPasswordConfirmation": "novaSenha456"
+}
+```
+
+Respostas: `204` senha alterada; `400` senha atual incorreta, confirmação divergente, nova senha igual à atual ou fora da política (8 a 72 caracteres); `401` sessão inválida ou usuário inativo. No frontend, a tela fica em `/alterar-senha`, no grupo "Conta" do menu.
+
 Cadastro de cliente:
 
 ```http

@@ -36,3 +36,13 @@ export function registerClient(input: ClientRegistrationInput) {
 export function completeFirstAccess(token: string, password: string) {
   return api.post<void>('/auth/primeiro-acesso', { token, password })
 }
+
+export interface PasswordChangeInput {
+  currentPassword: string
+  newPassword: string
+  newPasswordConfirmation: string
+}
+
+export function changePassword(input: PasswordChangeInput) {
+  return api.patch<void>('/auth/senha', input)
+}
