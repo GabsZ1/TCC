@@ -295,6 +295,15 @@ Authorization: Bearer TOKEN_DO_PROFISSIONAL
 
 Retorna apenas atendimentos **concluídos** do próprio profissional (o ID vem sempre do token), filtrados pela **data de conclusão**, do mais recente para o mais antigo, com valor, percentual e valor da comissão congelados no agendamento, um resumo (quantidade, soma dos valores, soma das comissões) e os tipos de serviço já realizados para o filtro. Sem período, considera o mês corrente. No frontend: menu "Atendimentos realizados" (`/meus-atendimentos`).
 
+### Atendimentos finalizados do estabelecimento (US 2.13)
+
+```http
+GET /api/estabelecimentos/me/atendimentos-realizados?startDate=2026-03-01&endDate=2026-03-31&professionalId=2&page=0&size=20
+Authorization: Bearer TOKEN_DO_ADMIN
+```
+
+Somente administrador. Lista atendimentos **finalizados** (invalidados e cancelados ficam de fora) com funcionário, data de conclusão, serviço, cliente, valor e comissão, do mais recente para o mais antigo. Filtros por funcionário (apenas do próprio estabelecimento) e por período de conclusão, combináveis; **sem filtros, retorna todo o histórico**. Paginado (padrão 20, máximo 100 por página); `totalServiceValue` e `totalCommission` somam todos os resultados do filtro, não só a página. No frontend: menu "Atendimentos", aba "Atendimentos realizados" (a aba "Visão por status" mantém o relatório de volume por situação).
+
 Configurações do JWT:
 
 - `JWT_SECRET`: chave com pelo menos 256 bits codificada em Base64. A chave padrão existe somente para desenvolvimento.

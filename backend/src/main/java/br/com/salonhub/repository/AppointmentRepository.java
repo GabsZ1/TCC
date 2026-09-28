@@ -2,6 +2,8 @@ package br.com.salonhub.repository;
 
 import br.com.salonhub.entity.Appointment;
 import br.com.salonhub.entity.AppointmentStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -251,5 +253,54 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             order by service.name
             """)
     List<br.com.salonhub.dto.professionalearnings.ServiceOption> findCompletedServiceOptionsByProfessional(
+            @Param("professionalId") Long professionalId);
+
+    /** US 2.13 — atendimentos finalizados do estabelecimento, paginados, pela data de conclusão. */
+    @Query(value = """
+            select appointment
+            from Appointment appointment
+            join fetch appointment.professional
+            join fetch appointment.client
+            join fetch appointment.service
+            where appointment.establishment.id = :establishmentId
+              and appointment.status = br.com.salonhub.entity.AppointmentStatus.COMPLETED
+              and appointment.completedAt >= :periodStart
+              and appointment.completedAt < :periodEnd
+              and (:professionalId is null or appointment.professional.id = :professionalId)
+            order by appointment.completedAt desc, appointment.id desc
+            """,
+            countQuery = """
+            select count(appointment)
+            from Appointment appointment
+            where appointment.establishment.id = :establishmentId
+              and appointment.status = br.com.salonhub.entity.AppointmentStatus.COMPLETED
+              and appointment.completedAt >= :periodStart
+              and appointment.completedAt < :periodEnd
+              and (:professionalId is null or appointment.professional.id = :professionalId)
+            """)
+    Page<Appointment> findCompletedByEstablishment(
+            @Param("establishmentId") Long establishmentId,
+            @Param("periodStart") LocalDateTime periodStart,
+            @Param("periodEnd") LocalDateTime periodEnd,
+            @Param("professionalId") Long professionalId,
+            Pageable pageable);
+
+    /** Totais da US 2.13 sobre todos os atendimentos que atendem aos filtros (independe da página). */
+    @Query("""
+            select
+                count(appointment) as totalAppointments,
+                sum(appointment.agreedPrice) as totalServiceValue,
+                sum(appointment.commissionAmount) as totalCommission
+            from Appointment appointment
+            where appointment.establishment.id = :establishmentId
+              and appointment.status = br.com.salonhub.entity.AppointmentStatus.COMPLETED
+              and appointment.completedAt >= :periodStart
+              and appointment.completedAt < :periodEnd
+              and (:professionalId is null or appointment.professional.id = :professionalId)
+            """)
+    CompletedAppointmentsTotalsRow sumCompletedByEstablishment(
+            @Param("establishmentId") Long establishmentId,
+            @Param("periodStart") LocalDateTime periodStart,
+            @Param("periodEnd") LocalDateTime periodEnd,
             @Param("professionalId") Long professionalId);
 }

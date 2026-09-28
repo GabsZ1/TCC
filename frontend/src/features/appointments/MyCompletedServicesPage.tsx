@@ -7,6 +7,7 @@ import {
   type CompletedServicesFilters,
 } from '@/features/appointments/completedServicesApi'
 import { getApiErrorMessage } from '@/lib/apiError'
+import { formatDate, formatDateTime, formatMoney, formatPercentage, todayIso } from '@/lib/format'
 
 /**
  * US 2.15 — Visualizar atendimentos realizados (visão do profissional).
@@ -219,28 +220,4 @@ function SummaryCard({ icon: Icon, label, value, bordered = false, highlight = f
       <p className="mt-2 text-xl font-extrabold tracking-[-0.035em] text-text-950">{value}</p>
     </div>
   )
-}
-
-function todayIso() {
-  const now = new Date()
-  const offset = now.getTimezoneOffset() * 60_000
-  return new Date(now.getTime() - offset).toISOString().slice(0, 10)
-}
-
-function formatMoney(value: number) {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
-}
-
-function formatPercentage(value: number) {
-  return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value) + '%'
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' }).format(new Date(`${value}T00:00:00Z`))
-}
-
-/** completedAt vem sem fuso (horário local do estabelecimento); exibimos como está. */
-function formatDateTime(value: string) {
-  const [date, time = ''] = value.split('T')
-  return `${formatDate(date)} ${time.slice(0, 5)}`.trim()
 }

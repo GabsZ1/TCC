@@ -5,8 +5,10 @@ import br.com.salonhub.dto.dashboard.DashboardSummaryResponse;
 import br.com.salonhub.dto.establishment.EstablishmentResponse;
 import br.com.salonhub.dto.establishment.EstablishmentUpdateRequest;
 import br.com.salonhub.dto.report.AppointmentsReportResponse;
+import br.com.salonhub.dto.report.CompletedAppointmentsResponse;
 import br.com.salonhub.service.AppointmentsReportService;
 import br.com.salonhub.service.CommissionReportService;
+import br.com.salonhub.service.CompletedAppointmentsService;
 import br.com.salonhub.service.DashboardService;
 import br.com.salonhub.service.EstablishmentManagementService;
 import br.com.salonhub.service.EstablishmentOperationService;
@@ -29,6 +31,7 @@ public class EstablishmentController {
     private final DashboardService dashboardService;
     private final CommissionReportService commissionReportService;
     private final AppointmentsReportService appointmentsReportService;
+    private final CompletedAppointmentsService completedAppointmentsService;
 
     @GetMapping
     public EstablishmentResponse findMine(@AuthenticationPrincipal Jwt jwt) {
@@ -47,6 +50,18 @@ public class EstablishmentController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam(required = false) Long professionalId) {
         return commissionReportService.getReport(Long.valueOf(jwt.getSubject()), startDate, endDate, professionalId);
+    }
+
+    @GetMapping("/atendimentos-realizados")
+    public CompletedAppointmentsResponse completedAppointments(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) Long professionalId,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+        return completedAppointmentsService.find(
+                Long.valueOf(jwt.getSubject()), startDate, endDate, professionalId, page, size);
     }
 
     @GetMapping("/relatorio-atendimentos")

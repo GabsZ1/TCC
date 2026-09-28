@@ -7,7 +7,7 @@ import { getApiErrorMessage } from '@/lib/apiError'
 
 const REPORT_KEY = 'appointments-report'
 
-export function AppointmentsReportPage() {
+export function AppointmentsReportPage({ embedded = false }: { embedded?: boolean } = {}) {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [professionalId, setProfessionalId] = useState('')
@@ -47,12 +47,14 @@ export function AppointmentsReportPage() {
   }
 
   return (
-    <div className="page-shell">
-      <header className="border-b border-background-300 pb-7">
-        <p className="eyebrow">Indicadores</p>
-        <h1 className="page-title mt-3">Relatório de atendimentos</h1>
-        <p className="page-subtitle">Acompanhe o volume de agendamentos por profissional e período, incluindo cancelamentos e invalidações.</p>
-      </header>
+    <div className={embedded ? '' : 'page-shell'}>
+      {!embedded && (
+        <header className="border-b border-background-300 pb-7">
+          <p className="eyebrow">Indicadores</p>
+          <h1 className="page-title mt-3">Relatório de atendimentos</h1>
+          <p className="page-subtitle">Acompanhe o volume de agendamentos por profissional e período, incluindo cancelamentos e invalidações.</p>
+        </header>
+      )}
 
       <form onSubmit={applyFilters} className="surface-card mt-6 grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-3">
         <Filter label="Data inicial">
