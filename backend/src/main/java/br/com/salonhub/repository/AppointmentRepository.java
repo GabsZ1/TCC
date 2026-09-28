@@ -221,4 +221,35 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             @Param("periodStart") LocalDateTime periodStart,
             @Param("periodEnd") LocalDateTime periodEnd,
             @Param("professionalId") Long professionalId);
+
+    /** US 2.15 — atendimentos concluídos do próprio profissional, filtrados pela data de conclusão. */
+    @Query("""
+            select appointment
+            from Appointment appointment
+            join fetch appointment.client
+            join fetch appointment.service
+            where appointment.professional.id = :professionalId
+              and appointment.status = br.com.salonhub.entity.AppointmentStatus.COMPLETED
+              and appointment.completedAt >= :periodStart
+              and appointment.completedAt < :periodEnd
+              and (:serviceId is null or appointment.service.id = :serviceId)
+            order by appointment.completedAt desc, appointment.id desc
+            """)
+    List<Appointment> findCompletedByProfessional(
+            @Param("professionalId") Long professionalId,
+            @Param("periodStart") LocalDateTime periodStart,
+            @Param("periodEnd") LocalDateTime periodEnd,
+            @Param("serviceId") Long serviceId);
+
+    /** Tipos de serviço que o profissional já concluiu alguma vez (opções do filtro da US 2.15). */
+    @Query("""
+            select distinct new br.com.salonhub.dto.professionalearnings.ServiceOption(service.id, service.name)
+            from Appointment appointment
+            join appointment.service service
+            where appointment.professional.id = :professionalId
+              and appointment.status = br.com.salonhub.entity.AppointmentStatus.COMPLETED
+            order by service.name
+            """)
+    List<br.com.salonhub.dto.professionalearnings.ServiceOption> findCompletedServiceOptionsByProfessional(
+            @Param("professionalId") Long professionalId);
 }

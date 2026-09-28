@@ -286,6 +286,15 @@ Exemplo de criação:
 
 A duração do serviço define automaticamente o término. A API valida o horário geral do estabelecimento, a atividade do serviço e do profissional e conflitos com agendamentos confirmados. A criação bloqueia temporariamente o registro do profissional e revalida a disponibilidade, reduzindo o risco de reservas concorrentes no mesmo período.
 
+### Atendimentos realizados do profissional (US 2.15)
+
+```http
+GET /api/profissionais/me/atendimentos-realizados?startDate=2026-03-01&endDate=2026-03-31&serviceId=1
+Authorization: Bearer TOKEN_DO_PROFISSIONAL
+```
+
+Retorna apenas atendimentos **concluídos** do próprio profissional (o ID vem sempre do token), filtrados pela **data de conclusão**, do mais recente para o mais antigo, com valor, percentual e valor da comissão congelados no agendamento, um resumo (quantidade, soma dos valores, soma das comissões) e os tipos de serviço já realizados para o filtro. Sem período, considera o mês corrente. No frontend: menu "Atendimentos realizados" (`/meus-atendimentos`).
+
 Configurações do JWT:
 
 - `JWT_SECRET`: chave com pelo menos 256 bits codificada em Base64. A chave padrão existe somente para desenvolvimento.

@@ -57,6 +57,7 @@ export function AppLayout() {
           ? [
               { to: '/', label: 'Início', icon: House, group: 'Visão geral' },
               { to: '/minha-agenda', label: 'Minha agenda', icon: CalendarDays, group: 'Operação' },
+              { to: '/meus-atendimentos', label: 'Atendimentos realizados', icon: BadgeDollarSign, group: 'Operação' },
               { to: '/meus-servicos', label: 'Meus serviços', icon: Scissors, group: 'Gestão' },
             ]
           : [{ to: '/', label: 'Início', icon: House, group: 'Visão geral' }]
