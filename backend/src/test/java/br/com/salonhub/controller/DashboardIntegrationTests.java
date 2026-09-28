@@ -113,7 +113,7 @@ class DashboardIntegrationTests {
                         .header("Authorization", bearer(fixture.administratorToken()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":"Segundo Profissional","email":"second.professional.dashboard-employees@salonhub.test","occupation":"Cabeleireiro(a)","cpf":"%s"}
+                                {"name":"Segundo Profissional","email":"second.professional.dashboard-employees@salonhub.test","occupation":"Cabeleireiro(a)","cpf":"%s","hireDate":"2025-01-02"}
                                 """.formatted(TestDocuments.cpf())))
                 .andExpect(status().isCreated())
                 .andReturn();
@@ -210,7 +210,7 @@ class DashboardIntegrationTests {
                         .header("Authorization", bearer(administratorToken))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":"Profissional %s","email":"professional.%s@salonhub.test","occupation":"Cabeleireiro(a)","cpf":"%s"}
+                                {"name":"Profissional %s","email":"professional.%s@salonhub.test","occupation":"Cabeleireiro(a)","cpf":"%s","hireDate":"2025-01-02"}
                                 """.formatted(suffix, suffix, TestDocuments.cpf())))
                 .andExpect(status().isCreated())
                 .andReturn();

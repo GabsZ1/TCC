@@ -34,8 +34,8 @@ public class EmployeePhotoService {
     private final Clock clock;
 
     @Transactional
-    public void upload(Long administratorId, Long employeeId, MultipartFile file) {
-        User employee = findEmployeeOfAdministrator(administratorId, employeeId);
+    public void uploadOwn(Long professionalId, MultipartFile file) {
+        User employee = tenantAuthorizationService.requireProfessional(professionalId);
         if (file == null || file.isEmpty()) {
             throw new InvalidRequestException("Selecione uma imagem.");
         }
@@ -60,8 +60,8 @@ public class EmployeePhotoService {
     }
 
     @Transactional
-    public void delete(Long administratorId, Long employeeId) {
-        User employee = findEmployeeOfAdministrator(administratorId, employeeId);
+    public void deleteOwn(Long professionalId) {
+        User employee = tenantAuthorizationService.requireProfessional(professionalId);
         photoRepository.findById(employee.getId()).ifPresent(photoRepository::delete);
     }
 

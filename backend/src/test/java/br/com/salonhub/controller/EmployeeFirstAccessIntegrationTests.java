@@ -51,7 +51,7 @@ class EmployeeFirstAccessIntegrationTests {
                         .with(jwt().jwt(token -> token.subject(administrator.getId().toString())))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":"Funcionário","email":"%s","occupation":"Cabeleireiro(a)","cpf":"%s"}
+                                {"name":"Funcionário","email":"%s","occupation":"Cabeleireiro(a)","cpf":"%s","hireDate":"2025-01-02"}
                                 """.formatted(employeeEmail, TestDocuments.cpf())))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.firstAccessToken").isNotEmpty())
@@ -68,7 +68,7 @@ class EmployeeFirstAccessIntegrationTests {
                         .header("Authorization", "Bearer " + firstAccessToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":"Indevido","email":"indevido@test.local","occupation":"Cabeleireiro(a)","cpf":"%s"}
+                                {"name":"Indevido","email":"indevido@test.local","occupation":"Cabeleireiro(a)","cpf":"%s","hireDate":"2025-01-02"}
                                 """.formatted(TestDocuments.cpf())))
                 .andExpect(status().isUnauthorized());
 

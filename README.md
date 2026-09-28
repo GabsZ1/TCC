@@ -300,29 +300,32 @@ Exemplo de criação:
 
 A duração do serviço define automaticamente o término. A API valida o horário geral do estabelecimento, a atividade do serviço e do profissional e conflitos com agendamentos confirmados. A criação bloqueia temporariamente o registro do profissional e revalida a disponibilidade, reduzindo o risco de reservas concorrentes no mesmo período.
 
-### Funcionários (US 2.1, 2.2 e 2.6)
+### Funcionários (US 2.1, 2.2 e 2.6) e perfil do funcionário
+
+Quem administra cada dado:
+
+| Dado | Administrador | Próprio funcionário |
+|---|---|---|
+| Nome | cadastra e altera | só vê |
+| CPF e data de admissão | cadastra (obrigatórios); se estiverem vazios em cadastros antigos, preenche **uma única vez** | só vê |
+| E-mail de acesso | cadastra | altera, confirmando com a senha atual |
+| Ocupação | cadastra | altera |
+| Telefone, Instagram, endereço, foto | — | altera |
+| Ativo/inativo, serviços, remoção | altera | — |
+
+Depois de gravados, CPF e data de admissão não podem ser alterados por ninguém; o frontend pede dupla confirmação (revisão + redigitar o CPF) antes de gravá-los.
 
 ```http
-POST /api/funcionarios
-Authorization: Bearer TOKEN_DO_ADMIN
-Content-Type: application/json
-
-{
-  "name": "Zélia Souza",
-  "email": "zelia@salao.com",
-  "occupation": "Manicure",
-  "cpf": "123.456.789-09",
-  "phone": "(44) 99999-1234",
-  "instagram": "@zelia.nails",
-  "address": "Rua das Flores, 100 - Centro",
-  "hireDate": "2025-05-12"
-}
+POST /api/funcionarios                 {"name","email","occupation","cpf","hireDate"}   (admin)
+PUT  /api/funcionarios/{id}            {"name","cpf?","hireDate?"}                      (admin)
+GET  /api/funcionarios/me/perfil                                                         (profissional)
+PUT  /api/funcionarios/me/perfil       {"email","occupation","phone?","instagram?","address?","currentPassword?"}
+PUT  /api/funcionarios/me/foto         multipart, campo "file" (JPG/PNG/WEBP até 2 MB)   (profissional)
+DELETE /api/funcionarios/me/foto                                                         (profissional)
+GET  /api/funcionarios/{id}/foto       admin do estabelecimento ou o próprio profissional
 ```
 
-- Obrigatórios: nome, e-mail, ocupação e CPF (único e com dígitos verificadores válidos). Os demais são opcionais; a data de admissão não pode ser futura.
-- CPF e telefone são gravados só com dígitos; o Instagram, sem o "@" (migration V26).
-- `PUT /api/funcionarios/{id}` aceita os mesmos campos. A listagem (`GET /api/funcionarios`) já vem em ordem alfabética e traz `hasPhoto` e `passwordInitialized`.
-- Foto (opcional, JPG/PNG/WEBP até 2 MB, conferida pela assinatura do arquivo): `PUT /api/funcionarios/{id}/foto` (multipart, campo `file`), `DELETE /api/funcionarios/{id}/foto` e `GET /api/funcionarios/{id}/foto` (administrador do estabelecimento ou o próprio profissional).
+No frontend, o funcionário acessa "Meu perfil" (`/meu-perfil`), que também tem o atalho para alterar a senha.
 
 ### Atendimentos realizados do profissional (US 2.15)
 

@@ -65,8 +65,8 @@ export function AppLayout() {
 
   const navItems: NavItem[] = [
     ...roleNavItems,
-    // Cliente troca a senha pelo card em "Meu perfil"; os demais perfis, pelo item do menu.
-    ...(user?.role === 'CLIENT'
+    // Cliente e profissional trocam a senha pelo card em "Meu perfil"; os demais perfis, pelo item do menu.
+    ...(user?.role === 'CLIENT' || user?.role === 'PROFESSIONAL'
       ? [{ to: '/meu-perfil', label: 'Meu perfil', icon: UserRound, group: 'Conta' } as NavItem]
       : [{ to: '/alterar-senha', label: 'Alterar senha', icon: KeyRound, group: 'Conta' } as NavItem]),
   ]

@@ -6,19 +6,15 @@ import { getApiErrorMessage } from '@/lib/apiError'
 import {
   createEmployee,
   deactivateEmployee,
-  deleteEmployeePhoto,
-  uploadEmployeePhoto,
   fetchEmployees,
   removeEmployee,
   reactivateEmployee,
   updateEmployee,
   type Employee,
-  type EmployeeInput,
+  type EmployeeCreateInput,
+  type EmployeeUpdateInput,
 } from '@/features/employees/services/employeesApi'
-import {
-  EmployeeFormModal,
-  type EmployeePhotoChange,
-} from '@/features/employees/components/EmployeeFormModal'
+import { EmployeeFormModal } from '@/features/employees/components/EmployeeFormModal'
 import { EmployeeAvatar } from '@/features/employees/components/EmployeeAvatar'
 import { EmployeeDetailsModal } from '@/features/employees/components/EmployeeDetailsModal'
 import { ProfessionalServicesModal } from '@/features/employees/components/ProfessionalServicesModal'
@@ -56,23 +52,9 @@ export function EmployeesListPage() {
   const activeCount = sortedEmployees.filter((employee) => employee.active).length
   const inactiveCount = sortedEmployees.length - activeCount
 
-  /** Envia/remove a foto depois de salvar os dados; falha na foto não desfaz o cadastro. */
-  async function applyPhotoChange(employeeId: number, photo: EmployeePhotoChange) {
-    if (photo === undefined) return
-    try {
-      if (photo === null) await deleteEmployeePhoto(employeeId)
-      else await uploadEmployeePhoto(employeeId, photo)
-    } catch (photoError) {
-      setDeleteError(`Os dados foram salvos, mas a foto não: ${getApiErrorMessage(photoError, 'tente enviar novamente.')}`)
-    } finally {
-      queryClient.invalidateQueries({ queryKey: ['employee-photo', employeeId] })
-    }
-  }
-
   const createMutation = useMutation({
-    mutationFn: ({ input }: { input: EmployeeInput; photo: EmployeePhotoChange }) => createEmployee(input),
-    onSuccess: async (result, { photo }) => {
-      await applyPhotoChange(result.id, photo)
+    mutationFn: createEmployee,
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: EMPLOYEES_QUERY_KEY })
       setFirstAccessInvitation({
         employeeName: result.name,
@@ -86,9 +68,8 @@ export function EmployeesListPage() {
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, input }: { id: number; input: EmployeeInput; photo: EmployeePhotoChange }) => updateEmployee(id, input),
-    onSuccess: async (employee, { photo }) => {
-      await applyPhotoChange(employee.id, photo)
+    mutationFn: ({ id, input }: { id: number; input: EmployeeUpdateInput }) => updateEmployee(id, input),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: EMPLOYEES_QUERY_KEY })
       setRemovalMessage('O funcionário foi alterado com sucesso')
       closeFormModal()
@@ -138,14 +119,15 @@ export function EmployeesListPage() {
     setFormError(null)
   }
 
-  function handleFormSubmit(values: EmployeeInput, photo: EmployeePhotoChange) {
+  function handleCreate(values: EmployeeCreateInput) {
     setFormError(null)
-    setDeleteError(null)
-    if (modalState?.mode === 'edit') {
-      updateMutation.mutate({ id: modalState.employee.id, input: values, photo })
-    } else {
-      createMutation.mutate({ input: values, photo })
-    }
+    createMutation.mutate(values)
+  }
+
+  function handleUpdate(values: EmployeeUpdateInput) {
+    if (modalState?.mode !== 'edit') return
+    setFormError(null)
+    updateMutation.mutate({ id: modalState.employee.id, input: values })
   }
 
   function handleFirstConfirmDelete() {
@@ -286,7 +268,7 @@ export function EmployeesListPage() {
       {deleteError && <p role="alert" className="mt-4 rounded-xl border border-danger-500/20 bg-danger-50 px-4 py-3 text-sm text-danger-600">{deleteError}</p>}
 
       {modalState && (
-        <EmployeeFormModal employee={modalState.mode === 'edit' ? modalState.employee : null} isSubmitting={isSavingForm} errorMessage={formError} onSubmit={handleFormSubmit} onClose={closeFormModal} />
+        <EmployeeFormModal employee={modalState.mode === 'edit' ? modalState.employee : null} isSubmitting={isSavingForm} errorMessage={formError} onCreate={handleCreate} onUpdate={handleUpdate} onClose={closeFormModal} />
       )}
       {detailsEmployee && (
         <EmployeeDetailsModal

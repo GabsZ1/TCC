@@ -4,6 +4,7 @@ import br.com.salonhub.dto.employee.EmployeeCreateRequest;
 import br.com.salonhub.dto.employee.EmployeeCreationResponse;
 import br.com.salonhub.dto.employee.EmployeeRemovalResponse;
 import br.com.salonhub.dto.employee.EmployeeResponse;
+import br.com.salonhub.dto.employee.EmployeeSelfProfileUpdateRequest;
 import br.com.salonhub.dto.employee.EmployeeUpdateRequest;
 import br.com.salonhub.dto.employee.ProfessionalServicesRequest;
 import br.com.salonhub.dto.employee.ProfessionalServicesResponse;
@@ -100,22 +101,18 @@ public class EmployeeService {
         if (userRepository.existsByEmailIgnoreCase(email)) {
             throw new ConflictException("E-mail já cadastrado no sistema.");
         }
-        EmployeeDetails details = normalizeDetails(
-                request.occupation(), request.cpf(), request.phone(), request.instagram(),
-                request.address(), request.hireDate());
-        if (userRepository.existsByCpf(details.cpf())) {
+        String cpf = CpfValidator.normalize(request.cpf());
+        requireHireDateNotInFuture(request.hireDate());
+        if (userRepository.existsByCpf(cpf)) {
             throw new ConflictException("Já existe um funcionário cadastrado com este CPF.");
         }
 
         User employee = User.builder()
                 .name(request.name().trim())
                 .email(email)
-                .occupation(details.occupation())
-                .cpf(details.cpf())
-                .phone(details.phone())
-                .instagram(details.instagram())
-                .address(details.address())
-                .hireDate(details.hireDate())
+                .occupation(request.occupation().trim())
+                .cpf(cpf)
+                .hireDate(request.hireDate())
                 .password(passwordEncoder.encode(UUID.randomUUID().toString()))
                 .passwordInitialized(false)
                 .role(UserRole.PROFESSIONAL)
@@ -154,27 +151,74 @@ public class EmployeeService {
                 .toList();
     }
 
+    /**
+     * Edição pelo administrador: o nome, e o CPF/data de admissão só se ainda estiverem
+     * vazios (depois de gravados ficam travados para todos).
+     */
     @Transactional
     public EmployeeResponse update(Long administratorId, Long employeeId, EmployeeUpdateRequest request) {
         User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
         User employee = findEmployee(employeeId, administrator.getEstablishment().getId());
 
-        String email = request.email().trim().toLowerCase(Locale.ROOT);
-        if (userRepository.existsByEmailIgnoreCaseAndIdNot(email, employeeId)) {
-            throw new ConflictException("E-mail já cadastrado no sistema.");
+        String cpf = null;
+        if (request.cpf() != null && !request.cpf().isBlank()) {
+            String informed = CpfValidator.normalize(request.cpf());
+            if (employee.getCpf() != null && !employee.getCpf().equals(informed)) {
+                throw new InvalidRequestException("O CPF não pode ser alterado depois de cadastrado.");
+            }
+            if (employee.getCpf() == null) {
+                if (userRepository.existsByCpfAndIdNot(informed, employeeId)) {
+                    throw new ConflictException("Já existe um funcionário cadastrado com este CPF.");
+                }
+                cpf = informed;
+            }
         }
-        EmployeeDetails details = normalizeDetails(
-                request.occupation(), request.cpf(), request.phone(), request.instagram(),
-                request.address(), request.hireDate());
-        if (userRepository.existsByCpfAndIdNot(details.cpf(), employeeId)) {
-            throw new ConflictException("Já existe um funcionário cadastrado com este CPF.");
+        java.time.LocalDate hireDate = null;
+        if (request.hireDate() != null) {
+            if (employee.getHireDate() != null && !employee.getHireDate().equals(request.hireDate())) {
+                throw new InvalidRequestException("A data de admissão não pode ser alterada depois de cadastrada.");
+            }
+            if (employee.getHireDate() == null) {
+                requireHireDateNotInFuture(request.hireDate());
+                hireDate = request.hireDate();
+            }
         }
 
-        employee.updateEmployeeDetails(
-                request.name().trim(), email, details.occupation(), details.cpf(), details.phone(),
-                details.instagram(), details.address(), details.hireDate());
-
+        employee.renameEmployee(request.name().trim());
+        employee.fillEmployeeDocuments(cpf, hireDate);
         return toResponse(employee);
+    }
+
+    /** Perfil do próprio funcionário (somente leitura dos dados administrativos). */
+    @Transactional(readOnly = true)
+    public EmployeeResponse findMyProfile(Long professionalId) {
+        return toResponse(tenantAuthorizationService.requireProfessional(professionalId));
+    }
+
+    /** O funcionário atualiza e-mail (com a senha atual), ocupação e contatos. */
+    @Transactional
+    public EmployeeResponse updateMyProfile(Long professionalId, EmployeeSelfProfileUpdateRequest request) {
+        User professional = userRepository.findByIdForUpdate(
+                tenantAuthorizationService.requireProfessional(professionalId).getId()).orElseThrow();
+
+        String email = request.email().trim().toLowerCase(Locale.ROOT);
+        if (!email.equals(professional.getEmail())) {
+            if (request.currentPassword() == null
+                    || !passwordEncoder.matches(request.currentPassword(), professional.getPassword())) {
+                throw new InvalidRequestException("Para alterar o e-mail de acesso, informe corretamente sua senha atual.");
+            }
+            if (userRepository.existsByEmailIgnoreCaseAndIdNot(email, professional.getId())) {
+                throw new ConflictException("E-mail já cadastrado no sistema.");
+            }
+        }
+
+        professional.updateOwnEmployeeProfile(
+                email,
+                request.occupation().trim(),
+                normalizePhone(request.phone()),
+                normalizeInstagram(request.instagram()),
+                request.address() == null || request.address().isBlank() ? null : request.address().trim());
+        return toResponse(professional);
     }
 
     @Transactional
@@ -254,38 +298,32 @@ public class EmployeeService {
         return EmployeeResponse.fromEntity(employee, userPhotoRepository.existsById(employee.getId()));
     }
 
-    /** Dados cadastrais do funcionário já normalizados (US 2.1 / 2.2). */
-    private record EmployeeDetails(
-            String occupation, String cpf, String phone, String instagram, String address, LocalDate hireDate) {
-    }
-
-    private EmployeeDetails normalizeDetails(
-            String occupation, String cpf, String phone, String instagram, String address, LocalDate hireDate) {
-        String normalizedPhone = null;
-        if (phone != null && !phone.isBlank()) {
-            normalizedPhone = PhoneNumbers.normalize(phone);
-            if (normalizedPhone == null) {
-                throw new InvalidRequestException("Informe um telefone válido!");
-            }
-        }
-        String normalizedInstagram = null;
-        if (instagram != null && !instagram.isBlank()) {
-            normalizedInstagram = instagram.trim().replaceFirst("^@", "");
-            if (!normalizedInstagram.matches("[A-Za-z0-9._]{1,30}")) {
-                throw new InvalidRequestException(
-                        "Instagram inválido. Use até 30 letras, números, ponto ou sublinhado.");
-            }
-        }
+    private void requireHireDateNotInFuture(LocalDate hireDate) {
         if (hireDate != null && hireDate.isAfter(LocalDate.now(clock))) {
             throw new InvalidRequestException("A data de admissão não pode ser futura.");
         }
-        return new EmployeeDetails(
-                occupation.trim(),
-                CpfValidator.normalize(cpf),
-                normalizedPhone,
-                normalizedInstagram,
-                address == null || address.isBlank() ? null : address.trim(),
-                hireDate);
+    }
+
+    private static String normalizePhone(String phone) {
+        if (phone == null || phone.isBlank()) {
+            return null;
+        }
+        String normalized = PhoneNumbers.normalize(phone);
+        if (normalized == null) {
+            throw new InvalidRequestException("Informe um telefone válido!");
+        }
+        return normalized;
+    }
+
+    private static String normalizeInstagram(String instagram) {
+        if (instagram == null || instagram.isBlank()) {
+            return null;
+        }
+        String normalized = instagram.trim().replaceFirst("^@", "");
+        if (!normalized.matches("[A-Za-z0-9._]{1,30}")) {
+            throw new InvalidRequestException("Instagram inválido. Use até 30 letras, números, ponto ou sublinhado.");
+        }
+        return normalized;
     }
 
     private User findEmployee(Long employeeId, Long establishmentId) {

@@ -459,6 +459,7 @@ class EmployeeRemovalIntegrationTests {
                   "email": "%s",
                   "occupation": "Cabeleireiro(a)",
                   "cpf": "%s",
+                  "hireDate": "2025-01-02",
                   "password": "senha123"
                 }
                 """.formatted(name, email, TestDocuments.cpf());

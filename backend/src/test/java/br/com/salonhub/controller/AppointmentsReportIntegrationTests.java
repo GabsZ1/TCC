@@ -217,7 +217,7 @@ class AppointmentsReportIntegrationTests {
                         .header("Authorization", bearer(fixture.administratorToken()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":"Segundo Profissional","email":"second.professional.%s@salonhub.test","occupation":"Cabeleireiro(a)","cpf":"%s"}
+                                {"name":"Segundo Profissional","email":"second.professional.%s@salonhub.test","occupation":"Cabeleireiro(a)","cpf":"%s","hireDate":"2025-01-02"}
                                 """.formatted(suffix, TestDocuments.cpf())))
                 .andExpect(status().isCreated())
                 .andReturn();
@@ -252,7 +252,7 @@ class AppointmentsReportIntegrationTests {
                         .header("Authorization", bearer(administratorToken))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":"Profissional %s","email":"professional.%s@salonhub.test","occupation":"Cabeleireiro(a)","cpf":"%s"}
+                                {"name":"Profissional %s","email":"professional.%s@salonhub.test","occupation":"Cabeleireiro(a)","cpf":"%s","hireDate":"2025-01-02"}
                                 """.formatted(suffix, suffix, TestDocuments.cpf())))
                 .andExpect(status().isCreated())
                 .andReturn();

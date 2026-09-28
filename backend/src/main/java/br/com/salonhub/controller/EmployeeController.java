@@ -4,6 +4,7 @@ import br.com.salonhub.dto.employee.EmployeeCreateRequest;
 import br.com.salonhub.dto.employee.EmployeeCreationResponse;
 import br.com.salonhub.dto.employee.EmployeeRemovalResponse;
 import br.com.salonhub.dto.employee.EmployeeResponse;
+import br.com.salonhub.dto.employee.EmployeeSelfProfileUpdateRequest;
 import br.com.salonhub.dto.employee.EmployeeUpdateRequest;
 import br.com.salonhub.dto.employee.ProfessionalServicesRequest;
 import br.com.salonhub.dto.employee.ProfessionalServicesResponse;
@@ -89,20 +90,30 @@ public class EmployeeController {
         return ResponseEntity.ok(employeeService.reactivate(currentUserId(jwt), id));
     }
 
-    /** Foto do funcionário (multipart, campo "file"). Só o administrador do estabelecimento. */
-    @PutMapping(value = "/{id}/foto", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void uploadPhoto(
-            @PathVariable Long id,
-            @AuthenticationPrincipal Jwt jwt,
-            @RequestPart("file") MultipartFile file) {
-        employeePhotoService.upload(currentUserId(jwt), id, file);
+    /** Perfil do próprio funcionário (PROFISSIONAL). */
+    @GetMapping("/me/perfil")
+    public EmployeeResponse findMyProfile(@AuthenticationPrincipal Jwt jwt) {
+        return employeeService.findMyProfile(currentUserId(jwt));
     }
 
-    @DeleteMapping("/{id}/foto")
+    @PutMapping("/me/perfil")
+    public EmployeeResponse updateMyProfile(
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody EmployeeSelfProfileUpdateRequest request) {
+        return employeeService.updateMyProfile(currentUserId(jwt), request);
+    }
+
+    /** Foto: só o próprio funcionário envia (multipart, campo "file") ou remove. */
+    @PutMapping(value = "/me/foto", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deletePhoto(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
-        employeePhotoService.delete(currentUserId(jwt), id);
+    public void uploadMyPhoto(@AuthenticationPrincipal Jwt jwt, @RequestPart("file") MultipartFile file) {
+        employeePhotoService.uploadOwn(currentUserId(jwt), file);
+    }
+
+    @DeleteMapping("/me/foto")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteMyPhoto(@AuthenticationPrincipal Jwt jwt) {
+        employeePhotoService.deleteOwn(currentUserId(jwt));
     }
 
     /** Administrador do estabelecimento ou o próprio profissional. */

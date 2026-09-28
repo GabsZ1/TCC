@@ -3,11 +3,16 @@ package br.com.salonhub.dto.employee;
 import br.com.salonhub.validation.ValidCpf;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
 
-/** US 2.1 — Nome, e-mail, ocupação e CPF obrigatórios; os demais opcionais. */
+/**
+ * US 2.1 — cadastro feito pelo administrador. CPF e data de admissão ficam travados
+ * depois de gravados; os dados de contato (telefone, Instagram, endereço, foto) são
+ * administrados pelo próprio funcionário no perfil dele.
+ */
 public record EmployeeCreateRequest(
         @NotBlank(message = "O nome é obrigatório")
         @Size(max = 150, message = "O nome deve ter no máximo 150 caracteres")
@@ -26,14 +31,6 @@ public record EmployeeCreateRequest(
         @ValidCpf
         String cpf,
 
-        @Size(max = 20, message = "Informe um telefone válido!")
-        String phone,
-
-        @Size(max = 31, message = "O Instagram deve ter no máximo 30 caracteres")
-        String instagram,
-
-        @Size(max = 255, message = "O endereço deve ter no máximo 255 caracteres")
-        String address,
-
+        @NotNull(message = "A data de admissão é obrigatória")
         LocalDate hireDate
 ) {}

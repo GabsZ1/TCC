@@ -96,7 +96,7 @@ class AppointmentCompletionIntegrationTests {
                         .header("Authorization", bearer(fixture.administratorToken()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":"Outro Profissional","email":"other.professional.complete-other-professional@salonhub.test","occupation":"Cabeleireiro(a)","cpf":"%s"}
+                                {"name":"Outro Profissional","email":"other.professional.complete-other-professional@salonhub.test","occupation":"Cabeleireiro(a)","cpf":"%s","hireDate":"2025-01-02"}
                                 """.formatted(TestDocuments.cpf())))
                 .andExpect(status().isCreated())
                 .andReturn();
@@ -349,7 +349,7 @@ class AppointmentCompletionIntegrationTests {
                         .header("Authorization", bearer(administratorToken))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":"Profissional %s","email":"professional.%s@salonhub.test","occupation":"Cabeleireiro(a)","cpf":"%s"}
+                                {"name":"Profissional %s","email":"professional.%s@salonhub.test","occupation":"Cabeleireiro(a)","cpf":"%s","hireDate":"2025-01-02"}
                                 """.formatted(suffix, suffix, TestDocuments.cpf())))
                 .andExpect(status().isCreated())
                 .andReturn();

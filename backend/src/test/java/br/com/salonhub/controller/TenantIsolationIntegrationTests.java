@@ -78,7 +78,8 @@ class TenantIsolationIntegrationTests {
                                   "name": "Alteração indevida",
                                   "email": "changed@salonhub.test",
                                   "occupation": "Cabeleireiro(a)",
-                                  "cpf": "%s"
+                                  "cpf": "%s",
+                                  "hireDate": "2025-01-02"
                                 }
                                 """.formatted(TestDocuments.cpf())))
                 .andExpect(status().isNotFound());
@@ -158,7 +159,8 @@ class TenantIsolationIntegrationTests {
                   "name": "%s",
                   "email": "%s",
                   "occupation": "Cabeleireiro(a)",
-                  "cpf": "%s"
+                  "cpf": "%s",
+                  "hireDate": "2025-01-02"
                 }
                 """.formatted(name, email, TestDocuments.cpf());
     }

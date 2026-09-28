@@ -248,7 +248,7 @@ class PasswordRecoveryIntegrationTests {
                         .with(jwt().jwt(token -> token.subject(administrator.getId().toString())))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":"Funcionária Convite","email":"%s","occupation":"Cabeleireiro(a)","cpf":"%s"}
+                                {"name":"Funcionária Convite","email":"%s","occupation":"Cabeleireiro(a)","cpf":"%s","hireDate":"2025-01-02"}
                                 """.formatted(employeeEmail, TestDocuments.cpf())))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();

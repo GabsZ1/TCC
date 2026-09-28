@@ -66,7 +66,8 @@ class AppointmentFlowIntegrationTests {
                                   "name": "Profissional MVP",
                                   "email": "professional.appointment@salonhub.test",
                                   "occupation": "Cabeleireiro(a)",
-                                  "cpf": "%s"
+                                  "cpf": "%s",
+                                  "hireDate": "2025-01-02"
                                 }
                                 """.formatted(TestDocuments.cpf())))
                 .andExpect(status().isCreated())
@@ -207,7 +208,7 @@ class AppointmentFlowIntegrationTests {
                         .header("Authorization", bearer(administratorToken))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":"Profissional Alternativo","email":"professional.alt.appointment@salonhub.test","password":"senha123","occupation":"Cabeleireiro(a)","cpf":"%s"}
+                                {"name":"Profissional Alternativo","email":"professional.alt.appointment@salonhub.test","password":"senha123","occupation":"Cabeleireiro(a)","cpf":"%s","hireDate":"2025-01-02"}
                                 """.formatted(TestDocuments.cpf())))
                 .andExpect(status().isCreated())
                 .andReturn();

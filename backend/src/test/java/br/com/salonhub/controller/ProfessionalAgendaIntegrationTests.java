@@ -399,7 +399,7 @@ class ProfessionalAgendaIntegrationTests {
                         .header("Authorization", bearer(adminToken))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":"Profissional Agenda","email":"professional.%s@agenda.test","occupation":"Cabeleireiro(a)","cpf":"%s"}
+                                {"name":"Profissional Agenda","email":"professional.%s@agenda.test","occupation":"Cabeleireiro(a)","cpf":"%s","hireDate":"2025-01-02"}
                                 """.formatted(suffix, TestDocuments.cpf())))
                 .andExpect(status().isCreated()).andReturn();
         Number professionalId = JsonPath.read(professional.getResponse().getContentAsString(), "$.id");

@@ -20,20 +20,31 @@ export interface Employee {
   hasPhoto: boolean
 }
 
-/** Campos enviados no cadastro e na edição (US 2.1 / 2.2). */
-export interface EmployeeInput {
+/** Cadastro feito pelo administrador (US 2.1). CPF e data de admissão travam depois de gravados. */
+export interface EmployeeCreateInput {
   name: string
   email: string
   occupation: string
   cpf: string
-  phone?: string
-  instagram?: string
-  address?: string
+  hireDate: string
+}
+
+/** Edição pelo administrador: o nome e, só se estiverem vazios, CPF e data de admissão. */
+export interface EmployeeUpdateInput {
+  name: string
+  cpf?: string
   hireDate?: string
 }
 
-export type EmployeeCreateInput = EmployeeInput
-export type EmployeeUpdateInput = EmployeeInput
+/** Perfil do próprio funcionário. Trocar o e-mail exige a senha atual. */
+export interface EmployeeSelfProfileInput {
+  email: string
+  occupation: string
+  phone?: string
+  instagram?: string
+  address?: string
+  currentPassword?: string
+}
 
 export interface EmployeeCreationResult {
   id: number
@@ -92,17 +103,26 @@ export function removeEmployee(id: number) {
   return api.delete<EmployeeRemovalResult>(`/funcionarios/${id}`).then((res) => res.data)
 }
 
-/** Foto do funcionário (JPG, PNG ou WEBP de até 2 MB). */
-export function uploadEmployeePhoto(id: number, file: File) {
+export function fetchMyEmployeeProfile() {
+  return api.get<Employee>('/funcionarios/me/perfil').then((res) => res.data)
+}
+
+export function updateMyEmployeeProfile(input: EmployeeSelfProfileInput) {
+  return api.put<Employee>('/funcionarios/me/perfil', input).then((res) => res.data)
+}
+
+/** Foto: só o próprio funcionário envia ou remove (JPG, PNG ou WEBP de até 2 MB). */
+export function uploadMyPhoto(file: File) {
   const form = new FormData()
   form.append('file', file)
-  return api.put<void>(`/funcionarios/${id}/foto`, form, { headers: { 'Content-Type': 'multipart/form-data' } })
+  return api.put<void>('/funcionarios/me/foto', form, { headers: { 'Content-Type': 'multipart/form-data' } })
 }
 
-export function deleteEmployeePhoto(id: number) {
-  return api.delete<void>(`/funcionarios/${id}/foto`)
+export function deleteMyPhoto() {
+  return api.delete<void>('/funcionarios/me/foto')
 }
 
+/** Administrador ou o próprio funcionário podem ver a foto. */
 export function fetchEmployeePhoto(id: number) {
   return api.get<Blob>(`/funcionarios/${id}/foto`, { responseType: 'blob' }).then((res) => res.data)
 }

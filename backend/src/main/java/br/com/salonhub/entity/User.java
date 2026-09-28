@@ -103,18 +103,29 @@ public class User {
         this.password = encodedPassword;
     }
 
-    /** US 2.2 — dados editáveis do funcionário (o estabelecimento e o papel não mudam). */
-    public void updateEmployeeDetails(
-            String name, String email, String occupation, String cpf,
-            String phone, String instagram, String address, java.time.LocalDate hireDate) {
+    /** Nome do funcionário: continua sendo alterado pelo administrador. */
+    public void renameEmployee(String name) {
         this.name = name;
+    }
+
+    /** CPF e data de admissão: só podem ser gravados enquanto estiverem vazios. */
+    public void fillEmployeeDocuments(String cpf, java.time.LocalDate hireDate) {
+        if (cpf != null) {
+            this.cpf = cpf;
+        }
+        if (hireDate != null) {
+            this.hireDate = hireDate;
+        }
+    }
+
+    /** Dados que o próprio funcionário administra no perfil dele. */
+    public void updateOwnEmployeeProfile(
+            String email, String occupation, String phone, String instagram, String address) {
         this.email = email;
         this.occupation = occupation;
-        this.cpf = cpf;
         this.phone = phone;
         this.instagram = instagram;
         this.address = address;
-        this.hireDate = hireDate;
     }
 
     public void updateClientProfile(String name, String email, String phone) {

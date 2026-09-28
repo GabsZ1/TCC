@@ -14,6 +14,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -24,6 +25,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -36,53 +38,55 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/** US 2.1 / 2.2 / 2.6 — dados cadastrais completos do funcionário e foto. */
+/**
+ * US 2.1 / 2.2 / 2.6 e perfil do funcionário.
+ * Regras: o administrador cadastra (nome, e-mail, ocupação, CPF e data de admissão) e
+ * depois só altera o nome; CPF e data de admissão travam depois de gravados (podem ser
+ * preenchidos uma única vez se estiverem vazios). E-mail, ocupação, contatos e foto
+ * passam a ser do próprio funcionário.
+ */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
 class EmployeeDetailsIntegrationTests {
 
+    private static final String PASSWORD = "senha-atual-1";
     private static final byte[] PNG = {
             (byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52};
 
     @Autowired private MockMvc mockMvc;
     @Autowired private EstablishmentRepository establishmentRepository;
     @Autowired private UserRepository userRepository;
+    @Autowired private PasswordEncoder passwordEncoder;
+
+    // ---------- cadastro pelo administrador ----------
 
     @Test
-    void shouldCreateEmployeeWithAllFieldsAndListThemAlphabetically() throws Exception {
-        User admin = administrator();
+    void shouldCreateEmployeeAndListAlphabetically() throws Exception {
+        User admin = administrator(establishment());
         String cpf = TestDocuments.cpf();
         String formattedCpf = cpf.substring(0, 3) + "." + cpf.substring(3, 6) + "." + cpf.substring(6, 9) + "-" + cpf.substring(9);
-        LocalDate hireDate = LocalDate.of(2025, 5, 12);
 
-        create(admin, """
-                {"name":"Zélia Souza","email":"%s","occupation":"Manicure","cpf":"%s",
-                 "phone":"(44) 99999-1234","instagram":"@zelia.nails","address":"Rua das Flores, 100 - Centro",
-                 "hireDate":"%s"}
-                """.formatted(uniqueEmail(), formattedCpf, hireDate))
+        create(admin, body("Zélia Souza", uniqueEmail(), "Manicure", formattedCpf, "2025-05-12"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.firstAccessToken").isNotEmpty());
-        create(admin, minimal("Ana Lima", uniqueEmail(), TestDocuments.cpf())).andExpect(status().isCreated());
+        create(admin, body("Ana Lima", uniqueEmail(), "Barbeiro(a)", TestDocuments.cpf(), "2024-02-01"))
+                .andExpect(status().isCreated());
 
         perform(admin, get("/api/funcionarios"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[*].name").value(contains("Ana Lima", "Zélia Souza")))
                 .andExpect(jsonPath("$[1].occupation").value("Manicure"))
                 .andExpect(jsonPath("$[1].cpf").value(cpf))
-                .andExpect(jsonPath("$[1].phone").value("44999991234"))
-                .andExpect(jsonPath("$[1].instagram").value("zelia.nails"))
-                .andExpect(jsonPath("$[1].address").value("Rua das Flores, 100 - Centro"))
-                .andExpect(jsonPath("$[1].hireDate").value(hireDate.toString()))
-                .andExpect(jsonPath("$[1].active").value(true))
+                .andExpect(jsonPath("$[1].hireDate").value("2025-05-12"))
                 .andExpect(jsonPath("$[1].passwordInitialized").value(false))
                 .andExpect(jsonPath("$[1].hasPhoto").value(false))
-                .andExpect(jsonPath("$[0].phone").doesNotExist());
+                .andExpect(jsonPath("$[1].phone").doesNotExist());
     }
 
     @Test
-    void shouldRequireNameEmailOccupationAndCpf() throws Exception {
-        User admin = administrator();
+    void shouldRequireNameEmailOccupationCpfAndHireDate() throws Exception {
+        User admin = administrator(establishment());
 
         create(admin, """
                 {"name":" ","email":"","occupation":"","cpf":""}
@@ -91,120 +95,217 @@ class EmployeeDetailsIntegrationTests {
                 .andExpect(jsonPath("$.fields.name").value("O nome é obrigatório"))
                 .andExpect(jsonPath("$.fields.email").exists())
                 .andExpect(jsonPath("$.fields.occupation").value("A ocupação é obrigatória"))
-                .andExpect(jsonPath("$.fields.cpf").value("O CPF é obrigatório"));
+                .andExpect(jsonPath("$.fields.cpf").value("O CPF é obrigatório"))
+                .andExpect(jsonPath("$.fields.hireDate").value("A data de admissão é obrigatória"));
 
-        create(admin, minimal("Com CPF errado", uniqueEmail(), "12345678900"))
+        create(admin, body("CPF errado", uniqueEmail(), "Manicure", "12345678900", "2025-01-01"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.fields.cpf").value("CPF inválido"));
-
-        create(admin, minimal("Email errado", "emailsemarroba.com", TestDocuments.cpf()))
+        create(admin, body("Email errado", "emailsemarroba.com", "Manicure", TestDocuments.cpf(), "2025-01-01"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.fields.email").value("Email inválido"));
-    }
-
-    @Test
-    void shouldRejectDuplicatedCpfOnCreateAndUpdate() throws Exception {
-        User admin = administrator();
-        String cpf = TestDocuments.cpf();
-        create(admin, minimal("Primeira", uniqueEmail(), cpf)).andExpect(status().isCreated());
-        Long secondId = idOf(create(admin, minimal("Segunda", uniqueEmail(), TestDocuments.cpf())));
-
-        create(admin, minimal("Repetida", uniqueEmail(), cpf))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.message").value("Já existe um funcionário cadastrado com este CPF."));
-
-        perform(admin, put("/api/funcionarios/{id}", secondId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(minimal("Segunda", uniqueEmail(), cpf)))
-                .andExpect(status().isConflict());
-    }
-
-    @Test
-    void shouldValidateHireDatePhoneAndInstagram() throws Exception {
-        User admin = administrator();
         LocalDate tomorrow = LocalDate.now(ZoneId.of("America/Sao_Paulo")).plusDays(1);
-
-        create(admin, withExtra("\"hireDate\":\"" + tomorrow + "\""))
+        create(admin, body("Futuro", uniqueEmail(), "Manicure", TestDocuments.cpf(), tomorrow.toString()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("A data de admissão não pode ser futura."));
-        create(admin, withExtra("\"phone\":\"123\""))
+    }
+
+    @Test
+    void shouldRejectDuplicatedCpf() throws Exception {
+        User admin = administrator(establishment());
+        String cpf = TestDocuments.cpf();
+        create(admin, body("Primeira", uniqueEmail(), "Manicure", cpf, "2025-01-01")).andExpect(status().isCreated());
+
+        create(admin, body("Repetida", uniqueEmail(), "Manicure", cpf, "2025-01-01"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Já existe um funcionário cadastrado com este CPF."));
+    }
+
+    // ---------- edição pelo administrador ----------
+
+    @Test
+    void shouldLetAdministratorOnlyRenameAndKeepCpfAndHireDateLocked() throws Exception {
+        User admin = administrator(establishment());
+        String cpf = TestDocuments.cpf();
+        String email = uniqueEmail();
+        Long id = idOf(create(admin, body("Carla", email, "Manicure", cpf, "2024-01-10")));
+
+        perform(admin, put("/api/funcionarios/{id}", id).contentType(MediaType.APPLICATION_JSON).content("""
+                {"name":"Carla Mendes","cpf":"%s","hireDate":"2024-01-10","email":"ignorado@x.test","occupation":"Ignorada"}
+                """.formatted(cpf)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Carla Mendes"))
+                .andExpect(jsonPath("$.email").value(email))
+                .andExpect(jsonPath("$.occupation").value("Manicure"));
+
+        perform(admin, put("/api/funcionarios/{id}", id).contentType(MediaType.APPLICATION_JSON).content("""
+                {"name":"Carla Mendes","cpf":"%s"}
+                """.formatted(TestDocuments.cpf())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("O CPF não pode ser alterado depois de cadastrado."));
+        perform(admin, put("/api/funcionarios/{id}", id).contentType(MediaType.APPLICATION_JSON).content("""
+                {"name":"Carla Mendes","hireDate":"2023-05-05"}
+                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("A data de admissão não pode ser alterada depois de cadastrada."));
+    }
+
+    @Test
+    void shouldLetAdministratorFillMissingCpfAndHireDateOnlyOnce() throws Exception {
+        Establishment establishment = establishment();
+        User admin = administrator(establishment);
+        User legacy = professional(establishment, null, null);
+        String taken = TestDocuments.cpf();
+        create(admin, body("Outra", uniqueEmail(), "Manicure", taken, "2025-01-01")).andExpect(status().isCreated());
+
+        perform(admin, put("/api/funcionarios/{id}", legacy.getId()).contentType(MediaType.APPLICATION_JSON).content("""
+                {"name":"%s","cpf":"%s"}
+                """.formatted(legacy.getName(), taken)))
+                .andExpect(status().isConflict());
+
+        String cpf = TestDocuments.cpf();
+        perform(admin, put("/api/funcionarios/{id}", legacy.getId()).contentType(MediaType.APPLICATION_JSON).content("""
+                {"name":"%s","cpf":"%s","hireDate":"2020-03-01"}
+                """.formatted(legacy.getName(), cpf)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.cpf").value(cpf))
+                .andExpect(jsonPath("$.hireDate").value("2020-03-01"));
+
+        perform(admin, put("/api/funcionarios/{id}", legacy.getId()).contentType(MediaType.APPLICATION_JSON).content("""
+                {"name":"%s","cpf":"%s"}
+                """.formatted(legacy.getName(), TestDocuments.cpf())))
+                .andExpect(status().isBadRequest());
+    }
+
+    // ---------- perfil do próprio funcionário ----------
+
+    @Test
+    void shouldShowOwnProfileOnlyToTheProfessional() throws Exception {
+        Establishment establishment = establishment();
+        User admin = administrator(establishment);
+        User professional = professional(establishment, TestDocuments.cpf(), LocalDate.of(2023, 6, 1));
+
+        perform(professional, get("/api/funcionarios/me/perfil"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(professional.getId()))
+                .andExpect(jsonPath("$.cpf").value(professional.getCpf()))
+                .andExpect(jsonPath("$.hireDate").value("2023-06-01"));
+        perform(admin, get("/api/funcionarios/me/perfil")).andExpect(status().isForbidden());
+    }
+
+    @Test
+    void shouldLetTheProfessionalUpdateOccupationAndContactsButNotAdministrativeData() throws Exception {
+        Establishment establishment = establishment();
+        User professional = professional(establishment, TestDocuments.cpf(), LocalDate.of(2023, 6, 1));
+        String originalCpf = professional.getCpf();
+
+        perform(professional, put("/api/funcionarios/me/perfil").contentType(MediaType.APPLICATION_JSON).content("""
+                {"email":"%s","occupation":"Barbeiro(a) e designer de cílios","phone":"(44) 99888-7766",
+                 "instagram":"@barba.cilios","address":"Rua A, 10","name":"Outro Nome","cpf":"00000000000"}
+                """.formatted(professional.getEmail())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.occupation").value("Barbeiro(a) e designer de cílios"))
+                .andExpect(jsonPath("$.phone").value("44998887766"))
+                .andExpect(jsonPath("$.instagram").value("barba.cilios"))
+                .andExpect(jsonPath("$.address").value("Rua A, 10"))
+                .andExpect(jsonPath("$.name").value(professional.getName()))
+                .andExpect(jsonPath("$.cpf").value(originalCpf));
+
+        perform(professional, put("/api/funcionarios/me/perfil").contentType(MediaType.APPLICATION_JSON).content("""
+                {"email":"%s","occupation":" ","phone":"123"}
+                """.formatted(professional.getEmail())))
+                .andExpect(status().isBadRequest());
+        perform(professional, put("/api/funcionarios/me/perfil").contentType(MediaType.APPLICATION_JSON).content("""
+                {"email":"%s","occupation":"Manicure","phone":"123"}
+                """.formatted(professional.getEmail())))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Informe um telefone válido!"));
-        create(admin, withExtra("\"instagram\":\"perfil com espaço\""))
-                .andExpect(status().isBadRequest());
-        create(admin, withExtra("\"hireDate\":\"" + tomorrow.minusDays(1) + "\""))
-                .andExpect(status().isCreated());
     }
 
     @Test
-    void shouldUpdateAllFieldsKeepingTheSameEmployee() throws Exception {
-        User admin = administrator();
-        String cpf = TestDocuments.cpf();
-        Long id = idOf(create(admin, minimal("Carla", uniqueEmail(), cpf)));
+    void shouldRequireTheCurrentPasswordToChangeTheLoginEmail() throws Exception {
+        Establishment establishment = establishment();
+        User professional = professional(establishment, TestDocuments.cpf(), LocalDate.of(2023, 6, 1));
+        User other = professional(establishment, TestDocuments.cpf(), LocalDate.of(2023, 6, 1));
         String newEmail = uniqueEmail();
 
-        perform(admin, put("/api/funcionarios/{id}", id)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"name":"Carla Mendes","email":"%s","occupation":"Esteticista","cpf":"%s",
-                                 "phone":"4433221100","instagram":"carla.estetica","address":"Av. Brasil, 50","hireDate":"2024-01-10"}
-                                """.formatted(newEmail, cpf)))
+        perform(professional, put("/api/funcionarios/me/perfil").contentType(MediaType.APPLICATION_JSON).content("""
+                {"email":"%s","occupation":"Manicure"}
+                """.formatted(newEmail)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Para alterar o e-mail de acesso, informe corretamente sua senha atual."));
+        perform(professional, put("/api/funcionarios/me/perfil").contentType(MediaType.APPLICATION_JSON).content("""
+                {"email":"%s","occupation":"Manicure","currentPassword":"errada"}
+                """.formatted(newEmail)))
+                .andExpect(status().isBadRequest());
+        perform(professional, put("/api/funcionarios/me/perfil").contentType(MediaType.APPLICATION_JSON).content("""
+                {"email":"%s","occupation":"Manicure","currentPassword":"%s"}
+                """.formatted(other.getEmail(), PASSWORD)))
+                .andExpect(status().isConflict());
+
+        perform(professional, put("/api/funcionarios/me/perfil").contentType(MediaType.APPLICATION_JSON).content("""
+                {"email":"%s","occupation":"Manicure","currentPassword":"%s"}
+                """.formatted(newEmail.toUpperCase(), PASSWORD)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(id))
-                .andExpect(jsonPath("$.name").value("Carla Mendes"))
-                .andExpect(jsonPath("$.email").value(newEmail))
-                .andExpect(jsonPath("$.occupation").value("Esteticista"))
-                .andExpect(jsonPath("$.phone").value("4433221100"))
-                .andExpect(jsonPath("$.hireDate").value("2024-01-10"));
+                .andExpect(jsonPath("$.email").value(newEmail));
+        mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content("""
+                        {"email":"%s","password":"%s"}
+                        """.formatted(newEmail, PASSWORD)))
+                .andExpect(status().isOk());
     }
 
-    @Test
-    void shouldUploadShowAndRemoveThePhoto() throws Exception {
-        User admin = administrator();
-        Long id = idOf(create(admin, minimal("Foto", uniqueEmail(), TestDocuments.cpf())));
+    // ---------- foto: só o próprio funcionário envia/remove ----------
 
-        perform(admin, multipart(HttpMethod.PUT, "/api/funcionarios/{id}/foto", id)
+    @Test
+    void shouldLetOnlyTheProfessionalUploadAndRemoveTheirPhoto() throws Exception {
+        Establishment establishment = establishment();
+        User admin = administrator(establishment);
+        User professional = professional(establishment, TestDocuments.cpf(), LocalDate.of(2023, 6, 1));
+
+        perform(professional, multipart(HttpMethod.PUT, "/api/funcionarios/me/foto")
                         .file(new MockMultipartFile("file", "foto.png", "image/png", PNG)))
                 .andExpect(status().isNoContent());
 
-        perform(admin, get("/api/funcionarios"))
-                .andExpect(jsonPath("$[0].hasPhoto").value(true));
-        perform(admin, get("/api/funcionarios/{id}/foto", id))
+        perform(admin, get("/api/funcionarios")).andExpect(jsonPath("$[0].hasPhoto").value(true));
+        perform(admin, get("/api/funcionarios/{id}/foto", professional.getId()))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Content-Type", "image/png"))
                 .andExpect(content().bytes(PNG));
+        perform(professional, get("/api/funcionarios/{id}/foto", professional.getId())).andExpect(status().isOk());
 
-        User employee = userRepository.findById(id).orElseThrow();
-        perform(employee, get("/api/funcionarios/{id}/foto", id)).andExpect(status().isOk());
-
-        perform(admin, delete("/api/funcionarios/{id}/foto", id)).andExpect(status().isNoContent());
-        perform(admin, get("/api/funcionarios/{id}/foto", id)).andExpect(status().isNotFound());
+        perform(professional, delete("/api/funcionarios/me/foto")).andExpect(status().isNoContent());
+        perform(admin, get("/api/funcionarios/{id}/foto", professional.getId())).andExpect(status().isNotFound());
     }
 
     @Test
-    void shouldRejectInvalidPhotosAndForeignAccess() throws Exception {
-        User admin = administrator();
-        User otherAdmin = administrator();
-        Long id = idOf(create(admin, minimal("Foto", uniqueEmail(), TestDocuments.cpf())));
-        Long colleagueId = idOf(create(admin, minimal("Colega", uniqueEmail(), TestDocuments.cpf())));
+    void shouldNotLetTheAdministratorOrColleaguesManageThePhoto() throws Exception {
+        Establishment establishment = establishment();
+        User admin = administrator(establishment);
+        User professional = professional(establishment, TestDocuments.cpf(), LocalDate.of(2023, 6, 1));
+        User colleague = professional(establishment, TestDocuments.cpf(), LocalDate.of(2023, 6, 1));
 
-        perform(admin, multipart(HttpMethod.PUT, "/api/funcionarios/{id}/foto", id)
+        perform(admin, multipart(HttpMethod.PUT, "/api/funcionarios/me/foto")
+                        .file(new MockMultipartFile("file", "foto.png", "image/png", PNG)))
+                .andExpect(status().isForbidden());
+        perform(admin, multipart(HttpMethod.PUT, "/api/funcionarios/{id}/foto", professional.getId())
+                        .file(new MockMultipartFile("file", "foto.png", "image/png", PNG)))
+                .andExpect(status().isMethodNotAllowed());
+        perform(colleague, get("/api/funcionarios/{id}/foto", professional.getId())).andExpect(status().isForbidden());
+
+        perform(professional, multipart(HttpMethod.PUT, "/api/funcionarios/me/foto")
                         .file(new MockMultipartFile("file", "foto.png", "image/png", "não é imagem".getBytes())))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Formato de imagem não suportado. Use JPG, PNG ou WEBP."));
-        perform(admin, multipart(HttpMethod.PUT, "/api/funcionarios/{id}/foto", id))
+        perform(professional, multipart(HttpMethod.PUT, "/api/funcionarios/me/foto"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Selecione uma imagem."));
-
-        perform(otherAdmin, multipart(HttpMethod.PUT, "/api/funcionarios/{id}/foto", id)
-                        .file(new MockMultipartFile("file", "foto.png", "image/png", PNG)))
-                .andExpect(status().isNotFound());
-        User colleague = userRepository.findById(colleagueId).orElseThrow();
-        perform(colleague, get("/api/funcionarios/{id}/foto", id)).andExpect(status().isForbidden());
+        assertThat(userRepository.findById(professional.getId())).isPresent();
     }
 
-    private ResultActions create(User admin, String body) throws Exception {
-        return perform(admin, post("/api/funcionarios").contentType(MediaType.APPLICATION_JSON).content(body));
+    // ---------- apoio ----------
+
+    private ResultActions create(User admin, String json) throws Exception {
+        return perform(admin, post("/api/funcionarios").contentType(MediaType.APPLICATION_JSON).content(json));
     }
 
     private ResultActions perform(User user, MockHttpServletRequestBuilder request) throws Exception {
@@ -221,29 +322,35 @@ class EmployeeDetailsIntegrationTests {
         return id.longValue();
     }
 
-    private static String minimal(String name, String email, String cpf) {
+    private static String body(String name, String email, String occupation, String cpf, String hireDate) {
         return """
-                {"name":"%s","email":"%s","occupation":"Cabeleireiro(a)","cpf":"%s"}
-                """.formatted(name, email, cpf);
-    }
-
-    private static String withExtra(String extraField) {
-        return """
-                {"name":"Extra","email":"%s","occupation":"Barbeiro(a)","cpf":"%s",%s}
-                """.formatted(uniqueEmail(), TestDocuments.cpf(), extraField);
+                {"name":"%s","email":"%s","occupation":"%s","cpf":"%s","hireDate":"%s"}
+                """.formatted(name, email, occupation, cpf, hireDate);
     }
 
     private static String uniqueEmail() {
         return "func-" + UUID.randomUUID().toString().substring(0, 8) + "@detalhes.test";
     }
 
-    private User administrator() {
+    private Establishment establishment() {
         String unique = UUID.randomUUID().toString().replace("-", "").substring(0, 12);
         String cnpj = String.format("%014d", Math.floorMod(System.nanoTime(), 100_000_000_000_000L));
-        Establishment establishment = establishmentRepository.saveAndFlush(Establishment.builder()
+        return establishmentRepository.saveAndFlush(Establishment.builder()
                 .name("Salão detalhes " + unique).cnpj(cnpj).build());
+    }
+
+    private User administrator(Establishment establishment) {
+        String unique = UUID.randomUUID().toString().substring(0, 8);
         return userRepository.saveAndFlush(User.builder()
                 .name("Admin " + unique).email("admin-" + unique + "@detalhes.test")
-                .password("{noop}x").role(UserRole.ADMIN).establishment(establishment).build());
+                .password(passwordEncoder.encode(PASSWORD)).role(UserRole.ADMIN).establishment(establishment).build());
+    }
+
+    private User professional(Establishment establishment, String cpf, LocalDate hireDate) {
+        String unique = UUID.randomUUID().toString().substring(0, 8);
+        return userRepository.saveAndFlush(User.builder()
+                .name("Profissional " + unique).email("prof-" + unique + "@detalhes.test")
+                .password(passwordEncoder.encode(PASSWORD)).role(UserRole.PROFESSIONAL).establishment(establishment)
+                .occupation("Cabeleireiro(a)").cpf(cpf).hireDate(hireDate).build());
     }
 }
