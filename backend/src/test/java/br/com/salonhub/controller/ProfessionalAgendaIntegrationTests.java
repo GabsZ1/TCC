@@ -1,5 +1,7 @@
 package br.com.salonhub.controller;
 
+import br.com.salonhub.support.TestDocuments;
+
 import br.com.salonhub.entity.Appointment;
 import br.com.salonhub.entity.Establishment;
 import br.com.salonhub.entity.EstablishmentService;
@@ -397,8 +399,8 @@ class ProfessionalAgendaIntegrationTests {
                         .header("Authorization", bearer(adminToken))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":"Profissional Agenda","email":"professional.%s@agenda.test"}
-                                """.formatted(suffix)))
+                                {"name":"Profissional Agenda","email":"professional.%s@agenda.test","occupation":"Cabeleireiro(a)","cpf":"%s"}
+                                """.formatted(suffix, TestDocuments.cpf())))
                 .andExpect(status().isCreated()).andReturn();
         Number professionalId = JsonPath.read(professional.getResponse().getContentAsString(), "$.id");
         String firstAccessToken = JsonPath.read(professional.getResponse().getContentAsString(), "$.firstAccessToken");

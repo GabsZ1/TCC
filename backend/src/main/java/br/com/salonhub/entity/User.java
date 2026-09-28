@@ -46,6 +46,21 @@ public class User {
     @Column(length = 20)
     private String phone;
 
+    @Column(length = 11, unique = true)
+    private String cpf;
+
+    @Column(length = 80)
+    private String occupation;
+
+    @Column(length = 30)
+    private String instagram;
+
+    @Column(length = 255)
+    private String address;
+
+    @Column(name = "hire_date")
+    private java.time.LocalDate hireDate;
+
     @Column(name = "deleted_at")
     private OffsetDateTime deletedAt;
 
@@ -86,6 +101,20 @@ public class User {
 
     public void changePassword(String encodedPassword) {
         this.password = encodedPassword;
+    }
+
+    /** US 2.2 — dados editáveis do funcionário (o estabelecimento e o papel não mudam). */
+    public void updateEmployeeDetails(
+            String name, String email, String occupation, String cpf,
+            String phone, String instagram, String address, java.time.LocalDate hireDate) {
+        this.name = name;
+        this.email = email;
+        this.occupation = occupation;
+        this.cpf = cpf;
+        this.phone = phone;
+        this.instagram = instagram;
+        this.address = address;
+        this.hireDate = hireDate;
     }
 
     public void updateClientProfile(String name, String email, String phone) {

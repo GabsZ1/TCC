@@ -1,5 +1,7 @@
 package br.com.salonhub.controller;
 
+import br.com.salonhub.support.TestDocuments;
+
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -74,9 +76,11 @@ class TenantIsolationIntegrationTests {
                         .content("""
                                 {
                                   "name": "Alteração indevida",
-                                  "email": "changed@salonhub.test"
+                                  "email": "changed@salonhub.test",
+                                  "occupation": "Cabeleireiro(a)",
+                                  "cpf": "%s"
                                 }
-                                """))
+                                """.formatted(TestDocuments.cpf())))
                 .andExpect(status().isNotFound());
 
         mockMvc.perform(delete("/api/funcionarios/{id}", employeeId.longValue())
@@ -152,9 +156,11 @@ class TenantIsolationIntegrationTests {
         return """
                 {
                   "name": "%s",
-                  "email": "%s"
+                  "email": "%s",
+                  "occupation": "Cabeleireiro(a)",
+                  "cpf": "%s"
                 }
-                """.formatted(name, email);
+                """.formatted(name, email, TestDocuments.cpf());
     }
 
     private String servicePayload(String name) {

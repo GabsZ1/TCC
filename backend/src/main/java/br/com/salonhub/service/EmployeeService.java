@@ -1,9 +1,9 @@
 package br.com.salonhub.service;
 
-import br.com.salonhub.dto.auth.AuthenticatedUserResponse;
 import br.com.salonhub.dto.employee.EmployeeCreateRequest;
 import br.com.salonhub.dto.employee.EmployeeCreationResponse;
 import br.com.salonhub.dto.employee.EmployeeRemovalResponse;
+import br.com.salonhub.dto.employee.EmployeeResponse;
 import br.com.salonhub.dto.employee.EmployeeUpdateRequest;
 import br.com.salonhub.dto.employee.ProfessionalServicesRequest;
 import br.com.salonhub.dto.employee.ProfessionalServicesResponse;
@@ -13,11 +13,15 @@ import br.com.salonhub.entity.EstablishmentService;
 import br.com.salonhub.entity.User;
 import br.com.salonhub.entity.UserRole;
 import br.com.salonhub.exception.ConflictException;
+import br.com.salonhub.exception.InvalidRequestException;
 import br.com.salonhub.exception.ResourceNotFoundException;
 import br.com.salonhub.notification.EmailNotifier;
 import br.com.salonhub.notification.FrontendLinks;
 import br.com.salonhub.repository.AppointmentRepository;
+import br.com.salonhub.repository.UserPhotoRepository;
 import br.com.salonhub.repository.UserRepository;
+import br.com.salonhub.validation.CpfValidator;
+import br.com.salonhub.validation.PhoneNumbers;
 import br.com.salonhub.repository.EstablishmentServiceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -26,6 +30,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
@@ -43,6 +48,7 @@ public class EmployeeService {
     private final TokenService tokenService;
     private final EmailNotifier emailNotifier;
     private final FrontendLinks frontendLinks;
+    private final UserPhotoRepository userPhotoRepository;
     private final Clock clock;
 
     @Transactional(readOnly = true)
@@ -94,10 +100,22 @@ public class EmployeeService {
         if (userRepository.existsByEmailIgnoreCase(email)) {
             throw new ConflictException("E-mail já cadastrado no sistema.");
         }
+        EmployeeDetails details = normalizeDetails(
+                request.occupation(), request.cpf(), request.phone(), request.instagram(),
+                request.address(), request.hireDate());
+        if (userRepository.existsByCpf(details.cpf())) {
+            throw new ConflictException("Já existe um funcionário cadastrado com este CPF.");
+        }
 
         User employee = User.builder()
                 .name(request.name().trim())
                 .email(email)
+                .occupation(details.occupation())
+                .cpf(details.cpf())
+                .phone(details.phone())
+                .instagram(details.instagram())
+                .address(details.address())
+                .hireDate(details.hireDate())
                 .password(passwordEncoder.encode(UUID.randomUUID().toString()))
                 .passwordInitialized(false)
                 .role(UserRole.PROFESSIONAL)
@@ -119,21 +137,25 @@ public class EmployeeService {
     }
 
     @Transactional(readOnly = true)
-    public List<AuthenticatedUserResponse> findAll(Long administratorId) {
+    public List<EmployeeResponse> findAll(Long administratorId) {
         User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
 
         // Funcionários desativados continuam na listagem (com status inativo) —
         // eles só somem de fato quando removidos permanentemente (RN 2.4.2 / CT03).
-        return userRepository.findByEstablishmentIdAndRole(
-                        administrator.getEstablishment().getId(),
-                        UserRole.PROFESSIONAL)
-                .stream()
-                .map(AuthenticatedUserResponse::fromEntity)
+        List<User> employees = userRepository.findByEstablishmentIdAndRole(
+                administrator.getEstablishment().getId(),
+                UserRole.PROFESSIONAL);
+        java.util.Set<Long> withPhoto = employees.isEmpty()
+                ? java.util.Set.of()
+                : userPhotoRepository.findUserIdsWithPhoto(employees.stream().map(User::getId).toList());
+        return employees.stream()
+                .sorted(java.util.Comparator.comparing(User::getName, String.CASE_INSENSITIVE_ORDER))
+                .map(employee -> EmployeeResponse.fromEntity(employee, withPhoto.contains(employee.getId())))
                 .toList();
     }
 
     @Transactional
-    public AuthenticatedUserResponse update(Long administratorId, Long employeeId, EmployeeUpdateRequest request) {
+    public EmployeeResponse update(Long administratorId, Long employeeId, EmployeeUpdateRequest request) {
         User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
         User employee = findEmployee(employeeId, administrator.getEstablishment().getId());
 
@@ -141,14 +163,22 @@ public class EmployeeService {
         if (userRepository.existsByEmailIgnoreCaseAndIdNot(email, employeeId)) {
             throw new ConflictException("E-mail já cadastrado no sistema.");
         }
+        EmployeeDetails details = normalizeDetails(
+                request.occupation(), request.cpf(), request.phone(), request.instagram(),
+                request.address(), request.hireDate());
+        if (userRepository.existsByCpfAndIdNot(details.cpf(), employeeId)) {
+            throw new ConflictException("Já existe um funcionário cadastrado com este CPF.");
+        }
 
-        employee.updateProfile(request.name().trim(), email);
+        employee.updateEmployeeDetails(
+                request.name().trim(), email, details.occupation(), details.cpf(), details.phone(),
+                details.instagram(), details.address(), details.hireDate());
 
-        return AuthenticatedUserResponse.fromEntity(employee);
+        return toResponse(employee);
     }
 
     @Transactional
-    public AuthenticatedUserResponse reactivate(Long administratorId, Long employeeId) {
+    public EmployeeResponse reactivate(Long administratorId, Long employeeId) {
         User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
         User employee = findEmployee(employeeId, administrator.getEstablishment().getId());
 
@@ -157,11 +187,11 @@ public class EmployeeService {
         }
 
         employee.reactivate();
-        return AuthenticatedUserResponse.fromEntity(employee);
+        return toResponse(employee);
     }
 
     @Transactional
-    public AuthenticatedUserResponse deactivate(Long administratorId, Long employeeId) {
+    public EmployeeResponse deactivate(Long administratorId, Long employeeId) {
         User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
         Long establishmentId = administrator.getEstablishment().getId();
 
@@ -179,7 +209,7 @@ public class EmployeeService {
         }
         requireNoRelevantConfirmedAppointments(employee);
         employee.deactivate();
-        return AuthenticatedUserResponse.fromEntity(employee);
+        return toResponse(employee);
     }
 
     /**
@@ -218,6 +248,44 @@ public class EmployeeService {
             throw new ConflictException("O funcionário possui vínculos que impedem a exclusão definitiva. Utilize a desativação.");
         }
         return new EmployeeRemovalResponse(true, "O funcionário foi excluído definitivamente.");
+    }
+
+    private EmployeeResponse toResponse(User employee) {
+        return EmployeeResponse.fromEntity(employee, userPhotoRepository.existsById(employee.getId()));
+    }
+
+    /** Dados cadastrais do funcionário já normalizados (US 2.1 / 2.2). */
+    private record EmployeeDetails(
+            String occupation, String cpf, String phone, String instagram, String address, LocalDate hireDate) {
+    }
+
+    private EmployeeDetails normalizeDetails(
+            String occupation, String cpf, String phone, String instagram, String address, LocalDate hireDate) {
+        String normalizedPhone = null;
+        if (phone != null && !phone.isBlank()) {
+            normalizedPhone = PhoneNumbers.normalize(phone);
+            if (normalizedPhone == null) {
+                throw new InvalidRequestException("Informe um telefone válido!");
+            }
+        }
+        String normalizedInstagram = null;
+        if (instagram != null && !instagram.isBlank()) {
+            normalizedInstagram = instagram.trim().replaceFirst("^@", "");
+            if (!normalizedInstagram.matches("[A-Za-z0-9._]{1,30}")) {
+                throw new InvalidRequestException(
+                        "Instagram inválido. Use até 30 letras, números, ponto ou sublinhado.");
+            }
+        }
+        if (hireDate != null && hireDate.isAfter(LocalDate.now(clock))) {
+            throw new InvalidRequestException("A data de admissão não pode ser futura.");
+        }
+        return new EmployeeDetails(
+                occupation.trim(),
+                CpfValidator.normalize(cpf),
+                normalizedPhone,
+                normalizedInstagram,
+                address == null || address.isBlank() ? null : address.trim(),
+                hireDate);
     }
 
     private User findEmployee(Long employeeId, Long establishmentId) {

@@ -1,21 +1,26 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, Copy, Pencil, Plus, Power, RotateCcw, Scissors, Trash2, UserCheck, UsersRound, UserX } from 'lucide-react'
+import { Check, Copy, Eye, Pencil, Plus, Power, RotateCcw, Scissors, Trash2, UserCheck, UsersRound, UserX } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { getApiErrorMessage } from '@/lib/apiError'
 import {
   createEmployee,
   deactivateEmployee,
+  deleteEmployeePhoto,
+  uploadEmployeePhoto,
   fetchEmployees,
   removeEmployee,
   reactivateEmployee,
   updateEmployee,
   type Employee,
+  type EmployeeInput,
 } from '@/features/employees/services/employeesApi'
 import {
   EmployeeFormModal,
-  type EmployeeFormValues,
+  type EmployeePhotoChange,
 } from '@/features/employees/components/EmployeeFormModal'
+import { EmployeeAvatar } from '@/features/employees/components/EmployeeAvatar'
+import { EmployeeDetailsModal } from '@/features/employees/components/EmployeeDetailsModal'
 import { ProfessionalServicesModal } from '@/features/employees/components/ProfessionalServicesModal'
 
 const EMPLOYEES_QUERY_KEY = ['employees']
@@ -31,6 +36,7 @@ export function EmployeesListPage() {
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [removalMessage, setRemovalMessage] = useState<string | null>(null)
   const [servicesEmployee, setServicesEmployee] = useState<Employee | null>(null)
+  const [detailsEmployee, setDetailsEmployee] = useState<Employee | null>(null)
   const [inviteCopied, setInviteCopied] = useState(false)
   const [firstAccessInvitation, setFirstAccessInvitation] = useState<{
     employeeName: string
@@ -50,9 +56,23 @@ export function EmployeesListPage() {
   const activeCount = sortedEmployees.filter((employee) => employee.active).length
   const inactiveCount = sortedEmployees.length - activeCount
 
+  /** Envia/remove a foto depois de salvar os dados; falha na foto não desfaz o cadastro. */
+  async function applyPhotoChange(employeeId: number, photo: EmployeePhotoChange) {
+    if (photo === undefined) return
+    try {
+      if (photo === null) await deleteEmployeePhoto(employeeId)
+      else await uploadEmployeePhoto(employeeId, photo)
+    } catch (photoError) {
+      setDeleteError(`Os dados foram salvos, mas a foto não: ${getApiErrorMessage(photoError, 'tente enviar novamente.')}`)
+    } finally {
+      queryClient.invalidateQueries({ queryKey: ['employee-photo', employeeId] })
+    }
+  }
+
   const createMutation = useMutation({
-    mutationFn: createEmployee,
-    onSuccess: (result) => {
+    mutationFn: ({ input }: { input: EmployeeInput; photo: EmployeePhotoChange }) => createEmployee(input),
+    onSuccess: async (result, { photo }) => {
+      await applyPhotoChange(result.id, photo)
       queryClient.invalidateQueries({ queryKey: EMPLOYEES_QUERY_KEY })
       setFirstAccessInvitation({
         employeeName: result.name,
@@ -66,9 +86,11 @@ export function EmployeesListPage() {
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, name, email }: { id: number; name: string; email: string }) => updateEmployee(id, { name, email }),
-    onSuccess: () => {
+    mutationFn: ({ id, input }: { id: number; input: EmployeeInput; photo: EmployeePhotoChange }) => updateEmployee(id, input),
+    onSuccess: async (employee, { photo }) => {
+      await applyPhotoChange(employee.id, photo)
       queryClient.invalidateQueries({ queryKey: EMPLOYEES_QUERY_KEY })
+      setRemovalMessage('O funcionário foi alterado com sucesso')
       closeFormModal()
     },
     onError: (err) => setFormError(getApiErrorMessage(err, 'Não foi possível atualizar o funcionário.')),
@@ -116,12 +138,13 @@ export function EmployeesListPage() {
     setFormError(null)
   }
 
-  function handleFormSubmit(values: EmployeeFormValues) {
+  function handleFormSubmit(values: EmployeeInput, photo: EmployeePhotoChange) {
     setFormError(null)
+    setDeleteError(null)
     if (modalState?.mode === 'edit') {
-      updateMutation.mutate({ id: modalState.employee.id, name: values.name, email: values.email })
+      updateMutation.mutate({ id: modalState.employee.id, input: values, photo })
     } else {
-      createMutation.mutate({ name: values.name, email: values.email })
+      createMutation.mutate({ input: values, photo })
     }
   }
 
@@ -212,7 +235,7 @@ export function EmployeesListPage() {
             <thead className="bg-background-100/75 text-[0.67rem] font-bold uppercase tracking-[0.11em] text-text-500">
               <tr>
                 <th className="px-5 py-3.5">Profissional</th>
-                <th className="px-5 py-3.5">E-mail</th>
+                <th className="px-5 py-3.5">Ocupação</th>
                 <th className="px-5 py-3.5">Status</th>
                 <th className="px-5 py-3.5 text-right">Ações</th>
               </tr>
@@ -226,11 +249,14 @@ export function EmployeesListPage() {
                 <tr key={employee.id} className="group bg-background-50 hover:bg-background-100/50">
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-3">
-                      <EmployeeAvatar name={employee.name} />
-                      <span className="font-semibold text-text-900">{employee.name}</span>
+                      <EmployeeAvatar id={employee.id} name={employee.name} hasPhoto={employee.hasPhoto} />
+                      <div className="min-w-0">
+                        <span className="block font-semibold text-text-900">{employee.name}</span>
+                        <span className="block truncate text-xs text-text-500">{employee.email}</span>
+                      </div>
                     </div>
                   </td>
-                  <td className="px-5 py-4 text-text-600">{employee.email}</td>
+                  <td className="px-5 py-4 text-text-700">{employee.occupation ?? <span className="text-text-400">Não informada</span>}</td>
                   <td className="px-5 py-4">
                     <span className={`status-pill ${employee.active ? 'bg-success-50 text-success-700' : 'bg-background-200 text-text-600'}`}>
                       <span className={`size-1.5 rounded-full ${employee.active ? 'bg-success-500' : 'bg-text-400'}`} />
@@ -239,6 +265,7 @@ export function EmployeesListPage() {
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex justify-end gap-1">
+                      <ActionButton label="Detalhes" onClick={() => setDetailsEmployee(employee)}><Eye size={16} /></ActionButton>
                       <ActionButton label="Serviços" onClick={() => setServicesEmployee(employee)}><Scissors size={16} /></ActionButton>
                       <ActionButton label="Editar" onClick={() => { setRemovalMessage(null); setModalState({ mode: 'edit', employee }) }}><Pencil size={16} /></ActionButton>
                       {employee.active ? (
@@ -261,6 +288,13 @@ export function EmployeesListPage() {
       {modalState && (
         <EmployeeFormModal employee={modalState.mode === 'edit' ? modalState.employee : null} isSubmitting={isSavingForm} errorMessage={formError} onSubmit={handleFormSubmit} onClose={closeFormModal} />
       )}
+      {detailsEmployee && (
+        <EmployeeDetailsModal
+          employee={detailsEmployee}
+          onClose={() => setDetailsEmployee(null)}
+          onEdit={() => { setRemovalMessage(null); setModalState({ mode: 'edit', employee: detailsEmployee }); setDetailsEmployee(null) }}
+        />
+      )}
       {servicesEmployee && <ProfessionalServicesModal employee={servicesEmployee} onClose={() => setServicesEmployee(null)} />}
       {employeeToDeactivate && <ConfirmDialog title="Desativar funcionário" message={`Desativar "${employeeToDeactivate.name}"? O cadastro, os agendamentos e os serviços vinculados serão preservados. Você poderá reativá-lo depois.`} confirmLabel="Desativar" isLoading={deactivateMutation.isPending} onConfirm={() => deactivateMutation.mutate(employeeToDeactivate.id)} onCancel={() => setEmployeeToDeactivate(null)} />}
       {employeeToDelete && <ConfirmDialog title="Excluir funcionário definitivamente" message={`Excluir "${employeeToDelete.name}" definitivamente? A exclusão será recusada se houver agendamentos ou serviços vinculados. Para apenas suspender o cadastro, use Desativar.`} confirmLabel="Continuar" onConfirm={handleFirstConfirmDelete} onCancel={cancelRemoval} />}
@@ -272,11 +306,6 @@ export function EmployeesListPage() {
 function MiniMetric({ icon, label, value, tone = 'primary', bordered = false }: { icon: React.ReactNode; label: string; value: number; tone?: 'primary' | 'success' | 'muted'; bordered?: boolean }) {
   const iconStyle = tone === 'success' ? 'text-success-700' : tone === 'muted' ? 'text-text-600' : 'text-primary-700'
   return <div className={`flex items-center gap-3 p-4 sm:p-5 ${bordered ? 'border-t border-background-300 sm:border-l sm:border-t-0' : ''}`}><span className={`grid size-8 place-items-center ${iconStyle}`}>{icon}</span><div><p className="text-xl font-extrabold tracking-[-0.04em] text-text-950">{value}</p><p className="text-xs font-semibold text-text-500">{label}</p></div></div>
-}
-
-function EmployeeAvatar({ name }: { name: string }) {
-  const initials = name.split(' ').filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('')
-  return <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-secondary-100 text-xs font-bold text-secondary-700">{initials}</span>
 }
 
 function ActionButton({ label, onClick, children, danger = false, success = false, disabled = false }: { label: string; onClick: () => void; children: React.ReactNode; danger?: boolean; success?: boolean; disabled?: boolean }) {

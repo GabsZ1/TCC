@@ -10,6 +10,9 @@ import org.springframework.web.ErrorResponse;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -43,6 +46,7 @@ public class ApiExceptionHandler {
                 String constraint = violation.getConstraintName();
                 String message = constraint == null ? null : switch (constraint) {
                     case "uk_users_email" -> "E-mail já cadastrado no sistema.";
+                    case "uk_users_cpf" -> "Já existe um funcionário cadastrado com este CPF.";
                     case "uk_establishments_cnpj" -> "CNPJ já cadastrado.";
                     case "uk_salon_services_establishment_name" -> "Já existe um serviço com esse nome neste estabelecimento.";
                     case "uk_business_hours_establishment_day" -> "Já existe um horário cadastrado para este dia.";
@@ -114,6 +118,16 @@ public class ApiExceptionHandler {
     public ResponseEntity<ApiError> handleNoResource(NoResourceFoundException exception) {
         log.warn("Rota não encontrada: {} {}", exception.getHttpMethod(), exception.getResourcePath());
         return friendly(HttpStatus.NOT_FOUND, "O recurso solicitado não está disponível.");
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiError> handleUploadTooLarge(MaxUploadSizeExceededException exception) {
+        return friendly(HttpStatus.BAD_REQUEST, "A foto deve ter no máximo 2 MB.");
+    }
+
+    @ExceptionHandler({MissingServletRequestPartException.class, MultipartException.class})
+    public ResponseEntity<ApiError> handleMissingUpload(Exception exception) {
+        return friendly(HttpStatus.BAD_REQUEST, "Selecione uma imagem.");
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)

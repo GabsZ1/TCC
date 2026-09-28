@@ -1,5 +1,7 @@
 package br.com.salonhub.controller;
 
+import br.com.salonhub.support.TestDocuments;
+
 import br.com.salonhub.entity.Establishment;
 import br.com.salonhub.entity.PasswordResetToken;
 import br.com.salonhub.entity.User;
@@ -246,8 +248,8 @@ class PasswordRecoveryIntegrationTests {
                         .with(jwt().jwt(token -> token.subject(administrator.getId().toString())))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":"Funcionária Convite","email":"%s"}
-                                """.formatted(employeeEmail)))
+                                {"name":"Funcionária Convite","email":"%s","occupation":"Cabeleireiro(a)","cpf":"%s"}
+                                """.formatted(employeeEmail, TestDocuments.cpf())))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
 

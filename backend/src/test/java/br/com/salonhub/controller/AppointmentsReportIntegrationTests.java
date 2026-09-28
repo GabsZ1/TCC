@@ -1,5 +1,7 @@
 package br.com.salonhub.controller;
 
+import br.com.salonhub.support.TestDocuments;
+
 import br.com.salonhub.entity.Appointment;
 import br.com.salonhub.entity.Establishment;
 import br.com.salonhub.entity.EstablishmentService;
@@ -215,8 +217,8 @@ class AppointmentsReportIntegrationTests {
                         .header("Authorization", bearer(fixture.administratorToken()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":"Segundo Profissional","email":"second.professional.%s@salonhub.test"}
-                                """.formatted(suffix)))
+                                {"name":"Segundo Profissional","email":"second.professional.%s@salonhub.test","occupation":"Cabeleireiro(a)","cpf":"%s"}
+                                """.formatted(suffix, TestDocuments.cpf())))
                 .andExpect(status().isCreated())
                 .andReturn();
         String firstAccessToken = JsonPath.read(
@@ -250,8 +252,8 @@ class AppointmentsReportIntegrationTests {
                         .header("Authorization", bearer(administratorToken))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":"Profissional %s","email":"professional.%s@salonhub.test"}
-                                """.formatted(suffix, suffix)))
+                                {"name":"Profissional %s","email":"professional.%s@salonhub.test","occupation":"Cabeleireiro(a)","cpf":"%s"}
+                                """.formatted(suffix, suffix, TestDocuments.cpf())))
                 .andExpect(status().isCreated())
                 .andReturn();
         String firstAccessToken = JsonPath.read(

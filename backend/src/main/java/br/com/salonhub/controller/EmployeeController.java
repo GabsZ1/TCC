@@ -1,20 +1,25 @@
 package br.com.salonhub.controller;
 
-import br.com.salonhub.dto.auth.AuthenticatedUserResponse;
 import br.com.salonhub.dto.employee.EmployeeCreateRequest;
 import br.com.salonhub.dto.employee.EmployeeCreationResponse;
 import br.com.salonhub.dto.employee.EmployeeRemovalResponse;
+import br.com.salonhub.dto.employee.EmployeeResponse;
 import br.com.salonhub.dto.employee.EmployeeUpdateRequest;
 import br.com.salonhub.dto.employee.ProfessionalServicesRequest;
 import br.com.salonhub.dto.employee.ProfessionalServicesResponse;
+import br.com.salonhub.entity.UserPhoto;
+import br.com.salonhub.service.EmployeePhotoService;
 import br.com.salonhub.service.EmployeeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -24,6 +29,7 @@ import java.util.List;
 public class EmployeeController {
 
     private final EmployeeService employeeService;
+    private final EmployeePhotoService employeePhotoService;
 
     @PostMapping
     public ResponseEntity<EmployeeCreationResponse> create(
@@ -34,7 +40,7 @@ public class EmployeeController {
     }
 
     @GetMapping
-    public ResponseEntity<List<AuthenticatedUserResponse>> findAll(@AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<List<EmployeeResponse>> findAll(@AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok(employeeService.findAll(currentUserId(jwt)));
     }
 
@@ -57,7 +63,7 @@ public class EmployeeController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<AuthenticatedUserResponse> update(
+    public ResponseEntity<EmployeeResponse> update(
             @PathVariable Long id,
             @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody EmployeeUpdateRequest request) {
@@ -70,17 +76,43 @@ public class EmployeeController {
     }
 
     @PatchMapping("/{id}/desativacao")
-    public ResponseEntity<AuthenticatedUserResponse> deactivate(
+    public ResponseEntity<EmployeeResponse> deactivate(
             @PathVariable Long id,
             @AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok(employeeService.deactivate(currentUserId(jwt), id));
     }
 
     @PatchMapping("/{id}/ativacao")
-    public ResponseEntity<AuthenticatedUserResponse> reactivate(
+    public ResponseEntity<EmployeeResponse> reactivate(
             @PathVariable Long id,
             @AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok(employeeService.reactivate(currentUserId(jwt), id));
+    }
+
+    /** Foto do funcionário (multipart, campo "file"). Só o administrador do estabelecimento. */
+    @PutMapping(value = "/{id}/foto", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void uploadPhoto(
+            @PathVariable Long id,
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestPart("file") MultipartFile file) {
+        employeePhotoService.upload(currentUserId(jwt), id, file);
+    }
+
+    @DeleteMapping("/{id}/foto")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deletePhoto(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        employeePhotoService.delete(currentUserId(jwt), id);
+    }
+
+    /** Administrador do estabelecimento ou o próprio profissional. */
+    @GetMapping("/{id}/foto")
+    public ResponseEntity<byte[]> findPhoto(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        UserPhoto photo = employeePhotoService.find(currentUserId(jwt), id);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(photo.getContentType()))
+                .cacheControl(CacheControl.noStore().cachePrivate())
+                .body(photo.getData());
     }
 
     private Long currentUserId(Jwt jwt) {

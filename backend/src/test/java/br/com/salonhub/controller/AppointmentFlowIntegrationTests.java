@@ -1,5 +1,7 @@
 package br.com.salonhub.controller;
 
+import br.com.salonhub.support.TestDocuments;
+
 import br.com.salonhub.entity.Appointment;
 import br.com.salonhub.entity.AppointmentStatus;
 import br.com.salonhub.repository.AppointmentRepository;
@@ -62,9 +64,11 @@ class AppointmentFlowIntegrationTests {
                         .content("""
                                 {
                                   "name": "Profissional MVP",
-                                  "email": "professional.appointment@salonhub.test"
+                                  "email": "professional.appointment@salonhub.test",
+                                  "occupation": "Cabeleireiro(a)",
+                                  "cpf": "%s"
                                 }
-                                """))
+                                """.formatted(TestDocuments.cpf())))
                 .andExpect(status().isCreated())
                 .andReturn();
         Number professionalId = JsonPath.read(professional.getResponse().getContentAsString(), "$.id");
@@ -203,8 +207,8 @@ class AppointmentFlowIntegrationTests {
                         .header("Authorization", bearer(administratorToken))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":"Profissional Alternativo","email":"professional.alt.appointment@salonhub.test","password":"senha123"}
-                                """))
+                                {"name":"Profissional Alternativo","email":"professional.alt.appointment@salonhub.test","password":"senha123","occupation":"Cabeleireiro(a)","cpf":"%s"}
+                                """.formatted(TestDocuments.cpf())))
                 .andExpect(status().isCreated())
                 .andReturn();
         Number secondProfessionalId = JsonPath.read(secondProfessional.getResponse().getContentAsString(), "$.id");

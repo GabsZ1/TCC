@@ -1,5 +1,7 @@
 package br.com.salonhub.controller;
 
+import br.com.salonhub.support.TestDocuments;
+
 import br.com.salonhub.entity.Establishment;
 import br.com.salonhub.entity.User;
 import br.com.salonhub.entity.UserRole;
@@ -49,8 +51,8 @@ class EmployeeFirstAccessIntegrationTests {
                         .with(jwt().jwt(token -> token.subject(administrator.getId().toString())))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":"Funcionário","email":"%s"}
-                                """.formatted(employeeEmail)))
+                                {"name":"Funcionário","email":"%s","occupation":"Cabeleireiro(a)","cpf":"%s"}
+                                """.formatted(employeeEmail, TestDocuments.cpf())))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.firstAccessToken").isNotEmpty())
                 .andExpect(jsonPath("$.firstAccessExpiresAt").isNotEmpty())
@@ -66,8 +68,8 @@ class EmployeeFirstAccessIntegrationTests {
                         .header("Authorization", "Bearer " + firstAccessToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":"Indevido","email":"indevido@test.local"}
-                                """))
+                                {"name":"Indevido","email":"indevido@test.local","occupation":"Cabeleireiro(a)","cpf":"%s"}
+                                """.formatted(TestDocuments.cpf())))
                 .andExpect(status().isUnauthorized());
 
         mockMvc.perform(post("/api/auth/primeiro-acesso")

@@ -1,5 +1,7 @@
 package br.com.salonhub.controller;
 
+import br.com.salonhub.support.TestDocuments;
+
 import br.com.salonhub.entity.User;
 import br.com.salonhub.entity.Appointment;
 import br.com.salonhub.entity.AppointmentStatus;
@@ -455,9 +457,11 @@ class EmployeeRemovalIntegrationTests {
                 {
                   "name": "%s",
                   "email": "%s",
+                  "occupation": "Cabeleireiro(a)",
+                  "cpf": "%s",
                   "password": "senha123"
                 }
-                """.formatted(name, email);
+                """.formatted(name, email, TestDocuments.cpf());
     }
 
     private String bearer(String token) {
