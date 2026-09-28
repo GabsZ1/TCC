@@ -9,7 +9,7 @@ import type { UserRole } from '@/types/auth'
 const allowedPathsByRole: Record<UserRole, (path: string) => boolean> = {
   SYSTEM_ADMIN: (path) => ['/', '/alterar-senha', '/admin/estabelecimentos'].includes(path),
   ADMIN: (path) => ['/', '/alterar-senha', '/funcionarios', '/servicos', '/estabelecimento', '/perfil-estabelecimento', '/agenda', '/relatorio-comissoes', '/relatorio-atendimentos'].includes(path),
-  CLIENT: (path) => ['/', '/alterar-senha', '/agendamentos'].includes(path) || /^\/estabelecimentos\/\d+\/agendar$/.test(path),
+  CLIENT: (path) => ['/', '/alterar-senha', '/agendamentos', '/meu-perfil'].includes(path) || /^\/estabelecimentos\/\d+\/agendar$/.test(path),
   PROFESSIONAL: (path) => ['/', '/alterar-senha', '/minha-agenda', '/meus-servicos', '/meus-atendimentos'].includes(path),
 }
 

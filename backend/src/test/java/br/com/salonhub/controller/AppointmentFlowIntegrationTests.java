@@ -94,7 +94,9 @@ class AppointmentFlowIntegrationTests {
                                 {
                                   "name": "Cliente MVP",
                                   "email": "client.appointment@salonhub.test",
-                                  "password": "senha123"
+                                  "phone": "44999990000",
+                                  "password": "senha123",
+                                  "passwordConfirmation": "senha123"
                                 }
                                 """))
                 .andExpect(status().isCreated())
@@ -176,7 +178,7 @@ class AppointmentFlowIntegrationTests {
         mockMvc.perform(post("/api/auth/clientes")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":"Outro cliente","email":"other.client.appointment@salonhub.test","password":"senha123"}
+                                {"name":"Outro cliente","email":"other.client.appointment@salonhub.test","phone":"44999990000","password":"senha123","passwordConfirmation":"senha123"}
                                 """))
                 .andExpect(status().isCreated());
         String otherClientToken = login("other.client.appointment@salonhub.test");

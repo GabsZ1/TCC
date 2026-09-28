@@ -154,7 +154,9 @@ class EmployeeRemovalIntegrationTests {
                                 {
                                   "name": "Cliente Remoção",
                                   "email": "cliente.removal@salonhub.test",
-                                  "password": "senha123"
+                                  "phone": "44999990000",
+                                  "password": "senha123",
+                                  "passwordConfirmation": "senha123"
                                 }
                                 """))
                 .andExpect(status().isCreated());

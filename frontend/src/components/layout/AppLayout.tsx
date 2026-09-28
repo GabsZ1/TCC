@@ -9,6 +9,7 @@ import {
   KeyRound,
   LogOut,
   Menu,
+  UserRound,
   Scissors,
   Settings,
   Store,
@@ -64,6 +65,7 @@ export function AppLayout() {
 
   const navItems: NavItem[] = [
     ...roleNavItems,
+    ...(user?.role === 'CLIENT' ? [{ to: '/meu-perfil', label: 'Meu perfil', icon: UserRound, group: 'Conta' } as NavItem] : []),
     { to: '/alterar-senha', label: 'Alterar senha', icon: KeyRound, group: 'Conta' },
   ]
 

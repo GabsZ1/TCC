@@ -43,6 +43,12 @@ public class User {
     @Builder.Default
     private boolean active = true;
 
+    @Column(length = 20)
+    private String phone;
+
+    @Column(name = "deleted_at")
+    private OffsetDateTime deletedAt;
+
     @Column(name = "password_initialized", nullable = false)
     @Builder.Default
     private boolean passwordInitialized = true;
@@ -80,6 +86,26 @@ public class User {
 
     public void changePassword(String encodedPassword) {
         this.password = encodedPassword;
+    }
+
+    public void updateClientProfile(String name, String email, String phone) {
+        this.name = name;
+        this.email = email;
+        this.phone = phone;
+    }
+
+    /**
+     * US 2.26 — encerra a conta do cliente sem apagar a linha: os agendamentos do
+     * estabelecimento continuam apontando para ela, mas os dados pessoais são
+     * substituídos e o e-mail original fica livre para um novo cadastro.
+     */
+    public void closeClientAccount(String anonymizedEmail, String unusablePasswordHash, OffsetDateTime closedAt) {
+        this.name = "Cliente removido";
+        this.email = anonymizedEmail;
+        this.phone = null;
+        this.password = unusablePasswordHash;
+        this.active = false;
+        this.deletedAt = closedAt;
     }
 
     public Set<EstablishmentService> getOfferedServices() {

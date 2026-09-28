@@ -247,9 +247,23 @@ Content-Type: application/json
 {
   "name": "Maria da Silva",
   "email": "maria@email.com",
-  "password": "senha123"
+  "phone": "(44) 99999-1234",
+  "password": "senha123",
+  "passwordConfirmation": "senha123"
 }
 ```
+
+O telefone é salvo só com dígitos (DDD + 8 ou 9 dígitos) e a confirmação precisa ser igual à senha ("As senhas não coincidem!").
+
+Conta do cliente (US 2.24 a 2.26), sempre do próprio cliente autenticado:
+
+```http
+GET    /api/clientes/me   → nome, e-mail e telefone (nunca a senha)
+PUT    /api/clientes/me   {"name": "...", "email": "...", "phone": "..."}
+DELETE /api/clientes/me   {"password": "senha atual"}
+```
+
+A exclusão exige a senha, cancela os agendamentos futuros confirmados, bloqueia o login, anonimiza os dados pessoais e libera o e-mail para um novo cadastro. A linha do usuário é mantida para que o histórico de atendimentos do estabelecimento continue íntegro (migration V25). No frontend: menu "Meu perfil" (`/meu-perfil`).
 
 O JWT de um cliente não possui `establishmentId`, pois ele pode realizar agendamentos em diferentes estabelecimentos.
 

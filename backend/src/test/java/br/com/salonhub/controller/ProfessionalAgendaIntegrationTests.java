@@ -417,7 +417,7 @@ class ProfessionalAgendaIntegrationTests {
         String clientEmail = "client." + suffix + "@agenda.test";
         mockMvc.perform(post("/api/auth/clientes").contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":"Cliente Agenda","email":"%s","password":"senha123"}
+                                {"name":"Cliente Agenda","email":"%s","phone":"44999990000","password":"senha123","passwordConfirmation":"senha123"}
                                 """.formatted(clientEmail)))
                 .andExpect(status().isCreated());
         return new TestContext(establishmentId, professionalId, serviceId,

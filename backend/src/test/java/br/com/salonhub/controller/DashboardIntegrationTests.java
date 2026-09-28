@@ -228,7 +228,7 @@ class DashboardIntegrationTests {
         mockMvc.perform(post("/api/auth/clientes")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":"Cliente %s","email":"client.%s@salonhub.test","password":"senha123"}
+                                {"name":"Cliente %s","email":"client.%s@salonhub.test","phone":"44999990000","password":"senha123","passwordConfirmation":"senha123"}
                                 """.formatted(suffix, suffix)))
                 .andExpect(status().isCreated());
         String clientToken = login("client.%s@salonhub.test".formatted(suffix));

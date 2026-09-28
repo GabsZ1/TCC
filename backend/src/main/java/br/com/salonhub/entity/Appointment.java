@@ -128,6 +128,13 @@ public class Appointment {
         this.cancelledAt = cancelledAt;
     }
 
+    /** Agendamento futuro cancelado porque o cliente excluiu a própria conta (US 2.26). */
+    public void cancelBecauseClientAccountWasClosed(LocalDateTime cancelledAt) {
+        this.status = AppointmentStatus.CANCELLED;
+        this.cancellationReason = "Conta do cliente excluída";
+        this.cancelledAt = cancelledAt;
+    }
+
     public void complete(LocalDateTime completedAt) {
         this.status = AppointmentStatus.COMPLETED;
         this.completedAt = completedAt;

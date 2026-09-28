@@ -10,6 +10,8 @@ import br.com.salonhub.entity.EstablishmentProfile;
 import br.com.salonhub.entity.User;
 import br.com.salonhub.entity.UserRole;
 import br.com.salonhub.exception.ConflictException;
+import br.com.salonhub.exception.InvalidRequestException;
+import br.com.salonhub.validation.PhoneNumbers;
 import br.com.salonhub.repository.EstablishmentBusinessHourRepository;
 import br.com.salonhub.repository.EstablishmentRepository;
 import br.com.salonhub.repository.EstablishmentProfileRepository;
@@ -84,6 +86,13 @@ public class RegistrationService {
 
     @Transactional
     public AuthenticatedUserResponse registerClient(ClientRegistrationRequest request) {
+        if (!request.password().equals(request.passwordConfirmation())) {
+            throw new InvalidRequestException("As senhas não coincidem!");
+        }
+        String phone = PhoneNumbers.normalize(request.phone());
+        if (phone == null) {
+            throw new InvalidRequestException("Informe um telefone válido!");
+        }
         String email = normalizeEmail(request.email());
         if (userRepository.existsByEmailIgnoreCase(email)) {
             throw new ConflictException("E-mail já cadastrado");
@@ -94,6 +103,7 @@ public class RegistrationService {
                         .name(request.name().trim())
                         .email(email)
                         .password(passwordEncoder.encode(request.password()))
+                        .phone(phone)
                         .role(UserRole.CLIENT)
                         .active(true)
                         .build());

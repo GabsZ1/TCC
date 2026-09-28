@@ -23,6 +23,7 @@ const CommissionReportPage = lazy(() => import('@/features/commissions/Commissio
 const EstablishmentAppointmentsPage = lazy(() => import('@/features/reports/EstablishmentAppointmentsPage').then((module) => ({ default: module.EstablishmentAppointmentsPage })))
 const ForgotPasswordPage = lazy(() => import('@/features/auth/pages/ForgotPasswordPage').then((module) => ({ default: module.ForgotPasswordPage })))
 const ResetPasswordPage = lazy(() => import('@/features/auth/pages/ResetPasswordPage').then((module) => ({ default: module.ResetPasswordPage })))
+const ClientProfilePage = lazy(() => import('@/features/client/ClientProfilePage').then((module) => ({ default: module.ClientProfilePage })))
 const ChangePasswordPage = lazy(() => import('@/features/auth/pages/ChangePasswordPage').then((module) => ({ default: module.ChangePasswordPage })))
 const SystemEstablishmentsPage = lazy(() => import('@/features/system-admin/SystemEstablishmentsPage').then((module) => ({ default: module.SystemEstablishmentsPage })))
 
@@ -59,6 +60,7 @@ function App() {
 
             <Route element={<ProtectedRoute allowedRoles={['CLIENT']} />}>
               <Route path="/agendamentos" element={<AppointmentsPage />} />
+              <Route path="/meu-perfil" element={<ClientProfilePage />} />
               <Route path="/estabelecimentos/:establishmentId/agendar" element={<BookingPage />} />
             </Route>
 

@@ -25,6 +25,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return data.user
   }, [])
 
+  const refreshUser = useCallback(async () => {
+    const { data } = await api.get<AuthenticatedUser>('/auth/me')
+    setUser(data)
+  }, [])
+
   // Carrega o usuário autenticado a partir do token salvo, se houver.
   useEffect(() => {
     const token = getStoredToken()
@@ -70,8 +75,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, logout])
 
   const value = useMemo(
-    () => ({ user, isAuthenticated: !!user, isLoading, login, logout }),
-    [user, isLoading, login, logout],
+    () => ({ user, isAuthenticated: !!user, isLoading, login, logout, refreshUser }),
+    [user, isLoading, login, logout, refreshUser],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

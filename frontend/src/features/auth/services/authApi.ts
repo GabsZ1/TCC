@@ -22,7 +22,9 @@ export interface InitialRegistrationResponse {
 export interface ClientRegistrationInput {
   name: string
   email: string
+  phone: string
   password: string
+  passwordConfirmation: string
 }
 
 export function registerInitial(input: InitialRegistrationInput) {

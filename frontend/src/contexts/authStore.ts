@@ -7,6 +7,8 @@ export interface AuthContextValue {
   isLoading: boolean
   login: (credentials: LoginCredentials) => Promise<AuthenticatedUser>
   logout: () => void
+  /** Recarrega os dados do usuário logado (ex.: depois de editar o perfil). */
+  refreshUser: () => Promise<void>
 }
 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined)
