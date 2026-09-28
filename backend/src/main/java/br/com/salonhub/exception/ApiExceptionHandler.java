@@ -120,6 +120,13 @@ public class ApiExceptionHandler {
         return friendly(HttpStatus.NOT_FOUND, "O recurso solicitado não está disponível.");
     }
 
+    @ExceptionHandler(br.com.salonhub.storage.StorageException.class)
+    public ResponseEntity<ApiError> handleStorage(br.com.salonhub.storage.StorageException exception) {
+        log.error("Falha no armazenamento de imagens", exception);
+        return friendly(HttpStatus.SERVICE_UNAVAILABLE,
+                "O armazenamento de imagens está indisponível no momento. Tente novamente em instantes.");
+    }
+
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<ApiError> handleUploadTooLarge(MaxUploadSizeExceededException exception) {
         return friendly(HttpStatus.BAD_REQUEST, "A foto deve ter no máximo 2 MB.");

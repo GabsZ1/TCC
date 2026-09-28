@@ -19,7 +19,6 @@ import br.com.salonhub.exception.ResourceNotFoundException;
 import br.com.salonhub.notification.EmailNotifier;
 import br.com.salonhub.notification.FrontendLinks;
 import br.com.salonhub.repository.AppointmentRepository;
-import br.com.salonhub.repository.UserPhotoRepository;
 import br.com.salonhub.repository.UserRepository;
 import br.com.salonhub.validation.CpfValidator;
 import br.com.salonhub.validation.PhoneNumbers;
@@ -49,7 +48,7 @@ public class EmployeeService {
     private final TokenService tokenService;
     private final EmailNotifier emailNotifier;
     private final FrontendLinks frontendLinks;
-    private final UserPhotoRepository userPhotoRepository;
+    private final MediaService mediaService;
     private final Clock clock;
 
     @Transactional(readOnly = true)
@@ -142,12 +141,9 @@ public class EmployeeService {
         List<User> employees = userRepository.findByEstablishmentIdAndRole(
                 administrator.getEstablishment().getId(),
                 UserRole.PROFESSIONAL);
-        java.util.Set<Long> withPhoto = employees.isEmpty()
-                ? java.util.Set.of()
-                : userPhotoRepository.findUserIdsWithPhoto(employees.stream().map(User::getId).toList());
         return employees.stream()
                 .sorted(java.util.Comparator.comparing(User::getName, String.CASE_INSENSITIVE_ORDER))
-                .map(employee -> EmployeeResponse.fromEntity(employee, withPhoto.contains(employee.getId())))
+                .map(this::toResponse)
                 .toList();
     }
 
@@ -285,7 +281,13 @@ public class EmployeeService {
                 || !employee.getOfferedServices().isEmpty()) {
             throw new ConflictException("O funcionário possui agendamentos ou serviços vinculados e não pode ser excluído. Utilize a desativação.");
         }
+        br.com.salonhub.entity.Media photo = employee.getPhoto();
         try {
+            if (photo != null) {
+                employee.replacePhoto(null);
+                userRepository.flush();
+                mediaService.delete(photo);
+            }
             userRepository.delete(employee);
             userRepository.flush();
         } catch (DataIntegrityViolationException exception) {
@@ -295,7 +297,7 @@ public class EmployeeService {
     }
 
     private EmployeeResponse toResponse(User employee) {
-        return EmployeeResponse.fromEntity(employee, userPhotoRepository.existsById(employee.getId()));
+        return EmployeeResponse.fromEntity(employee, employee.getPhoto() != null);
     }
 
     private void requireHireDateNotInFuture(LocalDate hireDate) {

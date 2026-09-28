@@ -8,7 +8,6 @@ import br.com.salonhub.dto.employee.EmployeeSelfProfileUpdateRequest;
 import br.com.salonhub.dto.employee.EmployeeUpdateRequest;
 import br.com.salonhub.dto.employee.ProfessionalServicesRequest;
 import br.com.salonhub.dto.employee.ProfessionalServicesResponse;
-import br.com.salonhub.entity.UserPhoto;
 import br.com.salonhub.service.EmployeePhotoService;
 import br.com.salonhub.service.EmployeeService;
 import jakarta.validation.Valid;
@@ -119,11 +118,11 @@ public class EmployeeController {
     /** Administrador do estabelecimento ou o próprio profissional. */
     @GetMapping("/{id}/foto")
     public ResponseEntity<byte[]> findPhoto(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
-        UserPhoto photo = employeePhotoService.find(currentUserId(jwt), id);
+        EmployeePhotoService.StoredPhoto photo = employeePhotoService.find(currentUserId(jwt), id);
         return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(photo.getContentType()))
+                .contentType(MediaType.parseMediaType(photo.contentType()))
                 .cacheControl(CacheControl.noStore().cachePrivate())
-                .body(photo.getData());
+                .body(photo.data());
     }
 
     private Long currentUserId(Jwt jwt) {

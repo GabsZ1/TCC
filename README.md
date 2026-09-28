@@ -109,6 +109,23 @@ docker compose up -d
 
 Todos os e-mails enviados pelo backend (primeiro acesso de funcionário e recuperação de senha) ficam visíveis na caixa de entrada do Mailpit em <http://localhost:8025>. Nenhum e-mail sai para a internet.
 
+O mesmo comando sobe o **MinIO**, o armazenamento de imagens compatível com S3:
+
+- API S3: <http://localhost:9000>
+- Console web: <http://localhost:9001> (usuário `salonhub_minio`, senha `salonhub_minio_pass`)
+- O container `minio-setup` roda uma vez na subida, cria o bucket `salonhub-media` (se ainda não existir) e encerra. É normal ele aparecer como "Exited".
+- As credenciais e o nome do bucket podem ser trocados pelas variáveis `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` e `MINIO_BUCKET`.
+- Os arquivos ficam no volume Docker `minio_data`.
+
+Como as imagens são organizadas (migration V27):
+
+- O **arquivo** vai para o bucket, no caminho `establishments/{idDoEstabelecimento}/media/{uuid}.{jpg|png|webp}`.
+- O **PostgreSQL** guarda só os metadados na tabela `media` (`establishment_id`, `storage_key`, `original_filename`, `mime_type`, `size_bytes`, `uploaded_by`, `created_at`). A URL completa nunca é salva, só a `storage_key`, para que o armazenamento possa mudar (ex.: S3) sem alterar registros.
+- As entidades apontam para `media`: hoje, `users.photo_id` (foto do funcionário).
+- Camadas: `MediaService` (validação, registro e exclusão) → `StorageService` (interface) → `MinioStorageService`. Nos testes, `app.storage.type=memory` usa o `InMemoryStorageService`.
+- Se o MinIO estiver fora do ar, o backend sobe normalmente; só as operações de imagem respondem 503 com mensagem amigável.
+- Configuração: `STORAGE_TYPE` (`minio` ou `memory`), `MINIO_ENDPOINT` (padrão `http://localhost:9000`), `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` e `MINIO_BUCKET`.
+
 Conexão padrão:
 
 ```text

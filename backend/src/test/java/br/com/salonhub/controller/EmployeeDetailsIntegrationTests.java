@@ -4,7 +4,9 @@ import br.com.salonhub.entity.Establishment;
 import br.com.salonhub.entity.User;
 import br.com.salonhub.entity.UserRole;
 import br.com.salonhub.repository.EstablishmentRepository;
+import br.com.salonhub.repository.MediaRepository;
 import br.com.salonhub.repository.UserRepository;
+import br.com.salonhub.storage.InMemoryStorageService;
 import br.com.salonhub.support.TestDocuments;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
@@ -15,6 +17,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -48,6 +51,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
+@TestPropertySource(properties = "app.storage.type=memory")
 class EmployeeDetailsIntegrationTests {
 
     private static final String PASSWORD = "senha-atual-1";
@@ -58,6 +62,8 @@ class EmployeeDetailsIntegrationTests {
     @Autowired private EstablishmentRepository establishmentRepository;
     @Autowired private UserRepository userRepository;
     @Autowired private PasswordEncoder passwordEncoder;
+    @Autowired private MediaRepository mediaRepository;
+    @Autowired private InMemoryStorageService storage;
 
     // ---------- cadastro pelo administrador ----------
 
@@ -266,6 +272,24 @@ class EmployeeDetailsIntegrationTests {
                         .file(new MockMultipartFile("file", "foto.png", "image/png", PNG)))
                 .andExpect(status().isNoContent());
 
+        // O arquivo vai para o storage; o banco guarda só os metadados e a chave.
+        var media = userRepository.findById(professional.getId()).orElseThrow().getPhoto();
+        assertThat(media).isNotNull();
+        assertThat(media.getStorageKey())
+                .startsWith("establishments/" + establishment.getId() + "/media/")
+                .endsWith(".png");
+        assertThat(media.getMimeType()).isEqualTo("image/png");
+        assertThat(media.getSizeBytes()).isEqualTo(PNG.length);
+        assertThat(media.getOriginalFilename()).isEqualTo("foto.png");
+        assertThat(storage.keys()).contains(media.getStorageKey());
+
+        // Trocar a foto substitui o registro em media (o anterior é apagado).
+        Long firstMediaId = media.getId();
+        perform(professional, multipart(HttpMethod.PUT, "/api/funcionarios/me/foto")
+                        .file(new MockMultipartFile("file", "nova.png", "image/png", PNG)))
+                .andExpect(status().isNoContent());
+        assertThat(mediaRepository.findById(firstMediaId)).isEmpty();
+
         perform(admin, get("/api/funcionarios")).andExpect(jsonPath("$[0].hasPhoto").value(true));
         perform(admin, get("/api/funcionarios/{id}/foto", professional.getId()))
                 .andExpect(status().isOk())
@@ -275,6 +299,7 @@ class EmployeeDetailsIntegrationTests {
 
         perform(professional, delete("/api/funcionarios/me/foto")).andExpect(status().isNoContent());
         perform(admin, get("/api/funcionarios/{id}/foto", professional.getId())).andExpect(status().isNotFound());
+        assertThat(userRepository.findById(professional.getId()).orElseThrow().getPhoto()).isNull();
     }
 
     @Test

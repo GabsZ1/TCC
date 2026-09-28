@@ -61,6 +61,11 @@ public class User {
     @Column(name = "hire_date")
     private java.time.LocalDate hireDate;
 
+    /** Foto do funcionário (arquivo no MinIO; metadados na tabela media). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "photo_id", unique = true)
+    private Media photo;
+
     @Column(name = "deleted_at")
     private OffsetDateTime deletedAt;
 
@@ -101,6 +106,10 @@ public class User {
 
     public void changePassword(String encodedPassword) {
         this.password = encodedPassword;
+    }
+
+    public void replacePhoto(Media photo) {
+        this.photo = photo;
     }
 
     /** Nome do funcionário: continua sendo alterado pelo administrador. */
