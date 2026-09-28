@@ -17,6 +17,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -207,6 +208,11 @@ class EmployeeDetailsIntegrationTests {
     }
 
     private ResultActions perform(User user, MockHttpServletRequestBuilder request) throws Exception {
+        return mockMvc.perform(request.with(jwt().jwt(token -> token.subject(user.getId().toString()))));
+    }
+
+    /** No Spring 7 o builder de multipart não herda de MockHttpServletRequestBuilder. */
+    private ResultActions perform(User user, MockMultipartHttpServletRequestBuilder request) throws Exception {
         return mockMvc.perform(request.with(jwt().jwt(token -> token.subject(user.getId().toString()))));
     }
 
