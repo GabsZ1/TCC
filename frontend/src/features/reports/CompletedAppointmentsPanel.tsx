@@ -125,7 +125,11 @@ export function CompletedAppointmentsPanel() {
           </section>
 
           {data.entries.length === 0 ? (
-            <StateCard>Nenhum resultado encontrado</StateCard>
+            <StateCard>
+              {hasActiveFilters
+                ? 'Nenhum resultado encontrado'
+                : 'Nenhum atendimento foi realizado ainda. Assim que a equipe concluir atendimentos, eles aparecerão aqui.'}
+            </StateCard>
           ) : (
             <>
               <ul className="mt-6 space-y-3 md:hidden" aria-label="Atendimentos finalizados">

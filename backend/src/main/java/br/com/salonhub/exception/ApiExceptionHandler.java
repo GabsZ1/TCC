@@ -2,6 +2,14 @@ package br.com.salonhub.exception;
 
 import br.com.salonhub.dto.common.ApiError;
 import org.hibernate.exception.ConstraintViolationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.TypeMismatchException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.ErrorResponse;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +25,9 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
+    private static final String UNEXPECTED_ERROR = "Ocorreu um erro inesperado. Tente novamente em instantes.";
 
     @ExceptionHandler(ConflictException.class)
     public ResponseEntity<ApiError> handleConflict(ConflictException exception) {
@@ -97,4 +108,43 @@ public class ApiExceptionHandler {
         );
     }
 
+    // ---- Erros técnicos: nunca repassar a mensagem interna do Spring ao usuário ----
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiError> handleNoResource(NoResourceFoundException exception) {
+        log.warn("Rota não encontrada: {} {}", exception.getHttpMethod(), exception.getResourcePath());
+        return friendly(HttpStatus.NOT_FOUND, "O recurso solicitado não está disponível.");
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiError> handleMethodNotSupported(HttpRequestMethodNotSupportedException exception) {
+        return friendly(HttpStatus.METHOD_NOT_ALLOWED, "Operação não permitida para este recurso.");
+    }
+
+    @ExceptionHandler({
+            TypeMismatchException.class,
+            MissingServletRequestParameterException.class,
+            HttpMessageNotReadableException.class})
+    public ResponseEntity<ApiError> handleMalformedRequest(Exception exception) {
+        return friendly(HttpStatus.BAD_REQUEST, "Requisição inválida. Verifique os dados informados.");
+    }
+
+    /**
+     * Último recurso: qualquer erro não previsto vira uma mensagem genérica (o detalhe
+     * vai só para o log). Exceções do Spring que já carregam um status HTTP mantêm o status.
+     */
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiError> handleUnexpected(Exception exception) {
+        if (exception instanceof ErrorResponse errorResponse && errorResponse.getStatusCode().is4xxClientError()) {
+            HttpStatus status = HttpStatus.valueOf(errorResponse.getStatusCode().value());
+            return friendly(status, "Não foi possível processar a solicitação.");
+        }
+        log.error("Erro inesperado na API", exception);
+        return friendly(HttpStatus.INTERNAL_SERVER_ERROR, UNEXPECTED_ERROR);
+    }
+
+    private static ResponseEntity<ApiError> friendly(HttpStatus status, String message) {
+        return ResponseEntity.status(status).body(
+                new ApiError(status.value(), message, Map.of(), OffsetDateTime.now()));
+    }
 }

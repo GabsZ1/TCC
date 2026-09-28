@@ -121,7 +121,13 @@ export function MyCompletedServicesPage() {
           </section>
 
           {data.entries.length === 0 ? (
-            <StateCard>Nenhum serviço encontrado.</StateCard>
+            <StateCard>
+              {hasActiveFilters
+                ? 'Nenhum serviço encontrado.'
+                : data.availableServices.length === 0
+                  ? 'Você ainda não realizou nenhum atendimento. Quando concluir um, ele aparecerá aqui com a sua comissão.'
+                  : 'Nenhum serviço encontrado neste mês. Use os filtros para consultar outros períodos.'}
+            </StateCard>
           ) : (
             <>
               <ul className="mt-6 space-y-3 md:hidden" aria-label="Atendimentos realizados">
