@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowRight, CalendarPlus, Clock3, Eye, MapPin, Scissors, UserRound } from 'lucide-react'
+import { ArrowRight, CalendarPlus, ChevronLeft, ChevronRight, Clock3, Eye, MapPin, Scissors, Search, UserRound } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { AppointmentEditModal } from '@/features/appointments/AppointmentEditModal'
@@ -9,6 +9,7 @@ import { cancelAppointment, fetchActiveEstablishments, fetchMyAppointments, type
 import { getApiErrorMessage } from '@/lib/apiError'
 
 const QUERY_KEY = ['my-appointments']
+const ESTABLISHMENTS_PER_PAGE = 6
 type AppointmentSection = 'upcoming' | 'history'
 
 export function AppointmentsPage() {
@@ -19,11 +20,23 @@ export function AppointmentsPage() {
   const [cancelling, setCancelling] = useState<Appointment | null>(null)
   const [editing, setEditing] = useState<Appointment | null>(null)
   const [cancellationError, setCancellationError] = useState<string | null>(null)
+  const [establishmentSearch, setEstablishmentSearch] = useState('')
+  const [establishmentPage, setEstablishmentPage] = useState(0)
   const appointments = useQuery({ queryKey: QUERY_KEY, queryFn: fetchMyAppointments })
   const establishments = useQuery({ queryKey: ['active-establishments'], queryFn: fetchActiveEstablishments })
   const upcomingAppointments = (appointments.data ?? []).filter(isUpcoming)
   const historyAppointments = (appointments.data ?? []).filter((appointment) => !isUpcoming(appointment))
   const displayedAppointments = section === 'upcoming' ? upcomingAppointments : historyAppointments
+
+  // Lista de estabelecimentos: busca por nome (US 2.23, CT04) e paginação de 6 em 6.
+  const searchTerm = normalizeText(establishmentSearch)
+  const filteredEstablishments = (establishments.data ?? []).filter((establishment) => normalizeText(establishment.name).includes(searchTerm))
+  const establishmentPages = Math.max(1, Math.ceil(filteredEstablishments.length / ESTABLISHMENTS_PER_PAGE))
+  const currentEstablishmentPage = Math.min(establishmentPage, establishmentPages - 1)
+  const visibleEstablishments = filteredEstablishments.slice(
+    currentEstablishmentPage * ESTABLISHMENTS_PER_PAGE,
+    (currentEstablishmentPage + 1) * ESTABLISHMENTS_PER_PAGE,
+  )
 
   const cancelMutation = useMutation({
     mutationFn: cancelAppointment,
@@ -102,7 +115,23 @@ export function AppointmentsPage() {
               {establishments.isLoading && <p className="rounded-xl bg-white/10 px-4 py-3 text-sm text-[#c3cde0]">Carregando estabelecimentos...</p>}
               {establishments.isError && <p className="mt-3 text-sm text-danger-700">{getApiErrorMessage(establishments.error, 'Não foi possível carregar os estabelecimentos.')}</p>}
               {!establishments.isLoading && !establishments.isError && establishments.data?.length === 0 && <p className="mt-3 text-sm text-[#c3cde0]">Nenhum estabelecimento está disponível no momento.</p>}
-              {establishments.data?.map((establishment) => (
+              {(establishments.data?.length ?? 0) > ESTABLISHMENTS_PER_PAGE && (
+                <label className="relative block">
+                  <span className="sr-only">Buscar estabelecimento</span>
+                  <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#c3cde0]" />
+                  <input
+                    type="search"
+                    value={establishmentSearch}
+                    onChange={(event) => { setEstablishmentSearch(event.target.value); setEstablishmentPage(0) }}
+                    placeholder="Buscar pelo nome"
+                    className="w-full rounded-[0.65rem] border border-white/15 bg-white/[0.07] py-2.5 pl-9 pr-3 text-sm text-white outline-none placeholder:text-[#a9b4c9] focus:border-primary-300 focus:ring-2 focus:ring-primary-300/30"
+                  />
+                </label>
+              )}
+              {!establishments.isLoading && !establishments.isError && (establishments.data?.length ?? 0) > 0 && filteredEstablishments.length === 0 && (
+                <p className="text-sm text-[#c3cde0]">Nenhum estabelecimento encontrado para "{establishmentSearch.trim()}".</p>
+              )}
+              {visibleEstablishments.map((establishment) => (
                 <article key={establishment.id} className="rounded-[0.75rem] border border-white/12 bg-white/[0.055] p-3.5">
                   <p className="font-semibold text-white">{establishment.name}</p>
                   <div className="mt-3 grid grid-cols-2 gap-2">
@@ -111,6 +140,29 @@ export function AppointmentsPage() {
                   </div>
                 </article>
               ))}
+              {establishmentPages > 1 && (
+                <nav className="flex items-center justify-between gap-2 pt-1" aria-label="Páginas de estabelecimentos">
+                  <button
+                    type="button"
+                    onClick={() => setEstablishmentPage(Math.max(0, currentEstablishmentPage - 1))}
+                    disabled={currentEstablishmentPage === 0}
+                    className="inline-flex items-center gap-1 rounded-[0.6rem] border border-white/20 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                    aria-label="Página anterior"
+                  >
+                    <ChevronLeft size={14} /> Anterior
+                  </button>
+                  <span className="text-xs font-medium text-[#c3cde0]">Página {currentEstablishmentPage + 1} de {establishmentPages}</span>
+                  <button
+                    type="button"
+                    onClick={() => setEstablishmentPage(Math.min(establishmentPages - 1, currentEstablishmentPage + 1))}
+                    disabled={currentEstablishmentPage >= establishmentPages - 1}
+                    className="inline-flex items-center gap-1 rounded-[0.6rem] border border-white/20 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                    aria-label="Próxima página"
+                  >
+                    Próxima <ChevronRight size={14} />
+                  </button>
+                </nav>
+              )}
             </div>
           </div>
         </aside>
@@ -141,3 +193,8 @@ function formatMoney(value: number) { return new Intl.NumberFormat('pt-BR', { st
 function weekday(value: string) { return new Intl.DateTimeFormat('pt-BR', { weekday: 'short' }).format(new Date(value)).replace('.', '') }
 function dayNumber(value: string) { return new Intl.DateTimeFormat('pt-BR', { day: '2-digit' }).format(new Date(value)) }
 function monthShort(value: string) { return new Intl.DateTimeFormat('pt-BR', { month: 'short' }).format(new Date(value)).replace('.', '') }
+
+/** Compara nomes ignorando maiúsculas, acentos e espaços extras. */
+function normalizeText(value: string) {
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLocaleLowerCase('pt-BR')
+}
