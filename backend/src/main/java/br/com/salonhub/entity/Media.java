@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 import java.time.OffsetDateTime;
 
 /**
- * Metadados de um arquivo guardado no armazenamento (MinIO). O arquivo em si não fica
+ * Metadados de um arquivo guardado no armazenamento S3 (SeaweedFS no desenvolvimento). O arquivo em si não fica
  * no banco: {@code storageKey} diz onde encontrá-lo no bucket.
  */
 @Entity

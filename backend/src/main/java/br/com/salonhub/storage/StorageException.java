@@ -1,6 +1,6 @@
 package br.com.salonhub.storage;
 
-/** Falha ao acessar o armazenamento de arquivos (ex.: MinIO fora do ar). */
+/** Falha ao acessar o armazenamento de arquivos (ex.: servidor S3 fora do ar). */
 public class StorageException extends RuntimeException {
 
     private final boolean notFound;

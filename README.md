@@ -109,22 +109,23 @@ docker compose up -d
 
 Todos os e-mails enviados pelo backend (primeiro acesso de funcionário e recuperação de senha) ficam visíveis na caixa de entrada do Mailpit em <http://localhost:8025>. Nenhum e-mail sai para a internet.
 
-O mesmo comando sobe o **MinIO**, o armazenamento de imagens compatível com S3:
+O mesmo comando sobe o **SeaweedFS** (container `salonhub-storage`), o armazenamento de imagens compatível com S3:
 
-- API S3: <http://localhost:9000>
-- Console web: <http://localhost:9001> (usuário `salonhub_minio`, senha `salonhub_minio_pass`)
-- O container `minio-setup` roda uma vez na subida, cria o bucket `salonhub-media` (se ainda não existir) e encerra. É normal ele aparecer como "Exited".
-- As credenciais e o nome do bucket podem ser trocados pelas variáveis `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` e `MINIO_BUCKET`.
-- Os arquivos ficam no volume Docker `minio_data`.
+- API S3: <http://localhost:8333> (chave `salonhub_s3`, segredo `salonhub_s3_pass`)
+- Navegador de arquivos: <http://localhost:8888/buckets/salonhub-media/>
+- O bucket `salonhub-media` é criado automaticamente na subida (e, se faltar, pelo backend no primeiro envio).
+- As credenciais e o nome do bucket podem ser trocados pelas variáveis `S3_ACCESS_KEY`, `S3_SECRET_KEY` e `S3_BUCKET`.
+- Os arquivos ficam no volume Docker `storage_data`.
+- Por que não MinIO: em setembro de 2026 as imagens públicas do MinIO saíram do Docker Hub e do Quay.io. O backend fala S3 puro, então qualquer servidor compatível (SeaweedFS, AWS S3, Cloudflare R2) serve só mudando a configuração.
 
 Como as imagens são organizadas (migration V27):
 
 - O **arquivo** vai para o bucket, no caminho `establishments/{idDoEstabelecimento}/media/{uuid}.{jpg|png|webp}`.
 - O **PostgreSQL** guarda só os metadados na tabela `media` (`establishment_id`, `storage_key`, `original_filename`, `mime_type`, `size_bytes`, `uploaded_by`, `created_at`). A URL completa nunca é salva, só a `storage_key`, para que o armazenamento possa mudar (ex.: S3) sem alterar registros.
 - As entidades apontam para `media`: hoje, `users.photo_id` (foto do funcionário).
-- Camadas: `MediaService` (validação, registro e exclusão) → `StorageService` (interface) → `MinioStorageService`. Nos testes, `app.storage.type=memory` usa o `InMemoryStorageService`.
-- Se o MinIO estiver fora do ar, o backend sobe normalmente; só as operações de imagem respondem 503 com mensagem amigável.
-- Configuração: `STORAGE_TYPE` (`minio` ou `memory`), `MINIO_ENDPOINT` (padrão `http://localhost:9000`), `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` e `MINIO_BUCKET`.
+- Camadas: `MediaService` (validação, registro e exclusão) → `StorageService` (interface) → `S3StorageService` (cliente S3 da biblioteca do MinIO). Nos testes, `app.storage.type=memory` usa o `InMemoryStorageService`.
+- Se o armazenamento estiver fora do ar, o backend sobe normalmente; só as operações de imagem respondem 503 com mensagem amigável.
+- Configuração: `STORAGE_TYPE` (`s3` ou `memory`), `S3_ENDPOINT` (padrão `http://localhost:8333`), `S3_ACCESS_KEY`, `S3_SECRET_KEY` e `S3_BUCKET`.
 
 Conexão padrão:
 

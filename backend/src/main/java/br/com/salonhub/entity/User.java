@@ -61,7 +61,7 @@ public class User {
     @Column(name = "hire_date")
     private java.time.LocalDate hireDate;
 
-    /** Foto do funcionário (arquivo no MinIO; metadados na tabela media). */
+    /** Foto do funcionário (arquivo no armazenamento S3; metadados na tabela media). */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "photo_id", unique = true)
     private Media photo;

@@ -15,25 +15,30 @@ import org.springframework.stereotype.Service;
 import java.io.ByteArrayInputStream;
 
 /**
- * Armazenamento no MinIO (API S3). O cliente não abre conexão na inicialização:
- * a aplicação sobe mesmo com o MinIO fora do ar, e só as operações de imagem falham.
- * O bucket é criado pelo container "minio-setup" do docker-compose; se não existir,
- * é criado aqui no primeiro envio.
+ * Armazenamento em um servidor compatível com S3 (no desenvolvimento, o SeaweedFS do
+ * docker-compose; em produção pode ser AWS S3, Cloudflare R2 etc., só mudando a configuração).
+ * Usa o cliente Java do MinIO, que é um cliente S3 genérico.
+ * O cliente não abre conexão na inicialização: a aplicação sobe mesmo com o armazenamento
+ * fora do ar, e só as operações de imagem falham. Se o bucket não existir, é criado no
+ * primeiro envio.
  */
 @Service
-@ConditionalOnProperty(name = "app.storage.type", havingValue = "minio", matchIfMissing = true)
-public class MinioStorageService implements StorageService {
+@ConditionalOnProperty(name = "app.storage.type", havingValue = "s3", matchIfMissing = true)
+public class S3StorageService implements StorageService {
+
+    /** Região fixa: evita a consulta de localização do bucket, que nem todo servidor S3 implementa. */
+    private static final String REGION = "us-east-1";
 
     private final MinioClient client;
     private final String bucket;
     private volatile boolean bucketChecked;
 
-    public MinioStorageService(
-            @Value("${app.storage.minio.endpoint}") String endpoint,
-            @Value("${app.storage.minio.access-key}") String accessKey,
-            @Value("${app.storage.minio.secret-key}") String secretKey,
-            @Value("${app.storage.minio.bucket}") String bucket) {
-        this.client = MinioClient.builder().endpoint(endpoint).credentials(accessKey, secretKey).build();
+    public S3StorageService(
+            @Value("${app.storage.s3.endpoint}") String endpoint,
+            @Value("${app.storage.s3.access-key}") String accessKey,
+            @Value("${app.storage.s3.secret-key}") String secretKey,
+            @Value("${app.storage.s3.bucket}") String bucket) {
+        this.client = MinioClient.builder().endpoint(endpoint).region(REGION).credentials(accessKey, secretKey).build();
         this.bucket = bucket;
     }
 
@@ -48,7 +53,7 @@ public class MinioStorageService implements StorageService {
                     .contentType(contentType)
                     .build());
         } catch (Exception exception) {
-            throw new StorageException("Falha ao gravar o arquivo " + key + " no MinIO", exception);
+            throw new StorageException("Falha ao gravar o arquivo " + key + " no armazenamento", exception);
         }
     }
 
@@ -59,9 +64,9 @@ public class MinioStorageService implements StorageService {
             return response.readAllBytes();
         } catch (ErrorResponseException exception) {
             boolean notFound = "NoSuchKey".equals(exception.errorResponse().code());
-            throw new StorageException("Falha ao ler o arquivo " + key + " no MinIO", exception, notFound);
+            throw new StorageException("Falha ao ler o arquivo " + key + " no armazenamento", exception, notFound);
         } catch (Exception exception) {
-            throw new StorageException("Falha ao ler o arquivo " + key + " no MinIO", exception);
+            throw new StorageException("Falha ao ler o arquivo " + key + " no armazenamento", exception);
         }
     }
 
@@ -70,7 +75,7 @@ public class MinioStorageService implements StorageService {
         try {
             client.removeObject(RemoveObjectArgs.builder().bucket(bucket).object(key).build());
         } catch (Exception exception) {
-            throw new StorageException("Falha ao remover o arquivo " + key + " no MinIO", exception);
+            throw new StorageException("Falha ao remover o arquivo " + key + " no armazenamento", exception);
         }
     }
 

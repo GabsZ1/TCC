@@ -14,7 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 /**
  * Foto do funcionário (opcional). Só o próprio funcionário envia ou remove a foto;
- * o administrador do estabelecimento apenas visualiza. O arquivo fica no MinIO e o
+ * o administrador do estabelecimento apenas visualiza. O arquivo fica no armazenamento S3 e o
  * vínculo em users.photo_id → media.
  */
 @Service
