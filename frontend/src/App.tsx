@@ -20,6 +20,8 @@ const EstablishmentProfilePage = lazy(() => import('@/features/establishment/Est
 const AdminAgendaPage = lazy(() => import('@/features/appointments/AdminAgendaPage').then((module) => ({ default: module.AdminAgendaPage })))
 const CommissionReportPage = lazy(() => import('@/features/commissions/CommissionReportPage').then((module) => ({ default: module.CommissionReportPage })))
 const AppointmentsReportPage = lazy(() => import('@/features/reports/AppointmentsReportPage').then((module) => ({ default: module.AppointmentsReportPage })))
+const ForgotPasswordPage = lazy(() => import('@/features/auth/pages/ForgotPasswordPage').then((module) => ({ default: module.ForgotPasswordPage })))
+const ResetPasswordPage = lazy(() => import('@/features/auth/pages/ResetPasswordPage').then((module) => ({ default: module.ResetPasswordPage })))
 const ChangePasswordPage = lazy(() => import('@/features/auth/pages/ChangePasswordPage').then((module) => ({ default: module.ChangePasswordPage })))
 const SystemEstablishmentsPage = lazy(() => import('@/features/system-admin/SystemEstablishmentsPage').then((module) => ({ default: module.SystemEstablishmentsPage })))
 
@@ -31,6 +33,8 @@ function App() {
         <Route path="/cadastro" element={<InitialRegistrationPage />} />
         <Route path="/cadastro-cliente" element={<ClientRegistrationPage />} />
         <Route path="/primeiro-acesso" element={<FirstAccessPage />} />
+        <Route path="/recuperar-senha" element={<ForgotPasswordPage />} />
+        <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
         <Route path="/sem-permissao" element={<ForbiddenPage />} />
 
         <Route element={<ProtectedRoute />}>

@@ -101,11 +101,13 @@ O CNPJ é salvo apenas com números, o e-mail de acesso é normalizado e a senha
 
 ## Como executar
 
-Na raiz do projeto, inicie o PostgreSQL:
+Na raiz do projeto, inicie o PostgreSQL e o Mailpit (servidor de e-mail de desenvolvimento):
 
 ```bash
 docker compose up -d
 ```
+
+Todos os e-mails enviados pelo backend (primeiro acesso de funcionário e recuperação de senha) ficam visíveis na caixa de entrada do Mailpit em <http://localhost:8025>. Nenhum e-mail sai para a internet.
 
 Conexão padrão:
 
@@ -218,6 +220,21 @@ Content-Type: application/json
 ```
 
 Respostas: `204` senha alterada; `400` senha atual incorreta, confirmação divergente, nova senha igual à atual ou fora da política (8 a 72 caracteres); `401` sessão inválida ou usuário inativo. No frontend, a tela fica em `/alterar-senha`, no grupo "Conta" do menu.
+
+Recuperação de senha (rotas públicas, US 2.20):
+
+```http
+POST /api/auth/recuperar-senha          {"email": "joao@email.com"}
+GET  /api/auth/redefinir-senha?token=…  (valida o link ao abrir a tela)
+POST /api/auth/redefinir-senha          {"token": "…", "newPassword": "…", "newPasswordConfirmation": "…"}
+```
+
+- O link é enviado por e-mail, vale 15 minutos, é de uso único e um novo pedido invalida os anteriores.
+- O mesmo e-mail só pode pedir um novo link a cada 2 minutos (`429 Too Many Requests`).
+- O banco guarda apenas o hash SHA-256 do token (tabela `password_reset_tokens`, migration V23).
+- No frontend: link "Esqueci minha senha" no login → `/recuperar-senha` → e-mail → `/redefinir-senha?token=…`.
+
+Configuração de e-mail (variáveis de ambiente): `MAIL_HOST` (padrão `localhost`), `MAIL_PORT` (padrão `1025`), `MAIL_FROM`, `FRONTEND_URL` (padrão `http://localhost:5173`, usado para montar os links), `PASSWORD_RESET_EXPIRATION_MINUTES` e `PASSWORD_RESET_COOLDOWN_SECONDS`. Para um SMTP real (ex.: Gmail, SendGrid), configure também `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD` e `SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH=true`. Se o servidor de e-mail estiver fora do ar, a operação não falha: o erro fica registrado no log.
 
 Cadastro de cliente:
 

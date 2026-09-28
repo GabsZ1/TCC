@@ -14,9 +14,21 @@ export const api = axios.create({
 
 const TOKEN_STORAGE_KEY = 'salonhub:token'
 
+// Rotas públicas: um token antigo/expirado guardado no navegador não pode ser
+// enviado nelas, senão o backend recusa a requisição com 401 antes de processá-la.
+const PUBLIC_AUTH_PATHS = [
+  '/auth/login',
+  '/auth/cadastro',
+  '/auth/clientes',
+  '/auth/primeiro-acesso',
+  '/auth/recuperar-senha',
+  '/auth/redefinir-senha',
+]
+
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem(TOKEN_STORAGE_KEY)
-  if (token) {
+  const isPublicAuthPath = PUBLIC_AUTH_PATHS.some((path) => config.url?.startsWith(path))
+  if (token && !isPublicAuthPath) {
     config.headers.Authorization = `Bearer ${token}`
   }
   return config

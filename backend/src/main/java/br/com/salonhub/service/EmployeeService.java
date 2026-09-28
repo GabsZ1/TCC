@@ -14,6 +14,8 @@ import br.com.salonhub.entity.User;
 import br.com.salonhub.entity.UserRole;
 import br.com.salonhub.exception.ConflictException;
 import br.com.salonhub.exception.ResourceNotFoundException;
+import br.com.salonhub.notification.EmailNotifier;
+import br.com.salonhub.notification.FrontendLinks;
 import br.com.salonhub.repository.AppointmentRepository;
 import br.com.salonhub.repository.UserRepository;
 import br.com.salonhub.repository.EstablishmentServiceRepository;
@@ -39,6 +41,8 @@ public class EmployeeService {
     private final TenantAuthorizationService tenantAuthorizationService;
     private final EstablishmentServiceRepository establishmentServiceRepository;
     private final TokenService tokenService;
+    private final EmailNotifier emailNotifier;
+    private final FrontendLinks frontendLinks;
     private final Clock clock;
 
     @Transactional(readOnly = true)
@@ -103,6 +107,14 @@ public class EmployeeService {
 
         User savedEmployee = userRepository.save(employee);
         TokenService.GeneratedToken token = tokenService.generateFirstAccess(savedEmployee);
+        // US 2.1 / RNF.03.02: o e-mail de primeiro acesso sai automaticamente depois do cadastro
+        // (e só se ele for confirmado). O link continua na resposta para o admin copiar, se preferir.
+        emailNotifier.sendFirstAccessInvitation(
+                savedEmployee.getEmail(),
+                savedEmployee.getName(),
+                administrator.getEstablishment().getName(),
+                frontendLinks.firstAccess(token.value()),
+                token.expiresAt());
         return EmployeeCreationResponse.fromEntity(savedEmployee, token.value(), token.expiresAt());
     }
 

@@ -1,11 +1,14 @@
 import { useState, type FormEvent } from 'react'
 import { useMutation } from '@tanstack/react-query'
-import { CheckCircle2, Circle, Eye, EyeOff, KeyRound, ShieldCheck } from 'lucide-react'
+import { CheckCircle2, KeyRound, ShieldCheck } from 'lucide-react'
 import { changePassword } from '@/features/auth/services/authApi'
 import { getApiErrorMessage } from '@/lib/apiError'
-
-const MIN_LENGTH = 8
-const MAX_LENGTH = 72
+import { CriterionItem, PasswordField } from '@/features/auth/components/PasswordFields'
+import {
+  PASSWORD_MAX_LENGTH as MAX_LENGTH,
+  PASSWORD_MIN_LENGTH as MIN_LENGTH,
+  recommendedCriteria,
+} from '@/features/auth/passwordPolicy'
 
 /**
  * US 2.19 — Alterar senha. Disponível para todos os perfis autenticados.
@@ -34,10 +37,7 @@ export function ChangePasswordPage() {
     { label: 'Diferente da senha atual', met: newPassword.length > 0 && newPassword !== currentPassword },
     { label: 'Nova senha e confirmação iguais', met: confirmation.length > 0 && newPassword === confirmation },
   ]
-  const recommendations = [
-    { label: 'Letras e números (recomendado)', met: /[A-Za-z]/.test(newPassword) && /\d/.test(newPassword) },
-    { label: 'Um símbolo, como ! @ # (recomendado)', met: /[^A-Za-z0-9]/.test(newPassword) },
-  ]
+  const recommendations = recommendedCriteria(newPassword)
 
   const confirmationMismatch = confirmation.length > 0 && newPassword !== confirmation
   const canSubmit = currentPassword.length > 0 && criteria.every((criterion) => criterion.met) && !mutation.isPending
@@ -126,52 +126,5 @@ export function ChangePasswordPage() {
         </fieldset>
       </form>
     </div>
-  )
-}
-
-function PasswordField({ id, label, value, onChange, autoComplete, maxLength, invalid = false }: {
-  id: string
-  label: string
-  value: string
-  onChange: (value: string) => void
-  autoComplete: string
-  maxLength?: number
-  invalid?: boolean
-}) {
-  const [visible, setVisible] = useState(false)
-  return (
-    <div>
-      <label htmlFor={id} className="block text-sm font-semibold text-text-800">{label}</label>
-      <div className="relative">
-        <input
-          id={id}
-          type={visible ? 'text' : 'password'}
-          autoComplete={autoComplete}
-          value={value}
-          maxLength={maxLength}
-          aria-invalid={invalid}
-          onChange={(event) => onChange(event.target.value)}
-          className={`field-control pr-11 ${invalid ? 'border-danger-500 focus:border-danger-500 focus:ring-danger-500/10' : ''}`}
-        />
-        <button
-          type="button"
-          onClick={() => setVisible((current) => !current)}
-          className="absolute right-2 top-1/2 mt-1 grid size-8 -translate-y-1/2 place-items-center rounded-lg text-text-500 hover:bg-background-200 hover:text-text-800"
-          aria-label={visible ? 'Ocultar senha' : 'Mostrar senha'}
-          title={visible ? 'Ocultar senha' : 'Mostrar senha'}
-        >
-          {visible ? <EyeOff size={17} /> : <Eye size={17} />}
-        </button>
-      </div>
-    </div>
-  )
-}
-
-function CriterionItem({ label, met, optional = false }: { label: string; met: boolean; optional?: boolean }) {
-  return (
-    <li className={`flex items-center gap-2 ${met ? 'text-success-600' : optional ? 'text-text-500' : 'text-text-600'}`}>
-      {met ? <CheckCircle2 size={15} /> : <Circle size={15} />}
-      {label}
-    </li>
   )
 }

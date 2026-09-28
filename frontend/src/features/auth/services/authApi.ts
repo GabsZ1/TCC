@@ -46,3 +46,26 @@ export interface PasswordChangeInput {
 export function changePassword(input: PasswordChangeInput) {
   return api.patch<void>('/auth/senha', input)
 }
+
+export interface PasswordRecoveryResponse {
+  message: string
+  expiresInMinutes: number
+}
+
+export function requestPasswordReset(email: string) {
+  return api.post<PasswordRecoveryResponse>('/auth/recuperar-senha', { email }).then((response) => response.data)
+}
+
+export function validatePasswordResetToken(token: string) {
+  return api.get<void>('/auth/redefinir-senha', { params: { token } }).then(() => true)
+}
+
+export interface PasswordResetInput {
+  token: string
+  newPassword: string
+  newPasswordConfirmation: string
+}
+
+export function resetPassword(input: PasswordResetInput) {
+  return api.post<void>('/auth/redefinir-senha', input)
+}

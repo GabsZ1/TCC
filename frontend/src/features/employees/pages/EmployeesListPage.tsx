@@ -187,7 +187,7 @@ export function EmployeesListPage() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="max-w-2xl">
               <p className="text-sm font-semibold text-text-900">Convite de primeiro acesso criado para {firstAccessInvitation.employeeName}</p>
-              <p className="mt-1 text-sm leading-6 text-text-600">Esse link aparece apenas agora e expira em {new Date(firstAccessInvitation.expiresAt).toLocaleString('pt-BR')}.</p>
+              <p className="mt-1 text-sm leading-6 text-text-600">Enviamos este link para o e-mail do funcionário. Se preferir, copie e envie por outro canal — ele aparece apenas agora e expira em {new Date(firstAccessInvitation.expiresAt).toLocaleString('pt-BR')}.</p>
             </div>
             <button type="button" onClick={copyInvite} className="secondary-button shrink-0">
               {inviteCopied ? <Check size={16} /> : <Copy size={16} />}

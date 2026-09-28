@@ -7,10 +7,10 @@ import { useAuth } from '@/hooks/useAuth'
 import type { UserRole } from '@/types/auth'
 
 const allowedPathsByRole: Record<UserRole, (path: string) => boolean> = {
-  SYSTEM_ADMIN: (path) => path === '/' || path === '/admin/estabelecimentos',
-  ADMIN: (path) => path === '/' || ['/funcionarios', '/servicos', '/estabelecimento', '/agenda', '/relatorio-comissoes', '/relatorio-atendimentos'].includes(path),
-  CLIENT: (path) => path === '/' || path === '/agendamentos' || /^\/estabelecimentos\/\d+\/agendar$/.test(path),
-  PROFESSIONAL: (path) => path === '/' || ['/minha-agenda', '/meus-servicos'].includes(path),
+  SYSTEM_ADMIN: (path) => ['/', '/alterar-senha', '/admin/estabelecimentos'].includes(path),
+  ADMIN: (path) => ['/', '/alterar-senha', '/funcionarios', '/servicos', '/estabelecimento', '/perfil-estabelecimento', '/agenda', '/relatorio-comissoes', '/relatorio-atendimentos'].includes(path),
+  CLIENT: (path) => ['/', '/alterar-senha', '/agendamentos'].includes(path) || /^\/estabelecimentos\/\d+\/agendar$/.test(path),
+  PROFESSIONAL: (path) => ['/', '/alterar-senha', '/minha-agenda', '/meus-servicos'].includes(path),
 }
 
 export function LoginPage() {
@@ -86,6 +86,9 @@ export function LoginPage() {
 
         <div className="mt-5 flex items-center justify-between">
           <label className="text-sm font-semibold text-text-800" htmlFor="password">Senha</label>
+          <Link to="/recuperar-senha" state={{ email }} className="text-sm font-semibold text-primary-700 hover:text-primary-800">
+            Esqueci minha senha
+          </Link>
         </div>
         <div className="relative">
           <LockKeyhole className="pointer-events-none absolute left-3.5 top-1/2 mt-1 size-[17px] -translate-y-1/2 text-text-400" />

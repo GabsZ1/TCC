@@ -26,6 +26,8 @@ public class SecurityConfig {
                                 "/api/auth/clientes",
                                 "/api/auth/login",
                                 "/api/auth/primeiro-acesso",
+                                "/api/auth/recuperar-senha",
+                                "/api/auth/redefinir-senha",
                                 "/v3/api-docs/**",
                                 "/swagger-ui.html",
                                 "/swagger-ui/**"

@@ -8,7 +8,11 @@ import br.com.salonhub.dto.auth.AuthenticatedUserResponse;
 import br.com.salonhub.dto.auth.ClientRegistrationRequest;
 import br.com.salonhub.dto.auth.FirstAccessRequest;
 import br.com.salonhub.dto.auth.PasswordChangeRequest;
+import br.com.salonhub.dto.auth.PasswordRecoveryRequest;
+import br.com.salonhub.dto.auth.PasswordRecoveryResponse;
+import br.com.salonhub.dto.auth.PasswordResetRequest;
 import br.com.salonhub.service.auth.AuthenticationService;
+import br.com.salonhub.service.auth.PasswordRecoveryService;
 import br.com.salonhub.service.auth.RegistrationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -24,6 +28,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -35,6 +40,7 @@ public class AuthController {
 
     private final RegistrationService registrationService;
     private final AuthenticationService authenticationService;
+    private final PasswordRecoveryService passwordRecoveryService;
 
     @PostMapping("/cadastro")
     @ResponseStatus(HttpStatus.CREATED)
@@ -78,6 +84,38 @@ public class AuthController {
     @SecurityRequirements
     public void completeFirstAccess(@Valid @RequestBody FirstAccessRequest request) {
         authenticationService.completeFirstAccess(request);
+    }
+
+    @PostMapping("/recuperar-senha")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    @Operation(summary = "Solicitar recuperação de senha", description = "Envia por e-mail um link de redefinição, único e temporário.")
+    @ApiResponse(responseCode = "202", description = "Link enviado")
+    @ApiResponse(responseCode = "400", description = "E-mail inválido, conta desativada ou primeiro acesso pendente")
+    @ApiResponse(responseCode = "404", description = "Não existe cadastro com o e-mail informado")
+    @ApiResponse(responseCode = "429", description = "Novo pedido antes do intervalo mínimo")
+    @SecurityRequirements
+    public PasswordRecoveryResponse requestPasswordReset(@Valid @RequestBody PasswordRecoveryRequest request) {
+        return passwordRecoveryService.requestReset(request);
+    }
+
+    @GetMapping("/redefinir-senha")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Validar link de redefinição", description = "Informa se o link ainda pode ser usado.")
+    @ApiResponse(responseCode = "204", description = "Link válido")
+    @ApiResponse(responseCode = "400", description = "Link expirado, já usado ou inexistente")
+    @SecurityRequirements
+    public void validatePasswordResetToken(@RequestParam(required = false) String token) {
+        passwordRecoveryService.validateToken(token);
+    }
+
+    @PostMapping("/redefinir-senha")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Redefinir senha", description = "Define uma nova senha usando o link recebido por e-mail.")
+    @ApiResponse(responseCode = "204", description = "Senha redefinida")
+    @ApiResponse(responseCode = "400", description = "Link inválido/expirado, confirmação divergente ou senha fraca")
+    @SecurityRequirements
+    public void resetPassword(@Valid @RequestBody PasswordResetRequest request) {
+        passwordRecoveryService.resetPassword(request);
     }
 
     @GetMapping("/me")

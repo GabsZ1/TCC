@@ -50,6 +50,13 @@ public class ApiExceptionHandler {
         throw exception;
     }
 
+    @ExceptionHandler(TooManyRequestsException.class)
+    public ResponseEntity<ApiError> handleTooManyRequests(TooManyRequestsException exception) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(
+                new ApiError(429, exception.getMessage(), Map.of(), OffsetDateTime.now())
+        );
+    }
+
     @ExceptionHandler(InvalidRequestException.class)
     public ResponseEntity<ApiError> handleInvalidRequest(InvalidRequestException exception) {
         return ResponseEntity.badRequest().body(
