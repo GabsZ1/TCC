@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
-import { AtSign, Clock3, MapPin, MessageCircle, Phone, Scissors, UserRound } from 'lucide-react'
+import { AtSign, Clock3, MapPin, MessageCircle, Phone, Scissors } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Modal } from '@/components/ui/Modal'
 import { fetchEstablishmentProfile } from '@/features/appointments/appointmentsApi'
+import { EmployeeAvatar } from '@/features/employees/components/EmployeeAvatar'
 import { getApiErrorMessage } from '@/lib/apiError'
 
 interface Props {
@@ -69,7 +70,7 @@ export function EstablishmentDetailsModal({ establishmentId, establishmentName, 
 
           <section>
             <div className="flex items-end justify-between gap-3"><h3 className="text-lg font-semibold text-text-950">Equipe</h3><span className="text-xs text-text-500">{profile.professionals.length} profissional(is)</span></div>
-            <div className="mt-3 flex flex-wrap gap-2">{profile.professionals.map((professional) => <span key={professional.id} className="inline-flex items-center gap-2 rounded-xl bg-background-100 px-3.5 py-2 text-sm font-medium text-text-700"><UserRound size={15} className="text-primary-600" />{professional.name}</span>)}{profile.professionals.length === 0 && <p className="text-sm text-text-500">Nenhum profissional disponível no momento.</p>}</div>
+            <div className="mt-3 flex flex-wrap gap-2">{profile.professionals.map((professional) => <span key={professional.id} className="inline-flex items-center gap-2 rounded-xl bg-background-100 py-1.5 pl-1.5 pr-3.5 text-sm font-medium text-text-700"><EmployeeAvatar id={professional.id} name={professional.name} hasPhoto={professional.hasPhoto} catalogEstablishmentId={establishmentId} size="sm" />{professional.name}</span>)}{profile.professionals.length === 0 && <p className="text-sm text-text-500">Nenhum profissional disponível no momento.</p>}</div>
           </section>
 
           <div className="flex justify-end border-t border-background-300 pt-5">

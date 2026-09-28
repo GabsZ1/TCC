@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Check, CheckCircle2, Clock3, MapPin, Scissors, UserRound } from 'lucide-react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { createAppointment, fetchActiveEstablishments, fetchAvailability, fetchCatalogProfessionals, fetchCatalogServices } from '@/features/appointments/appointmentsApi'
+import { EmployeeAvatar } from '@/features/employees/components/EmployeeAvatar'
 import { getApiErrorMessage } from '@/lib/apiError'
 
 export function BookingPage() {
@@ -82,7 +83,7 @@ export function BookingPage() {
 
           <BookingStep number="02" title="Escolha o profissional" subtitle="Mostramos apenas profissionais habilitados para o serviço selecionado.">
             <div className="grid gap-3 sm:grid-cols-2">
-              {professionals.data?.map((professional) => <ChoiceButton key={professional.id} selected={professional.id === professionalId} onClick={() => { setProfessionalId(professional.id); setTime(null) }} icon={<UserRound size={17} />} title={professional.name} detail="Profissional disponível" />)}
+              {professionals.data?.map((professional) => <ChoiceButton key={professional.id} selected={professional.id === professionalId} onClick={() => { setProfessionalId(professional.id); setTime(null) }} avatar={<EmployeeAvatar id={professional.id} name={professional.name} hasPhoto={professional.hasPhoto} catalogEstablishmentId={establishmentId} />} title={professional.name} detail="Profissional disponível" />)}
               {professionals.isLoading && <Hint>Carregando profissionais...</Hint>}
               {professionals.data?.length === 0 && serviceId && <Hint>Nenhum profissional disponível.</Hint>}
               {!serviceId && <Hint>Selecione um serviço primeiro.</Hint>}
@@ -126,8 +127,12 @@ export function BookingPage() {
 function BookingStep({ number, title, subtitle, children }: { number: string; title: string; subtitle: string; children: React.ReactNode }) {
   return <section className="p-5 sm:p-6"><div className="mb-5 flex items-start gap-4"><span className="pt-0.5 font-mono text-[0.68rem] font-extrabold tracking-[0.12em] text-primary-700">{number}</span><div><h2 className="text-lg font-extrabold tracking-[-0.03em] text-text-950">{title}</h2><p className="mt-1 text-sm text-text-500">{subtitle}</p></div></div>{children}</section>
 }
-function ChoiceButton({ selected, onClick, icon, title, detail }: { selected: boolean; onClick: () => void; icon: React.ReactNode; title: string; detail: string }) {
-  return <button type="button" onClick={onClick} className={`group flex items-start gap-3 rounded-[0.75rem] border p-4 text-left ${selected ? 'border-primary-400 bg-primary-50 ring-2 ring-primary-100' : 'border-background-300 bg-background-50 hover:border-primary-300 hover:bg-primary-50/60'}`}><span className={`grid size-9 shrink-0 place-items-center rounded-[0.65rem] ${selected ? 'bg-primary-600 text-on-primary' : 'bg-background-200 text-text-600 group-hover:bg-primary-100 group-hover:text-primary-700'}`}>{selected ? <Check size={16} /> : icon}</span><span><span className="block font-semibold text-text-900">{title}</span><span className="mt-1 block text-sm text-text-500">{detail}</span></span></button>
+/** Opção selecionável. Com `avatar` (foto do profissional), a foto fica sempre visível e a seleção aparece num selo. */
+function ChoiceButton({ selected, onClick, icon, avatar, title, detail }: { selected: boolean; onClick: () => void; icon?: React.ReactNode; avatar?: React.ReactNode; title: string; detail: string }) {
+  const marker = avatar
+    ? <span className="relative shrink-0">{avatar}{selected && <span className="absolute -bottom-1 -right-1 grid size-4 place-items-center rounded-full bg-primary-600 text-on-primary ring-2 ring-primary-50"><Check size={10} strokeWidth={3} /></span>}</span>
+    : <span className={`grid size-9 shrink-0 place-items-center rounded-[0.65rem] ${selected ? 'bg-primary-600 text-on-primary' : 'bg-background-200 text-text-600 group-hover:bg-primary-100 group-hover:text-primary-700'}`}>{selected ? <Check size={16} /> : icon}</span>
+  return <button type="button" onClick={onClick} className={`group flex items-start gap-3 rounded-[0.75rem] border p-4 text-left ${selected ? 'border-primary-400 bg-primary-50 ring-2 ring-primary-100' : 'border-background-300 bg-background-50 hover:border-primary-300 hover:bg-primary-50/60'}`}>{marker}<span><span className="block font-semibold text-text-900">{title}</span><span className="mt-1 block text-sm text-text-500">{detail}</span></span></button>
 }
 function Summary({ icon, label, value }: { icon: React.ReactNode; label: string; value?: string }) { return <div className="mb-4 flex gap-3"><span className="mt-0.5 text-text-400">{icon}</span><div><p className="text-[0.63rem] font-bold uppercase tracking-[0.11em] text-text-400">{label}</p><p className="mt-1 text-sm font-medium text-text-800">{value ?? 'Não selecionado'}</p></div></div> }
 function Hint({ children }: { children: React.ReactNode }) { return <p className="text-sm text-text-500">{children}</p> }

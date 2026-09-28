@@ -327,6 +327,44 @@ class EmployeeDetailsIntegrationTests {
         assertThat(userRepository.findById(professional.getId())).isPresent();
     }
 
+    @Test
+    void shouldShowTheProfessionalPhotoToClientsInTheCatalog() throws Exception {
+        Establishment establishment = establishment();
+        User professional = professional(establishment, TestDocuments.cpf(), LocalDate.of(2023, 6, 1));
+        User client = client();
+
+        perform(client, get("/api/estabelecimentos/{id}/catalogo/funcionarios", establishment.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].hasPhoto").value(false));
+        perform(client, get("/api/estabelecimentos/{id}/catalogo/funcionarios/{pid}/foto",
+                        establishment.getId(), professional.getId()))
+                .andExpect(status().isNotFound());
+
+        perform(professional, multipart(HttpMethod.PUT, "/api/funcionarios/me/foto")
+                        .file(new MockMultipartFile("file", "foto.png", "image/png", PNG)))
+                .andExpect(status().isNoContent());
+
+        perform(client, get("/api/estabelecimentos/{id}/catalogo/funcionarios", establishment.getId()))
+                .andExpect(jsonPath("$[0].hasPhoto").value(true));
+        perform(client, get("/api/estabelecimentos/{id}/catalogo/funcionarios/{pid}/foto",
+                        establishment.getId(), professional.getId()))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", "image/png"))
+                .andExpect(content().bytes(PNG));
+
+        // Profissional de outro estabelecimento ou desativado não aparece.
+        Establishment other = establishment();
+        perform(client, get("/api/estabelecimentos/{id}/catalogo/funcionarios/{pid}/foto",
+                        other.getId(), professional.getId()))
+                .andExpect(status().isNotFound());
+        User stored = userRepository.findById(professional.getId()).orElseThrow();
+        stored.deactivate();
+        userRepository.saveAndFlush(stored);
+        perform(client, get("/api/estabelecimentos/{id}/catalogo/funcionarios/{pid}/foto",
+                        establishment.getId(), professional.getId()))
+                .andExpect(status().isNotFound());
+    }
+
     // ---------- apoio ----------
 
     private ResultActions create(User admin, String json) throws Exception {
@@ -369,6 +407,13 @@ class EmployeeDetailsIntegrationTests {
         return userRepository.saveAndFlush(User.builder()
                 .name("Admin " + unique).email("admin-" + unique + "@detalhes.test")
                 .password(passwordEncoder.encode(PASSWORD)).role(UserRole.ADMIN).establishment(establishment).build());
+    }
+
+    private User client() {
+        String unique = UUID.randomUUID().toString().substring(0, 8);
+        return userRepository.saveAndFlush(User.builder()
+                .name("Cliente " + unique).email("cliente-" + unique + "@detalhes.test")
+                .password(passwordEncoder.encode(PASSWORD)).role(UserRole.CLIENT).build());
     }
 
     private User professional(Establishment establishment, String cpf, LocalDate hireDate) {

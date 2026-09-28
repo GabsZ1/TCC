@@ -11,6 +11,7 @@ export interface CatalogService {
 export interface CatalogProfessional {
   id: number
   name: string
+  hasPhoto: boolean
 }
 
 export interface Availability {
@@ -84,6 +85,11 @@ export function fetchCatalogServices(establishmentId: number) {
 
 export function fetchCatalogProfessionals(establishmentId: number, serviceId?: number | null) {
   return api.get<CatalogProfessional[]>(`/estabelecimentos/${establishmentId}/catalogo/funcionarios`, { params: { serviceId } }).then((response) => response.data)
+}
+
+/** Foto do profissional exibida ao cliente (carregada com o token, por isso vem como blob). */
+export function fetchCatalogProfessionalPhoto(establishmentId: number, professionalId: number) {
+  return api.get<Blob>(`/estabelecimentos/${establishmentId}/catalogo/funcionarios/${professionalId}/foto`, { responseType: 'blob' }).then((response) => response.data)
 }
 
 export function fetchAvailability(establishmentId: number, serviceId: number, professionalId: number, date: string, appointmentId?: number) {

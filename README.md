@@ -123,6 +123,7 @@ Como as imagens são organizadas (migration V27):
 - O **arquivo** vai para o bucket, no caminho `establishments/{idDoEstabelecimento}/media/{uuid}.{jpg|png|webp}`.
 - O **PostgreSQL** guarda só os metadados na tabela `media` (`establishment_id`, `storage_key`, `original_filename`, `mime_type`, `size_bytes`, `uploaded_by`, `created_at`). A URL completa nunca é salva, só a `storage_key`, para que o armazenamento possa mudar (ex.: S3) sem alterar registros.
 - As entidades apontam para `media`: hoje, `users.photo_id` (foto do funcionário).
+- Quem vê a foto do funcionário: ele mesmo e o admin do estabelecimento (`GET /api/funcionarios/{id}/foto`), e os clientes na escolha do profissional e na equipe do estabelecimento (`GET /api/estabelecimentos/{id}/catalogo/funcionarios/{profissionalId}/foto`, só profissionais ativos de estabelecimentos que aceitam agendamentos). O catálogo informa `hasPhoto` para o front saber quando buscar.
 - Camadas: `MediaService` (validação, registro e exclusão) → `StorageService` (interface) → `S3StorageService` (cliente S3 da biblioteca do MinIO). Nos testes, `app.storage.type=memory` usa o `InMemoryStorageService`.
 - Se o armazenamento estiver fora do ar, o backend sobe normalmente; só as operações de imagem respondem 503 com mensagem amigável.
 - Configuração: `STORAGE_TYPE` (`s3` ou `memory`), `S3_ENDPOINT` (padrão `http://localhost:8333`), `S3_ACCESS_KEY`, `S3_SECRET_KEY` e `S3_BUCKET`.
