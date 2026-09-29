@@ -166,14 +166,32 @@ Esse usuário recebe o perfil `SYSTEM_ADMIN`, não fica vinculado a um estabelec
 
 ### Dados de demonstração (seed)
 
-O banco pode ser populado com dados fictícios para ver todas as telas funcionando. **Nada roda automaticamente**: o seeder só existe no profile `seed` e é executado apenas com o comando abaixo (com o `docker compose` de pé):
+O banco pode ser populado com dados fictícios para ver todas as telas funcionando. **Nada roda automaticamente**: o seeder (`backend/src/main/java/br/com/salonhub/seed`) só existe no profile `seed` e é executado apenas com o comando abaixo.
 
-```bash
-cd backend
-./mvnw spring-boot:run "-Dspring-boot.run.profiles=local,seed"
-```
+Passo a passo:
 
-O comando sobe o backend numa porta aleatória (não conflita com um backend já rodando na 8080), grava os dados, mostra um resumo no log e encerra. Se os dados já existirem, não altera nada. Para recriar do zero: `docker compose down -v`, `docker compose up -d` e rode o comando de novo (isso apaga **todo** o banco local).
+1. Suba os containers na raiz do projeto: `docker compose up -d`.
+2. Rode o seed:
+
+   ```bash
+   cd backend
+   ./mvnw spring-boot:run "-Dspring-boot.run.profiles=local,seed"
+   ```
+
+   No Windows (PowerShell) o comando é o mesmo; as aspas em volta do `-D...` são obrigatórias.
+3. Espere a mensagem `Dados de demonstração criados: ...` no terminal. O processo encerra sozinho.
+4. Suba o backend normalmente (`./mvnw spring-boot:run`) e o frontend (`npm run dev`) e entre com uma das contas abaixo.
+
+Como funciona:
+
+- O comando sobe o backend numa porta aleatória, então não conflita com um backend já rodando na 8080. Ele grava os dados, mostra um resumo no log e encerra.
+- O seed só **acrescenta** registros: não altera nem apaga dados que já existem no banco.
+- Tudo roda numa única transação. Se algo falhar, nada é gravado.
+- Se os dados de demonstração já existirem (conta `admin@studiobella.demo`), o comando não faz nada.
+- Para recriar do zero: `docker compose down -v`, `docker compose up -d` e o comando de novo. Isso apaga **todo** o banco local, não só os dados de demonstração.
+- O seed se recusa a rodar com o profile `prod`.
+
+Sobre as senhas: as contas abaixo são fictícias, existem só no banco local de quem roda o seed e usam o domínio `.demo`, que não recebe e-mails. Por isso a senha pode ficar documentada aqui. Nunca use essas contas nem essa senha em um ambiente publicado.
 
 O que é criado:
 

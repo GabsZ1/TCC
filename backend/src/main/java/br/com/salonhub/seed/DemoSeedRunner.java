@@ -7,6 +7,8 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Profile;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.stereotype.Component;
 
 /**
@@ -23,10 +25,18 @@ public class DemoSeedRunner implements ApplicationRunner {
 
     private final DemoDataSeeder seeder;
     private final ConfigurableApplicationContext context;
+    private final Environment environment;
 
     @Override
     public void run(ApplicationArguments args) {
         int exitCode = 0;
+        if (environment.acceptsProfiles(Profiles.of("prod"))) {
+            // Contas de demonstração têm senha conhecida: nunca podem existir em produção.
+            log.error("O seed não pode ser executado com o profile prod. Nenhum dado foi gravado.");
+            int code = 1;
+            System.exit(SpringApplication.exit(context, () -> code));
+            return;
+        }
         try {
             DemoDataSeeder.Result result = seeder.seed();
             if (result == null) {
