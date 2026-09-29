@@ -124,6 +124,46 @@ class SystemEstablishmentControllerIntegrationTests {
     }
 
     @Test
+    void systemAdministratorShouldSeeEstablishmentDetails() throws Exception {
+        Establishment establishment = establishmentRepository.saveAndFlush(Establishment.builder()
+                .name("Detalhes para sistema").cnpj("52345678000100").email("contato@detalhes.test").build());
+        User systemAdministrator = userRepository.saveAndFlush(user(
+                "Administrador Sistema", "details-system-admin@salonhub.test", UserRole.SYSTEM_ADMIN, null));
+        userRepository.saveAndFlush(user("Dona do salão", "details-owner@salonhub.test", UserRole.ADMIN, establishment));
+        User professional = userRepository.saveAndFlush(user(
+                "Profissional ativo", "details-professional@salonhub.test", UserRole.PROFESSIONAL, establishment));
+        User inactiveProfessional = user("Profissional inativo", "details-inactive@salonhub.test", UserRole.PROFESSIONAL, establishment);
+        inactiveProfessional.deactivate();
+        userRepository.saveAndFlush(inactiveProfessional);
+        User client = userRepository.saveAndFlush(user("Cliente", "details-client@salonhub.test", UserRole.CLIENT, null));
+        EstablishmentService service = serviceRepository.saveAndFlush(EstablishmentService.builder()
+                .establishment(establishment).name("Corte detalhes").price(new BigDecimal("50.00"))
+                .commissionPercentage(BigDecimal.TEN).durationMinutes(30).active(true).build());
+        appointmentRepository.saveAndFlush(Appointment.schedule(
+                establishment, client, professional, service, LocalDateTime.now().plusDays(2)));
+
+        mockMvc.perform(get(ENDPOINT + "/{id}", establishment.getId())
+                        .header("Authorization", bearer(systemAdministrator)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.establishment.name").value("Detalhes para sistema"))
+                .andExpect(jsonPath("$.administrators[0].email").value("details-owner@salonhub.test"))
+                .andExpect(jsonPath("$.professionals.length()").value(2))
+                .andExpect(jsonPath("$.professionals[0].name").value("Profissional ativo"))
+                .andExpect(jsonPath("$.services[0].name").value("Corte detalhes"))
+                .andExpect(jsonPath("$.stats.activeProfessionals").value(1))
+                .andExpect(jsonPath("$.stats.totalProfessionals").value(2))
+                .andExpect(jsonPath("$.stats.upcomingAppointments").value(1))
+                .andExpect(jsonPath("$.stats.totalAppointments").value(1))
+                .andExpect(jsonPath("$.profile").doesNotExist());
+
+        mockMvc.perform(get(ENDPOINT + "/{id}", 999_999_999L).header("Authorization", bearer(systemAdministrator)))
+                .andExpect(status().isNotFound());
+        User owner = userRepository.findByEmailIgnoreCase("details-owner@salonhub.test").orElseThrow();
+        mockMvc.perform(get(ENDPOINT + "/{id}", establishment.getId()).header("Authorization", bearer(owner)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void establishmentAdministratorMustNotAccessSystemAdministration() throws Exception {
         Establishment establishment = establishmentRepository.saveAndFlush(Establishment.builder()
                 .name("Sem acesso ao sistema").cnpj("32345678000102").build());

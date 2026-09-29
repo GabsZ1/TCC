@@ -125,7 +125,7 @@ function EstablishmentContent({ establishment }: { establishment: Awaited<Return
 
         <aside className="surface-card h-fit p-5">
           <h2 className="text-lg font-semibold text-text-900">Informações</h2>
-          <dl className="mt-5 space-y-4 text-sm"><Info label="Código" value={`#${establishment.id}`} /><Info label="Funcionamento" value="Configuração semanal" icon={<CalendarClock size={16} />} /></dl>
+          <dl className="mt-5 space-y-4 text-sm"><Info label="Funcionamento" value="Configuração semanal" icon={<CalendarClock size={16} />} /></dl>
           <div className="mt-6 space-y-6 border-t border-background-300 pt-5">
             <OperationalAction
               title={establishment.bookingsBlocked ? 'Liberar agendamentos' : 'Bloquear novos agendamentos'}

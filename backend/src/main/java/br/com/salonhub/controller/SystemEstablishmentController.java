@@ -1,5 +1,6 @@
 package br.com.salonhub.controller;
 
+import br.com.salonhub.dto.establishment.SystemEstablishmentDetailsResponse;
 import br.com.salonhub.dto.establishment.SystemEstablishmentResponse;
 import br.com.salonhub.service.SystemEstablishmentService;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,13 @@ public class SystemEstablishmentController {
     @GetMapping
     public List<SystemEstablishmentResponse> findAll(@AuthenticationPrincipal Jwt jwt) {
         return systemEstablishmentService.findAll(Long.valueOf(jwt.getSubject()));
+    }
+
+    @GetMapping("/{establishmentId}")
+    public SystemEstablishmentDetailsResponse findDetails(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long establishmentId) {
+        return systemEstablishmentService.findDetails(Long.valueOf(jwt.getSubject()), establishmentId);
     }
 
     @DeleteMapping("/{establishmentId}")

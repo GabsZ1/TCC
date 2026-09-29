@@ -156,6 +156,11 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             LocalDateTime periodStart
     );
 
+    long countByEstablishmentId(Long establishmentId);
+
+    long countByEstablishmentIdAndStatusAndStartsAtGreaterThanEqual(
+            Long establishmentId, AppointmentStatus status, LocalDateTime from);
+
     long countByEstablishmentIdAndStatusAndCompletedAtGreaterThanEqualAndCompletedAtLessThan(
             Long establishmentId,
             AppointmentStatus status,

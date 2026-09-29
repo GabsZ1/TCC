@@ -6,8 +6,6 @@ import {
   ArrowUpRight,
   CalendarCheck,
   CalendarDays,
-  Check,
-  Clipboard,
   Clock3,
   Building2,
   Scissors,
@@ -21,7 +19,6 @@ import { fetchMyAppointments, fetchMyAppointmentsAsProfessional, type Appointmen
 
 export function DashboardPage() {
   const { user } = useAuth()
-  const [copied, setCopied] = useState(false)
   const dashboard = useQuery({ queryKey: ['dashboard-summary'], queryFn: fetchDashboardSummary, enabled: user?.role === 'ADMIN' })
   const clientAppointments = useQuery({ queryKey: ['my-appointments'], queryFn: fetchMyAppointments, enabled: user?.role === 'CLIENT' })
   const professionalAppointments = useQuery({ queryKey: ['professional-appointments'], queryFn: fetchMyAppointmentsAsProfessional, enabled: user?.role === 'PROFESSIONAL' })
@@ -31,18 +28,6 @@ export function DashboardPage() {
   if (user?.role === 'PROFESSIONAL') return <ProfessionalHome name={user.name} establishmentName={user.establishmentName} appointments={professionalAppointments.data ?? []} isLoading={professionalAppointments.isLoading} />
 
   const firstName = user?.name?.split(' ')[0] ?? 'Olá'
-  const establishmentCode = user?.establishmentId ? `#${user.establishmentId}` : '—'
-
-  async function copyCode() {
-    if (!user?.establishmentId) return
-    try {
-      await navigator.clipboard.writeText(String(user.establishmentId))
-      setCopied(true)
-      window.setTimeout(() => setCopied(false), 1800)
-    } catch {
-      // O código permanece visível para cópia manual.
-    }
-  }
 
   return (
     <div className="page-shell">
@@ -70,7 +55,7 @@ export function DashboardPage() {
         <MetricLine icon={UsersRound} label="Equipe ativa" helper="profissionais disponíveis" value={dashboard.isLoading ? '—' : String(dashboard.data?.activeEmployees ?? 0)} bordered />
       </section>
 
-      <section className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(19rem,.5fr)]">
+      <section className="mt-5">
         <div className="relative overflow-hidden rounded-[1rem] bg-secondary-700 p-6 text-white shadow-[var(--shadow-lifted)] sm:p-8">
           <div className="absolute right-0 top-0 h-full w-[5px] bg-primary-500" aria-hidden="true" />
           <div className="max-w-2xl">
@@ -87,19 +72,6 @@ export function DashboardPage() {
           </div>
         </div>
 
-        <aside className="surface-card flex flex-col p-6">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-[0.62rem] font-extrabold uppercase tracking-[0.16em] text-text-500">Código público</p>
-              <p className="mt-3 text-[2.4rem] font-extrabold tracking-[-0.06em] text-text-950">{establishmentCode}</p>
-            </div>
-            <span className="grid size-10 place-items-center rounded-[0.65rem] border border-primary-200 bg-primary-50 text-primary-700"><Clipboard size={18} /></span>
-          </div>
-          <p className="mt-4 flex-1 text-sm leading-6 text-text-600">Clientes usam esse código para localizar o estabelecimento e iniciar um agendamento.</p>
-          <button type="button" onClick={copyCode} className="secondary-button mt-5 w-full">
-            {copied ? <Check size={16} /> : <Clipboard size={16} />}{copied ? 'Código copiado' : 'Copiar código'}
-          </button>
-        </aside>
       </section>
 
       <section className="surface-card mt-5 divide-y divide-background-300 overflow-hidden">

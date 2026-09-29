@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Building2, CalendarOff, Pause, Power, RotateCcw, Search } from 'lucide-react'
+import { Building2, CalendarOff, Eye, Pause, Power, RotateCcw, Search } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { getApiErrorMessage } from '@/lib/apiError'
+import { SystemEstablishmentDetailsModal } from '@/features/system-admin/SystemEstablishmentDetailsModal'
 import {
   allowSystemEstablishmentBookings,
   blockSystemEstablishmentBookings,
@@ -22,6 +23,7 @@ export function SystemEstablishmentsPage() {
   const [search, setSearch] = useState('')
   const [selection, setSelection] = useState<{ establishment: SystemEstablishment; action: Action } | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const [detailsOf, setDetailsOf] = useState<SystemEstablishment | null>(null)
   const establishments = useQuery({ queryKey: QUERY_KEY, queryFn: fetchSystemEstablishments })
   const stateMutation = useMutation({
     mutationFn: ({ establishment, action }: NonNullable<typeof selection>) => runAction(establishment.id, action),
@@ -61,7 +63,8 @@ export function SystemEstablishmentsPage() {
         {filtered.length > 0 && <div className="divide-y divide-background-300">{filtered.map((item) => (
           <article key={item.id} className="p-5">
             <div className="flex items-start gap-3"><span className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary-100 text-primary-700"><Building2 size={20} /></span><div className="min-w-0 flex-1"><h3 className="font-semibold text-text-900">{item.name}</h3><p className="mt-1 text-sm text-text-500">CNPJ {formatCnpj(item.cnpj)}{item.email ? ` · ${item.email}` : ''}</p><div className="mt-3 flex flex-wrap gap-2"><Status active={item.active} label={item.active ? 'Site ativo' : 'Site desativado'} />{item.paused && <Status label="Operação pausada" />}{item.bookingsBlocked && <Status label="Agendamentos bloqueados" />}</div></div></div>
-            <div className="mt-4 grid gap-2 sm:grid-cols-3">
+            <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              <ActionButton icon={<Eye size={16} />} disabled={false} onClick={() => setDetailsOf(item)}>Ver detalhes</ActionButton>
               <ActionButton icon={<CalendarOff size={16} />} disabled={!item.active || stateMutation.isPending} onClick={() => select(item, item.bookingsBlocked ? 'allow' : 'block')}>{item.bookingsBlocked ? 'Liberar agendamentos' : 'Bloquear agendamentos'}</ActionButton>
               <ActionButton icon={item.paused ? <RotateCcw size={16} /> : <Pause size={16} />} disabled={!item.active || stateMutation.isPending} onClick={() => select(item, item.paused ? 'resume' : 'pause')}>{item.paused ? 'Retomar operação' : 'Pausar operação'}</ActionButton>
               <ActionButton danger={item.active} icon={<Power size={16} />} disabled={stateMutation.isPending} onClick={() => select(item, item.active ? 'deactivate' : 'reactivate')}>{item.active ? 'Desativar site' : 'Reativar site'}</ActionButton>
@@ -69,6 +72,7 @@ export function SystemEstablishmentsPage() {
           </article>
         ))}</div>}
       </section>
+      {detailsOf && <SystemEstablishmentDetailsModal establishmentId={detailsOf.id} establishmentName={detailsOf.name} onClose={() => setDetailsOf(null)} />}
       {selection && <ConfirmDialog {...confirmationProps(selection.establishment, selection.action)} isLoading={stateMutation.isPending} onConfirm={() => stateMutation.mutate(selection)} onCancel={() => setSelection(null)} />}
     </div>
   )

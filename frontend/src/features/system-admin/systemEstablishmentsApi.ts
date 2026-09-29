@@ -13,6 +13,42 @@ export interface SystemEstablishment {
   createdAt: string
 }
 
+export interface SystemEstablishmentDetails {
+  establishment: SystemEstablishment
+  minimumAdvanceMinutes: number
+  maximumAdvanceDays: number
+  administrators: Array<{ id: number; name: string; email: string; active: boolean }>
+  profile: {
+    aboutUs: string | null
+    instagram: string | null
+    whatsapp: string | null
+    phone: string | null
+    postalCode: string | null
+    street: string | null
+    streetNumber: string | null
+    addressComplement: string | null
+    neighborhood: string | null
+    city: string | null
+    state: string | null
+  } | null
+  businessHours: Array<{ dayOfWeek: string; closed: boolean; openingTime: string | null; closingTime: string | null }>
+  stats: {
+    activeProfessionals: number
+    totalProfessionals: number
+    activeServices: number
+    totalServices: number
+    upcomingAppointments: number
+    completedThisMonth: number
+    totalAppointments: number
+  }
+  professionals: Array<{ id: number; name: string; email: string; occupation: string | null; active: boolean }>
+  services: Array<{ id: number; name: string; price: number; durationMinutes: number; active: boolean }>
+}
+
+export function fetchSystemEstablishmentDetails(establishmentId: number) {
+  return api.get<SystemEstablishmentDetails>(`/admin-sistema/estabelecimentos/${establishmentId}`).then((response) => response.data)
+}
+
 export function fetchSystemEstablishments() {
   return api.get<SystemEstablishment[]>('/admin-sistema/estabelecimentos').then((response) => response.data)
 }
