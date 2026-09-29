@@ -125,7 +125,7 @@ class EstablishmentControllerIntegrationTests {
                 .establishment(establishment).name("Corte no fim do dia").price(new BigDecimal("50.00"))
                 .commissionPercentage(BigDecimal.ZERO).durationMinutes(30).active(true).build());
         LocalDateTime startsAt = LocalDate.now().plusDays(2).atTime(17, 0);
-        appointmentRepository.saveAndFlush(Appointment.schedule(
+        appointmentRepository.saveAndFlush(schedule(
                 establishment, client, professional, service, startsAt));
 
         mockMvc.perform(put(ENDPOINT).header("Authorization", bearer(admin))
@@ -158,7 +158,7 @@ class EstablishmentControllerIntegrationTests {
                 .establishment(establishment).name("Atendimento em andamento").price(new BigDecimal("50.00"))
                 .commissionPercentage(BigDecimal.ZERO).durationMinutes(60).active(true).build());
         LocalDateTime startsAt = LocalDateTime.now().minusMinutes(10);
-        appointmentRepository.saveAndFlush(Appointment.schedule(
+        appointmentRepository.saveAndFlush(schedule(
                 establishment, client, professional, service, startsAt));
 
         mockMvc.perform(put(ENDPOINT).header("Authorization", bearer(admin))
@@ -203,7 +203,7 @@ class EstablishmentControllerIntegrationTests {
         EstablishmentService service = serviceRepository.saveAndFlush(EstablishmentService.builder()
                 .establishment(establishment).name("Corte futuro").price(new BigDecimal("50.00"))
                 .commissionPercentage(BigDecimal.ZERO).durationMinutes(30).active(true).build());
-        appointmentRepository.saveAndFlush(Appointment.schedule(
+        appointmentRepository.saveAndFlush(schedule(
                 establishment, client, professional, service, LocalDateTime.now().plusDays(1)));
 
         mockMvc.perform(patch(ENDPOINT + "/bloqueio-agendamentos").header("Authorization", bearer(admin)))
@@ -237,16 +237,32 @@ class EstablishmentControllerIntegrationTests {
         EstablishmentService service = serviceRepository.saveAndFlush(EstablishmentService.builder()
                 .establishment(establishment).name("Corte em andamento").price(new BigDecimal("50.00"))
                 .commissionPercentage(BigDecimal.ZERO).durationMinutes(60).active(true).build());
-        appointmentRepository.saveAndFlush(Appointment.schedule(
+        appointmentRepository.saveAndFlush(schedule(
                 establishment, client, professional, service, LocalDateTime.now().minusMinutes(30)));
 
         mockMvc.perform(patch(ENDPOINT + "/pausa").header("Authorization", bearer(admin)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message").value(
-                        "Não é possível pausar enquanto houver atendimentos pendentes. "
-                                + "Cancele ou conclua todos os atendimentos confirmados."));
+                        "Não é possível pausar enquanto houver atendimentos futuros em aberto. "
+                                + "Cancele ou conclua os atendimentos confirmados."));
 
         assertThat(establishmentRepository.findById(establishment.getId()).orElseThrow().isPaused()).isFalse();
+    }
+
+    @Test
+    void shouldAllowPauseWhenOnlyConfirmedAppointmentHasAlreadyEnded() throws Exception {
+        User admin = administrator("pause-old-confirmed", "42345678000116");
+        Establishment establishment = admin.getEstablishment();
+        User professional = user("professional-pause-old", UserRole.PROFESSIONAL, establishment);
+        User client = user("client-pause-old", UserRole.CLIENT, null);
+        EstablishmentService service = serviceRepository.saveAndFlush(EstablishmentService.builder()
+                .establishment(establishment).name("Corte antigo").price(new BigDecimal("50.00"))
+                .commissionPercentage(BigDecimal.ZERO).durationMinutes(30).active(true).build());
+        appointmentRepository.saveAndFlush(schedule(establishment, client, professional, service,
+                LocalDateTime.now().minusDays(60)));
+
+        mockMvc.perform(patch(ENDPOINT + "/pausa").header("Authorization", bearer(admin)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.paused").value(true));
     }
 
     @Test
@@ -319,4 +335,18 @@ class EstablishmentControllerIntegrationTests {
     private String bearer(User user) {
         return "Bearer " + tokenService.generate(user).value();
     }
-}
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private CustomerRepository customerRepository;
+
+    private Appointment schedule(br.com.salonhub.entity.Establishment establishment,
+            br.com.salonhub.entity.User client, br.com.salonhub.entity.User professional,
+            br.com.salonhub.entity.EstablishmentService service, java.time.LocalDateTime startsAt) {
+        Customer customer = customerRepository.findByEstablishmentIdAndUserId(establishment.getId(), client.getId())
+                .orElseGet(() -> {
+                    Customer created = Customer.create(establishment, client.getName(), client.getPhone(), client.getEmail());
+                    created.link(client);
+                    return customerRepository.saveAndFlush(created);
+                });
+        return Appointment.schedule(establishment, customer, professional, service, startsAt);
+    }}

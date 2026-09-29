@@ -3,6 +3,8 @@ package br.com.salonhub.controller;
 import br.com.salonhub.support.TestDocuments;
 
 import br.com.salonhub.entity.Appointment;
+import br.com.salonhub.entity.Customer;
+import br.com.salonhub.repository.CustomerRepository;
 import br.com.salonhub.entity.Establishment;
 import br.com.salonhub.entity.EstablishmentService;
 import br.com.salonhub.entity.User;
@@ -208,7 +210,7 @@ class CommissionReportIntegrationTests {
     }
 
     private Long createCompletedAppointment(Fixture fixture, User professional, LocalDateTime completedAt) {
-        Appointment appointment = Appointment.schedule(
+        Appointment appointment = schedule(
                 fixture.establishment(), fixture.client(), professional, fixture.service(),
                 completedAt.minusMinutes(90));
         appointment.complete(completedAt);
@@ -328,4 +330,18 @@ class CommissionReportIntegrationTests {
     private String bearer(String token) {
         return "Bearer " + token;
     }
-}
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private CustomerRepository customerRepository;
+
+    private Appointment schedule(br.com.salonhub.entity.Establishment establishment,
+            br.com.salonhub.entity.User client, br.com.salonhub.entity.User professional,
+            br.com.salonhub.entity.EstablishmentService service, java.time.LocalDateTime startsAt) {
+        Customer customer = customerRepository.findByEstablishmentIdAndUserId(establishment.getId(), client.getId())
+                .orElseGet(() -> {
+                    Customer created = Customer.create(establishment, client.getName(), client.getPhone(), client.getEmail());
+                    created.link(client);
+                    return customerRepository.saveAndFlush(created);
+                });
+        return Appointment.schedule(establishment, customer, professional, service, startsAt);
+    }}

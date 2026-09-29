@@ -10,5 +10,6 @@ public record AppointmentsReportResponse(
         long totalConfirmed,
         long totalCompleted,
         long totalCancelled,
-        long totalInvalidated) {
+        long totalInvalidated,
+        long totalNoShows) {
 }

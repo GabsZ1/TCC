@@ -3,6 +3,8 @@ package br.com.salonhub.controller;
 import br.com.salonhub.support.TestDocuments;
 
 import br.com.salonhub.entity.Appointment;
+import br.com.salonhub.entity.Customer;
+import br.com.salonhub.repository.CustomerRepository;
 import br.com.salonhub.entity.Establishment;
 import br.com.salonhub.entity.EstablishmentService;
 import br.com.salonhub.entity.User;
@@ -351,7 +353,7 @@ class ProfessionalAgendaIntegrationTests {
 
         LocalDateTime startsAt = LocalDateTime.now(clock).minusMinutes(10);
         DayOfWeek day = startsAt.getDayOfWeek();
-        Appointment inProgress = Appointment.schedule(establishment, client, professional, service, startsAt);
+        Appointment inProgress = schedule(establishment, client, professional, service, startsAt);
         appointmentRepository.saveAndFlush(inProgress);
 
         // Fechar o dia do agendamento em andamento é rejeitado, mesmo o início já estando no
@@ -522,4 +524,18 @@ class ProfessionalAgendaIntegrationTests {
 
     private record TestContext(Number establishmentId, Number professionalId, Number serviceId,
                                String professionalToken, String clientToken, String administratorToken) { }
-}
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private CustomerRepository customerRepository;
+
+    private Appointment schedule(br.com.salonhub.entity.Establishment establishment,
+            br.com.salonhub.entity.User client, br.com.salonhub.entity.User professional,
+            br.com.salonhub.entity.EstablishmentService service, java.time.LocalDateTime startsAt) {
+        Customer customer = customerRepository.findByEstablishmentIdAndUserId(establishment.getId(), client.getId())
+                .orElseGet(() -> {
+                    Customer created = Customer.create(establishment, client.getName(), client.getPhone(), client.getEmail());
+                    created.link(client);
+                    return customerRepository.saveAndFlush(created);
+                });
+        return Appointment.schedule(establishment, customer, professional, service, startsAt);
+    }}

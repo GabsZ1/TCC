@@ -32,11 +32,12 @@ export interface Appointment {
   durationMinutes: number
   professionalId: number
   professionalName: string
-  clientId: number
+  clientId: number | null
   clientName: string
+  customerId: number
   startsAt: string
   endsAt: string
-  status: 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'INVALIDATED'
+  status: 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'INVALIDATED' | 'NO_SHOW'
   invalidationReason: string | null
   completedAt: string | null
   cancellationReason: string | null
@@ -119,6 +120,10 @@ export function cancelAppointmentAsAdministrator(appointmentId: number, reason: 
 
 export function completeAppointment(appointmentId: number) {
   return api.patch<Appointment>(`/agendamentos/${appointmentId}/conclusao`).then((response) => response.data)
+}
+
+export function markAppointmentNoShow(appointmentId: number) {
+  return api.patch<Appointment>(`/agendamentos/${appointmentId}/falta`).then((response) => response.data)
 }
 
 export function invalidateAppointment(appointmentId: number, reason: string) {

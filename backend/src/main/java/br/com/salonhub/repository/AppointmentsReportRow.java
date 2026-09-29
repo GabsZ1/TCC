@@ -12,4 +12,5 @@ public interface AppointmentsReportRow {
     long getCompletedCount();
     long getCancelledCount();
     long getInvalidatedCount();
+    long getNoShowCount();
 }

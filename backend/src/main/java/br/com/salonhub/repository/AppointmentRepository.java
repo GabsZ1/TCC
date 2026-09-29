@@ -22,7 +22,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             select appointment.establishment.id
             from Appointment appointment
             where appointment.id = :id
-              and appointment.client.id = :clientId
+              and appointment.customer.user.id = :clientId
             """)
     Optional<Long> findEstablishmentIdByIdAndClientId(
             @Param("id") Long id,
@@ -36,7 +36,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             select appointment
             from Appointment appointment
             where appointment.id = :id
-              and appointment.client.id = :clientId
+              and appointment.customer.user.id = :clientId
             """)
     Optional<Appointment> findByIdAndClientIdForUpdate(
             @Param("id") Long id,
@@ -72,7 +72,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             LocalDateTime requestedStart
     );
 
-    boolean existsByClientIdAndStatusAndStartsAtLessThanAndEndsAtGreaterThan(
+    boolean existsByCustomerIdAndStatusAndStartsAtLessThanAndEndsAtGreaterThan(
             Long clientId,
             AppointmentStatus status,
             LocalDateTime requestedEnd,
@@ -87,7 +87,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             LocalDateTime requestedStart
     );
 
-    boolean existsByClientIdAndStatusAndIdNotAndStartsAtLessThanAndEndsAtGreaterThan(
+    boolean existsByCustomerIdAndStatusAndIdNotAndStartsAtLessThanAndEndsAtGreaterThan(
             Long clientId,
             AppointmentStatus status,
             Long appointmentId,
@@ -113,9 +113,11 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             LocalDateTime after
     );
 
-    List<Appointment> findByClientIdOrderByStartsAtDesc(Long clientId);
+    List<Appointment> findByCustomerUserIdOrderByStartsAtDesc(Long clientId);
 
-    Optional<Appointment> findByIdAndClientId(Long id, Long clientId);
+    List<Appointment> findByCustomerIdAndEstablishmentIdOrderByStartsAtDesc(Long customerId, Long establishmentId);
+
+    Optional<Appointment> findByIdAndCustomerUserId(Long id, Long clientId);
 
     Optional<Appointment> findByIdAndEstablishmentId(Long id, Long establishmentId);
 
@@ -149,7 +151,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             LocalDateTime periodStart
     );
 
-    List<Appointment> findByClientIdAndStatusAndStartsAtLessThanAndEndsAtGreaterThanOrderByStartsAt(
+    List<Appointment> findByCustomerUserIdAndStatusAndStartsAtLessThanAndEndsAtGreaterThanOrderByStartsAt(
             Long clientId,
             AppointmentStatus status,
             LocalDateTime periodEnd,
@@ -213,7 +215,8 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
                 sum(case when appointment.status = br.com.salonhub.entity.AppointmentStatus.CONFIRMED then 1L else 0L end) as confirmedCount,
                 sum(case when appointment.status = br.com.salonhub.entity.AppointmentStatus.COMPLETED then 1L else 0L end) as completedCount,
                 sum(case when appointment.status = br.com.salonhub.entity.AppointmentStatus.CANCELLED then 1L else 0L end) as cancelledCount,
-                sum(case when appointment.status = br.com.salonhub.entity.AppointmentStatus.INVALIDATED then 1L else 0L end) as invalidatedCount
+                sum(case when appointment.status = br.com.salonhub.entity.AppointmentStatus.INVALIDATED then 1L else 0L end) as invalidatedCount,
+                sum(case when appointment.status = br.com.salonhub.entity.AppointmentStatus.NO_SHOW then 1L else 0L end) as noShowCount
             from Appointment appointment
             join appointment.professional professional
             where appointment.establishment.id = :establishmentId
@@ -233,7 +236,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     @Query("""
             select appointment
             from Appointment appointment
-            join fetch appointment.client
+            join fetch appointment.customer
             join fetch appointment.service
             where appointment.professional.id = :professionalId
               and appointment.status = br.com.salonhub.entity.AppointmentStatus.COMPLETED
@@ -265,7 +268,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             select appointment
             from Appointment appointment
             join fetch appointment.professional
-            join fetch appointment.client
+            join fetch appointment.customer
             join fetch appointment.service
             where appointment.establishment.id = :establishmentId
               and appointment.status = br.com.salonhub.entity.AppointmentStatus.COMPLETED

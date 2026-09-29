@@ -70,6 +70,14 @@ public class TenantAuthorizationService {
         return user;
     }
 
+    @Transactional(readOnly = true)
+    public User requireEstablishmentStaff(Long userId) {
+        User user = requireActiveUser(userId);
+        if (user.getRole() == UserRole.ADMIN) return requireAdministrator(userId);
+        if (user.getRole() == UserRole.PROFESSIONAL) return requireProfessional(userId);
+        throw new AccessDeniedException("Acesso permitido apenas à equipe do estabelecimento.");
+    }
+
     private User requireActiveUser(Long userId) {
         return userRepository.findById(userId)
                 .filter(User::isActive)

@@ -18,6 +18,7 @@ public record AppointmentsReportEntry(
         long completedCount,
         long cancelledCount,
         long invalidatedCount,
+        long noShowCount,
         long totalCount,
         BigDecimal completionRate) {
 }

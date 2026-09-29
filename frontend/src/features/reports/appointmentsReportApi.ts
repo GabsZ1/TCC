@@ -7,6 +7,7 @@ export interface AppointmentsReportEntry {
   completedCount: number
   cancelledCount: number
   invalidatedCount: number
+  noShowCount: number
   totalCount: number
   completionRate: number
 }
@@ -19,6 +20,7 @@ export interface AppointmentsReport {
   totalCompleted: number
   totalCancelled: number
   totalInvalidated: number
+  totalNoShows: number
 }
 
 export interface AppointmentsReportFilters {

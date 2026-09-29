@@ -127,7 +127,7 @@ class ServiceLifecycleIntegrationTests {
         professional.updateOfferedServices(false, List.of(service));
         User unlinked = user("unlinked", UserRole.PROFESSIONAL, admin.getEstablishment());
         unlinked.updateOfferedServices(false, List.of());
-        Appointment appointment = appointments.saveAndFlush(Appointment.schedule(admin.getEstablishment(),
+        Appointment appointment = appointments.saveAndFlush(schedule(admin.getEstablishment(),
                 client, professional, service, LocalDateTime.now().plusDays(1).withNano(0)));
         Long appointmentId = appointment.getId();
         Long professionalId = professional.getId();
@@ -203,4 +203,18 @@ class ServiceLifecycleIntegrationTests {
                 {"name":"%s","price":50.00,"commissionPercentage":10.00,"durationMinutes":30}
                 """.formatted(name);
     }
-}
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private CustomerRepository customerRepository;
+
+    private Appointment schedule(br.com.salonhub.entity.Establishment establishment,
+            br.com.salonhub.entity.User client, br.com.salonhub.entity.User professional,
+            br.com.salonhub.entity.EstablishmentService service, java.time.LocalDateTime startsAt) {
+        Customer customer = customerRepository.findByEstablishmentIdAndUserId(establishment.getId(), client.getId())
+                .orElseGet(() -> {
+                    Customer created = Customer.create(establishment, client.getName(), client.getPhone(), client.getEmail());
+                    created.link(client);
+                    return customerRepository.saveAndFlush(created);
+                });
+        return Appointment.schedule(establishment, customer, professional, service, startsAt);
+    }}

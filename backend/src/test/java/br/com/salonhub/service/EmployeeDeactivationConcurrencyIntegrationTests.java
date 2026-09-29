@@ -9,6 +9,7 @@ import br.com.salonhub.entity.EstablishmentService;
 import br.com.salonhub.entity.User;
 import br.com.salonhub.entity.UserRole;
 import br.com.salonhub.repository.AppointmentRepository;
+import br.com.salonhub.repository.CustomerRepository;
 import br.com.salonhub.repository.EstablishmentBusinessHourRepository;
 import br.com.salonhub.repository.EstablishmentRepository;
 import br.com.salonhub.repository.EstablishmentServiceRepository;
@@ -42,6 +43,7 @@ class EmployeeDeactivationConcurrencyIntegrationTests {
     @Autowired private EmployeeService employeeService;
     @Autowired private TransactionTemplate transactionTemplate;
     @Autowired private AppointmentRepository appointmentRepository;
+    @Autowired private CustomerRepository customerRepository;
     @Autowired private EstablishmentRepository establishmentRepository;
     @Autowired private EstablishmentBusinessHourRepository businessHourRepository;
     @Autowired private EstablishmentServiceRepository serviceRepository;
@@ -235,6 +237,8 @@ class EmployeeDeactivationConcurrencyIntegrationTests {
         appointmentRepository.deleteAll(
                 appointmentRepository.findByProfessionalIdOrderByStartsAtDesc(
                         fixture.professional().getId()));
+        customerRepository.deleteAll(customerRepository.findByEstablishmentIdOrderByNameAsc(
+                fixture.establishment().getId()));
         businessHourRepository.deleteById(fixture.businessHour().getId());
         serviceRepository.deleteById(fixture.service().getId());
         userRepository.deleteAll(List.of(

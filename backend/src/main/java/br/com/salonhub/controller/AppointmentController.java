@@ -46,6 +46,13 @@ public class AppointmentController {
         return commandService.create(currentUserId(jwt), establishmentId, request);
     }
 
+    @PostMapping("/agendamentos/estabelecimento/me/clientes/{customerId}")
+    @ResponseStatus(HttpStatus.CREATED)
+    public AppointmentResponse createForCustomer(@AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long customerId, @Valid @RequestBody AppointmentCreateRequest request) {
+        return commandService.createForCustomer(currentUserId(jwt), customerId, request);
+    }
+
     @GetMapping("/agendamentos/me")
     public List<AppointmentResponse> findMine(@AuthenticationPrincipal Jwt jwt) {
         return queryService.findMine(currentUserId(jwt));
@@ -78,6 +85,11 @@ public class AppointmentController {
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long appointmentId) {
         return commandService.complete(currentUserId(jwt), appointmentId);
+    }
+
+    @PatchMapping("/agendamentos/{appointmentId}/falta")
+    public AppointmentResponse markNoShow(@AuthenticationPrincipal Jwt jwt, @PathVariable Long appointmentId) {
+        return commandService.markNoShow(currentUserId(jwt), appointmentId);
     }
 
     @PatchMapping("/agendamentos/{appointmentId}/invalidacao")

@@ -3,6 +3,8 @@ package br.com.salonhub.controller;
 import br.com.salonhub.entity.Establishment;
 import br.com.salonhub.entity.EstablishmentService;
 import br.com.salonhub.entity.Appointment;
+import br.com.salonhub.entity.Customer;
+import br.com.salonhub.repository.CustomerRepository;
 import br.com.salonhub.entity.AppointmentStatus;
 import br.com.salonhub.entity.User;
 import br.com.salonhub.entity.UserRole;
@@ -60,7 +62,7 @@ class SystemEstablishmentControllerIntegrationTests {
         EstablishmentService service = serviceRepository.saveAndFlush(EstablishmentService.builder()
                 .establishment(active).name("Corte sistema").price(new BigDecimal("50.00"))
                 .commissionPercentage(BigDecimal.ZERO).durationMinutes(30).active(true).build());
-        Appointment appointment = appointmentRepository.saveAndFlush(Appointment.schedule(
+        Appointment appointment = appointmentRepository.saveAndFlush(schedule(
                 active, client, professional, service, LocalDateTime.now().plusDays(1)));
 
         mockMvc.perform(get(ENDPOINT).header("Authorization", bearer(systemAdministrator)))
@@ -139,7 +141,7 @@ class SystemEstablishmentControllerIntegrationTests {
         EstablishmentService service = serviceRepository.saveAndFlush(EstablishmentService.builder()
                 .establishment(establishment).name("Corte detalhes").price(new BigDecimal("50.00"))
                 .commissionPercentage(BigDecimal.TEN).durationMinutes(30).active(true).build());
-        appointmentRepository.saveAndFlush(Appointment.schedule(
+        appointmentRepository.saveAndFlush(schedule(
                 establishment, client, professional, service, LocalDateTime.now().plusDays(2)));
 
         mockMvc.perform(get(ENDPOINT + "/{id}", establishment.getId())
@@ -187,4 +189,18 @@ class SystemEstablishmentControllerIntegrationTests {
     private String bearer(User user) {
         return "Bearer " + tokenService.generate(user).value();
     }
-}
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private CustomerRepository customerRepository;
+
+    private Appointment schedule(br.com.salonhub.entity.Establishment establishment,
+            br.com.salonhub.entity.User client, br.com.salonhub.entity.User professional,
+            br.com.salonhub.entity.EstablishmentService service, java.time.LocalDateTime startsAt) {
+        Customer customer = customerRepository.findByEstablishmentIdAndUserId(establishment.getId(), client.getId())
+                .orElseGet(() -> {
+                    Customer created = Customer.create(establishment, client.getName(), client.getPhone(), client.getEmail());
+                    created.link(client);
+                    return customerRepository.saveAndFlush(created);
+                });
+        return Appointment.schedule(establishment, customer, professional, service, startsAt);
+    }}

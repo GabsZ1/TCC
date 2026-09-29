@@ -27,7 +27,7 @@ public record ProfessionalAgendaItemResponse(
         return new ProfessionalAgendaItemResponse(
                 "APPOINTMENT", appointment.getId(), appointment.getServiceName(), null,
                 appointment.getStartsAt(), appointment.getEndsAt(), false,
-                appointment.getStatus().name(), appointment.getClient().getName(), appointment.getClient().getEmail(),
+                appointment.getStatus().name(), appointment.getCustomer().getName(), appointment.getCustomer().getEmail(),
                 appointment.getServiceName(), appointment.getDurationMinutes(), appointment.getAgreedPrice(),
                 appointment.getCancellationReason(), appointment.getInvalidationReason());
     }

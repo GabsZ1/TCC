@@ -4,6 +4,8 @@ import br.com.salonhub.support.TestDocuments;
 
 import br.com.salonhub.entity.User;
 import br.com.salonhub.entity.Appointment;
+import br.com.salonhub.entity.Customer;
+import br.com.salonhub.repository.CustomerRepository;
 import br.com.salonhub.entity.AppointmentStatus;
 import br.com.salonhub.entity.EstablishmentService;
 import br.com.salonhub.repository.AppointmentRepository;
@@ -335,7 +337,7 @@ class EmployeeRemovalIntegrationTests {
         EstablishmentService service = serviceRepository.saveAndFlush(EstablishmentService.builder()
                 .establishment(admin.getEstablishment()).name("Corte").price(new BigDecimal("40.00"))
                 .commissionPercentage(BigDecimal.TEN).durationMinutes(30).build());
-        Appointment appointment = Appointment.schedule(admin.getEstablishment(), client, employee, service,
+        Appointment appointment = schedule(admin.getEstablishment(), client, employee, service,
                 LocalDateTime.now().minusDays(2).withNano(0));
         appointment.cancel();
         appointmentRepository.saveAndFlush(appointment);
@@ -398,7 +400,7 @@ class EmployeeRemovalIntegrationTests {
                 .commissionPercentage(BigDecimal.TEN)
                 .durationMinutes(60)
                 .build());
-        Appointment appointment = Appointment.schedule(
+        Appointment appointment = schedule(
                 employee.getEstablishment(), client, employee, service, startsAt.withNano(0));
         switch (status) {
             case CANCELLED -> appointment.cancel();
@@ -468,4 +470,18 @@ class EmployeeRemovalIntegrationTests {
     private String bearer(String token) {
         return "Bearer " + token;
     }
-}
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private CustomerRepository customerRepository;
+
+    private Appointment schedule(br.com.salonhub.entity.Establishment establishment,
+            br.com.salonhub.entity.User client, br.com.salonhub.entity.User professional,
+            br.com.salonhub.entity.EstablishmentService service, java.time.LocalDateTime startsAt) {
+        Customer customer = customerRepository.findByEstablishmentIdAndUserId(establishment.getId(), client.getId())
+                .orElseGet(() -> {
+                    Customer created = Customer.create(establishment, client.getName(), client.getPhone(), client.getEmail());
+                    created.link(client);
+                    return customerRepository.saveAndFlush(created);
+                });
+        return Appointment.schedule(establishment, customer, professional, service, startsAt);
+    }}

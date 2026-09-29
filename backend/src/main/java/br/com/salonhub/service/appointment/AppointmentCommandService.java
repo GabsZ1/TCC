@@ -4,6 +4,7 @@ import br.com.salonhub.dto.appointment.AppointmentCreateRequest;
 import br.com.salonhub.dto.appointment.AppointmentResponse;
 import br.com.salonhub.entity.Appointment;
 import br.com.salonhub.entity.AppointmentStatus;
+import br.com.salonhub.entity.Customer;
 import br.com.salonhub.entity.Establishment;
 import br.com.salonhub.entity.EstablishmentService;
 import br.com.salonhub.entity.User;
@@ -13,6 +14,7 @@ import br.com.salonhub.exception.ResourceNotFoundException;
 import br.com.salonhub.exception.UnauthorizedException;
 import org.springframework.security.access.AccessDeniedException;
 import br.com.salonhub.repository.AppointmentRepository;
+import br.com.salonhub.repository.CustomerRepository;
 import br.com.salonhub.repository.EstablishmentRepository;
 import br.com.salonhub.repository.EstablishmentServiceRepository;
 import br.com.salonhub.repository.UserRepository;
@@ -30,6 +32,7 @@ import java.time.LocalDateTime;
 public class AppointmentCommandService {
 
     private final AppointmentRepository appointmentRepository;
+    private final CustomerRepository customerRepository;
     private final EstablishmentRepository establishmentRepository;
     private final EstablishmentServiceRepository serviceRepository;
     private final UserRepository userRepository;
@@ -41,16 +44,42 @@ public class AppointmentCommandService {
     public AppointmentResponse create(Long clientId, Long establishmentId, AppointmentCreateRequest request) {
         User client = lockClient(clientId);
         Establishment establishment = findActiveEstablishmentForUpdate(establishmentId);
+        Customer customer = customerRepository.findByEstablishmentIdAndUserId(establishmentId, clientId)
+                .orElseGet(() -> {
+                    Customer created = Customer.create(establishment, client.getName(), client.getPhone(), client.getEmail());
+                    created.link(client);
+                    return customerRepository.saveAndFlush(created);
+                });
+        if (!customer.isActive()) throw new ConflictException("Cliente inativo neste estabelecimento.");
         EstablishmentService service = findActiveService(request.serviceId(), establishmentId);
         User professional = findAndLockProfessional(request.professionalId(), establishmentId);
         requireProfessionalOffersService(professional, service);
 
         LocalDateTime startsAt = request.startsAt();
         LocalDateTime endsAt = startsAt.plusMinutes(service.getDurationMinutes());
-        validateSchedule(establishment, professional, client, startsAt, endsAt, null);
+        validateSchedule(establishment, professional, customer, startsAt, endsAt, null, true);
 
-        Appointment appointment = Appointment.schedule(establishment, client, professional, service, startsAt);
+        Appointment appointment = Appointment.schedule(establishment, customer, professional, service, startsAt);
         return AppointmentResponse.fromEntity(appointmentRepository.save(appointment));
+    }
+
+    @Transactional
+    public AppointmentResponse createForCustomer(Long administratorId, Long customerId,
+                                                 AppointmentCreateRequest request) {
+        User administrator = tenantAuthorizationService.requireEstablishmentStaff(administratorId);
+        Long establishmentId = administrator.getEstablishment().getId();
+        Establishment establishment = findActiveEstablishmentForUpdate(establishmentId);
+        Customer customer = customerRepository.findByIdAndEstablishmentId(customerId, establishmentId)
+                .filter(Customer::isActive)
+                .orElseThrow(() -> new ResourceNotFoundException("Cliente não encontrado."));
+        EstablishmentService service = findActiveService(request.serviceId(), establishmentId);
+        User professional = findAndLockProfessional(request.professionalId(), establishmentId);
+        requireProfessionalOffersService(professional, service);
+        LocalDateTime startsAt = request.startsAt();
+        validateSchedule(establishment, professional, customer, startsAt,
+                startsAt.plusMinutes(service.getDurationMinutes()), null, false);
+        return AppointmentResponse.fromEntity(appointmentRepository.save(
+                Appointment.schedule(establishment, customer, professional, service, startsAt)));
     }
 
     @Transactional
@@ -79,7 +108,7 @@ public class AppointmentCommandService {
 
         LocalDateTime startsAt = request.startsAt();
         LocalDateTime endsAt = startsAt.plusMinutes(service.getDurationMinutes());
-        validateSchedule(establishment, professional, client, startsAt, endsAt, appointment.getId());
+        validateSchedule(establishment, professional, appointment.getCustomer(), startsAt, endsAt, appointment.getId(), true);
 
         appointment.update(service, professional, startsAt);
         return AppointmentResponse.fromEntity(appointment);
@@ -127,6 +156,21 @@ public class AppointmentCommandService {
     }
 
     @Transactional
+    public AppointmentResponse markNoShow(Long userId, Long appointmentId) {
+        Appointment appointment = appointmentRepository.findByIdForUpdate(appointmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Agendamento não encontrado."));
+        requireOwningProfessionalOrAdministrator(userId, appointment);
+        if (appointment.getStatus() != AppointmentStatus.CONFIRMED) {
+            throw new ConflictException("Apenas agendamentos confirmados podem ser marcados como falta.");
+        }
+        if (appointment.getEndsAt().isAfter(LocalDateTime.now(clock))) {
+            throw new ConflictException("A falta só pode ser registrada após o horário previsto de término.");
+        }
+        appointment.markNoShow();
+        return AppointmentResponse.fromEntity(appointment);
+    }
+
+    @Transactional
     public AppointmentResponse invalidate(Long administratorId, Long appointmentId, String reason) {
         User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
         Appointment appointment = appointmentRepository
@@ -158,19 +202,23 @@ public class AppointmentCommandService {
     private void validateSchedule(
             Establishment establishment,
             User professional,
-            User client,
+            Customer customer,
             LocalDateTime startsAt,
             LocalDateTime endsAt,
-            Long ignoredAppointmentId) {
+            Long ignoredAppointmentId,
+            boolean enforceAdvanceWindow) {
         validateSlotAlignment(startsAt);
-        validateAdvanceWindow(establishment, startsAt);
+        if (enforceAdvanceWindow) validateAdvanceWindow(establishment, startsAt);
+        else if (startsAt.isBefore(LocalDateTime.now(clock))) {
+            throw new ConflictException("O agendamento não pode começar no passado.");
+        }
         // O horário de funcionamento do estabelecimento já é considerado por
         // professionalAvailabilityService.validateAvailable(), que calcula a interseção entre
         // o expediente do salão e a jornada própria do profissional (quando houver). Isso evita
         // ter duas fontes independentes de verdade sobre o horário de atendimento.
         professionalAvailabilityService.validateAvailable(professional, startsAt, endsAt);
         validateProfessionalAvailability(professional.getId(), startsAt, endsAt, ignoredAppointmentId);
-        validateClientAvailability(client.getId(), startsAt, endsAt, ignoredAppointmentId);
+        validateClientAvailability(customer.getId(), startsAt, endsAt, ignoredAppointmentId);
     }
 
     private void validateSlotAlignment(LocalDateTime startsAt) {
@@ -225,9 +273,9 @@ public class AppointmentCommandService {
     private void validateClientAvailability(
             Long clientId, LocalDateTime startsAt, LocalDateTime endsAt, Long ignoredAppointmentId) {
         boolean conflict = ignoredAppointmentId == null
-                ? appointmentRepository.existsByClientIdAndStatusAndStartsAtLessThanAndEndsAtGreaterThan(
+                ? appointmentRepository.existsByCustomerIdAndStatusAndStartsAtLessThanAndEndsAtGreaterThan(
                         clientId, AppointmentStatus.CONFIRMED, endsAt, startsAt)
-                : appointmentRepository.existsByClientIdAndStatusAndIdNotAndStartsAtLessThanAndEndsAtGreaterThan(
+                : appointmentRepository.existsByCustomerIdAndStatusAndIdNotAndStartsAtLessThanAndEndsAtGreaterThan(
                         clientId, AppointmentStatus.CONFIRMED, ignoredAppointmentId, endsAt, startsAt);
         if (conflict) {
             throw new ConflictException("Você já possui um agendamento nesse período.");

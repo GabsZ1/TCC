@@ -3,6 +3,8 @@ package br.com.salonhub.controller;
 import br.com.salonhub.support.TestDocuments;
 
 import br.com.salonhub.entity.Appointment;
+import br.com.salonhub.entity.Customer;
+import br.com.salonhub.repository.CustomerRepository;
 import br.com.salonhub.entity.AppointmentStatus;
 import br.com.salonhub.repository.AppointmentRepository;
 
@@ -240,9 +242,9 @@ class AppointmentFlowIntegrationTests {
                 .andExpect(jsonPath("$.durationMinutes").value(30));
 
         Appointment current = appointmentRepository.findById(appointmentId.longValue()).orElseThrow();
-        Appointment past = appointmentRepository.saveAndFlush(Appointment.schedule(
+        Appointment past = appointmentRepository.saveAndFlush(schedule(
                 current.getEstablishment(),
-                current.getClient(),
+                current.getCustomer().getUser(),
                 current.getProfessional(),
                 current.getService(),
                 LocalDateTime.now().minusDays(1)));
@@ -389,4 +391,18 @@ class AppointmentFlowIntegrationTests {
     private String bearer(String token) {
         return "Bearer " + token;
     }
-}
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private CustomerRepository customerRepository;
+
+    private Appointment schedule(br.com.salonhub.entity.Establishment establishment,
+            br.com.salonhub.entity.User client, br.com.salonhub.entity.User professional,
+            br.com.salonhub.entity.EstablishmentService service, java.time.LocalDateTime startsAt) {
+        Customer customer = customerRepository.findByEstablishmentIdAndUserId(establishment.getId(), client.getId())
+                .orElseGet(() -> {
+                    Customer created = Customer.create(establishment, client.getName(), client.getPhone(), client.getEmail());
+                    created.link(client);
+                    return customerRepository.saveAndFlush(created);
+                });
+        return Appointment.schedule(establishment, customer, professional, service, startsAt);
+    }}

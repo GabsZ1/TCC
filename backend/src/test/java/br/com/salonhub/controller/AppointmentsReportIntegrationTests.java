@@ -3,6 +3,8 @@ package br.com.salonhub.controller;
 import br.com.salonhub.support.TestDocuments;
 
 import br.com.salonhub.entity.Appointment;
+import br.com.salonhub.entity.Customer;
+import br.com.salonhub.repository.CustomerRepository;
 import br.com.salonhub.entity.Establishment;
 import br.com.salonhub.entity.EstablishmentService;
 import br.com.salonhub.entity.User;
@@ -67,9 +69,10 @@ class AppointmentsReportIntegrationTests {
     @Test
     void shouldCountAppointmentsByStatusForTheCurrentMonthWhenNoFilterIsApplied() throws Exception {
         Fixture fixture = setUp("appointments-report-current-month", "45000000010049");
-        createAppointment(fixture, fixture.professional(), LocalDateTime.now().minusDays(1), Status.COMPLETED);
-        createAppointment(fixture, fixture.professional(), LocalDateTime.now().minusHours(3), Status.CANCELLED);
-        createAppointment(fixture, fixture.professional(), LocalDateTime.now().plusDays(2), Status.CONFIRMED);
+        LocalDateTime monthStart = LocalDate.now().withDayOfMonth(1).atTime(10, 0);
+        createAppointment(fixture, fixture.professional(), monthStart, Status.COMPLETED);
+        createAppointment(fixture, fixture.professional(), monthStart.plusHours(2), Status.CANCELLED);
+        createAppointment(fixture, fixture.professional(), monthStart.plusHours(4), Status.CONFIRMED);
 
         mockMvc.perform(get("/api/estabelecimentos/me/relatorio-atendimentos")
                         .header("Authorization", bearer(fixture.administratorToken())))
@@ -86,6 +89,22 @@ class AppointmentsReportIntegrationTests {
                 .andExpect(jsonPath("$.totalCompleted").value(1))
                 .andExpect(jsonPath("$.totalCancelled").value(1))
                 .andExpect(jsonPath("$.totalInvalidated").value(0));
+    }
+
+    @Test
+    void shouldIncludeNoShowsInTotalsAndCompletionRate() throws Exception {
+        Fixture fixture = setUp("appointments-report-no-show", "45000000010049");
+        LocalDateTime start = LocalDate.now().withDayOfMonth(1).atTime(10, 0);
+        createAppointment(fixture, fixture.professional(), start, Status.COMPLETED);
+        createAppointment(fixture, fixture.professional(), start.plusHours(2), Status.NO_SHOW);
+
+        mockMvc.perform(get("/api/estabelecimentos/me/relatorio-atendimentos")
+                        .header("Authorization", bearer(fixture.administratorToken())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.entries[0].noShowCount").value(1))
+                .andExpect(jsonPath("$.entries[0].totalCount").value(2))
+                .andExpect(jsonPath("$.entries[0].completionRate").value(50.0))
+                .andExpect(jsonPath("$.totalNoShows").value(1));
     }
 
     @Test
@@ -199,14 +218,15 @@ class AppointmentsReportIntegrationTests {
                 .andExpect(jsonPath("$.totalCompleted").value(0));
     }
 
-    private enum Status { CONFIRMED, COMPLETED, CANCELLED }
+    private enum Status { CONFIRMED, COMPLETED, CANCELLED, NO_SHOW }
 
     private Long createAppointment(Fixture fixture, User professional, LocalDateTime startsAt, Status status) {
-        Appointment appointment = Appointment.schedule(
+        Appointment appointment = schedule(
                 fixture.establishment(), fixture.client(), professional, fixture.service(), startsAt);
         switch (status) {
             case COMPLETED -> appointment.complete(startsAt.plusMinutes(60));
             case CANCELLED -> appointment.cancel();
+            case NO_SHOW -> appointment.markNoShow();
             case CONFIRMED -> { }
         }
         return appointmentRepository.saveAndFlush(appointment).getId();
@@ -343,4 +363,18 @@ class AppointmentsReportIntegrationTests {
     private String bearer(String token) {
         return "Bearer " + token;
     }
-}
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private CustomerRepository customerRepository;
+
+    private Appointment schedule(br.com.salonhub.entity.Establishment establishment,
+            br.com.salonhub.entity.User client, br.com.salonhub.entity.User professional,
+            br.com.salonhub.entity.EstablishmentService service, java.time.LocalDateTime startsAt) {
+        Customer customer = customerRepository.findByEstablishmentIdAndUserId(establishment.getId(), client.getId())
+                .orElseGet(() -> {
+                    Customer created = Customer.create(establishment, client.getName(), client.getPhone(), client.getEmail());
+                    created.link(client);
+                    return customerRepository.saveAndFlush(created);
+                });
+        return Appointment.schedule(establishment, customer, professional, service, startsAt);
+    }}

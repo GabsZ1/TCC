@@ -75,7 +75,7 @@ public class ClientAccountService {
         }
 
         LocalDateTime now = LocalDateTime.now(clock);
-        for (Appointment appointment : appointmentRepository.findByClientIdOrderByStartsAtDesc(client.getId())) {
+        for (Appointment appointment : appointmentRepository.findByCustomerUserIdOrderByStartsAtDesc(client.getId())) {
             if (appointment.getStatus() == AppointmentStatus.CONFIRMED && appointment.getStartsAt().isAfter(now)) {
                 appointment.cancelBecauseClientAccountWasClosed(now);
             }

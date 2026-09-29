@@ -196,8 +196,8 @@ function Tabs({ section, onChange, upcomingCount }: { section: AppointmentSectio
 }
 function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) { return <button type="button" onClick={onClick} className={`rounded-lg px-3.5 py-2 text-sm font-semibold ${active ? 'bg-primary-100 text-primary-800' : 'text-text-500 hover:text-text-800'}`}>{children}</button> }
 function StatusBadge({ status }: { status: Appointment['status'] }) {
-  const labels: Record<Appointment['status'], string> = { CONFIRMED: 'Confirmado', CANCELLED: 'Cancelado', COMPLETED: 'Concluído', INVALIDATED: 'Invalidado' }
-  const styles: Record<Appointment['status'], string> = { CONFIRMED: 'bg-primary-100 text-primary-800', CANCELLED: 'bg-danger-50 text-danger-600', COMPLETED: 'bg-success-50 text-success-700', INVALIDATED: 'bg-warning-100 text-warning-700' }
+  const labels: Record<Appointment['status'], string> = { CONFIRMED: 'Confirmado', CANCELLED: 'Cancelado', COMPLETED: 'Concluído', INVALIDATED: 'Invalidado', NO_SHOW: 'Não compareceu' }
+  const styles: Record<Appointment['status'], string> = { CONFIRMED: 'bg-primary-100 text-primary-800', CANCELLED: 'bg-danger-50 text-danger-600', COMPLETED: 'bg-success-50 text-success-700', INVALIDATED: 'bg-warning-100 text-warning-700', NO_SHOW: 'bg-warning-100 text-warning-700' }
   return <span className={`status-pill ${styles[status]}`}>{labels[status]}</span>
 }
 function isFuture(value: string) { return new Date(value).getTime() > Date.now() }

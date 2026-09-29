@@ -1,6 +1,8 @@
 package br.com.salonhub.controller;
 
 import br.com.salonhub.entity.Appointment;
+import br.com.salonhub.entity.Customer;
+import br.com.salonhub.repository.CustomerRepository;
 import br.com.salonhub.entity.AppointmentStatus;
 import br.com.salonhub.entity.Establishment;
 import br.com.salonhub.entity.EstablishmentService;
@@ -215,7 +217,7 @@ class ClientAccountIntegrationTests {
 
         Appointment keptPast = appointmentRepository.findById(past.getId()).orElseThrow();
         assertThat(keptPast.getStatus()).isEqualTo(AppointmentStatus.COMPLETED);
-        assertThat(keptPast.getClient().getId()).isEqualTo(closed.getId());
+        assertThat(keptPast.getCustomer().getUser().getId()).isEqualTo(closed.getId());
         Appointment cancelledFuture = appointmentRepository.findById(future.getId()).orElseThrow();
         assertThat(cancelledFuture.getStatus()).isEqualTo(AppointmentStatus.CANCELLED);
         assertThat(cancelledFuture.getCancellationReason()).isEqualTo("Conta do cliente excluída");
@@ -263,7 +265,7 @@ class ClientAccountIntegrationTests {
     }
 
     private Appointment appointment(Fixture fixture, LocalDateTime startsAt) {
-        return appointmentRepository.saveAndFlush(Appointment.schedule(
+        return appointmentRepository.saveAndFlush(schedule(
                 fixture.establishment(), fixture.client(), fixture.professional(), fixture.service(), startsAt));
     }
 
@@ -291,4 +293,18 @@ class ClientAccountIntegrationTests {
             User client,
             EstablishmentService service) {
     }
-}
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private CustomerRepository customerRepository;
+
+    private Appointment schedule(br.com.salonhub.entity.Establishment establishment,
+            br.com.salonhub.entity.User client, br.com.salonhub.entity.User professional,
+            br.com.salonhub.entity.EstablishmentService service, java.time.LocalDateTime startsAt) {
+        Customer customer = customerRepository.findByEstablishmentIdAndUserId(establishment.getId(), client.getId())
+                .orElseGet(() -> {
+                    Customer created = Customer.create(establishment, client.getName(), client.getPhone(), client.getEmail());
+                    created.link(client);
+                    return customerRepository.saveAndFlush(created);
+                });
+        return Appointment.schedule(establishment, customer, professional, service, startsAt);
+    }}

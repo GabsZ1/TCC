@@ -1,6 +1,7 @@
 package br.com.salonhub.seed;
 
 import br.com.salonhub.entity.Appointment;
+import br.com.salonhub.entity.Customer;
 import br.com.salonhub.entity.Establishment;
 import br.com.salonhub.entity.EstablishmentBusinessHour;
 import br.com.salonhub.entity.EstablishmentProfile;
@@ -10,6 +11,7 @@ import br.com.salonhub.entity.ProfessionalCalendarEvent;
 import br.com.salonhub.entity.User;
 import br.com.salonhub.entity.UserRole;
 import br.com.salonhub.repository.AppointmentRepository;
+import br.com.salonhub.repository.CustomerRepository;
 import br.com.salonhub.repository.EstablishmentBusinessHourRepository;
 import br.com.salonhub.repository.EstablishmentProfileRepository;
 import br.com.salonhub.repository.EstablishmentRepository;
@@ -64,6 +66,7 @@ public class DemoDataSeeder {
     private final ProfessionalBusinessHourRepository professionalHourRepository;
     private final ProfessionalCalendarEventRepository calendarEventRepository;
     private final AppointmentRepository appointmentRepository;
+    private final CustomerRepository customerRepository;
     private final PasswordEncoder passwordEncoder;
     private final Clock clock;
 
@@ -270,7 +273,14 @@ public class DemoDataSeeder {
                     }
                     // Maria recebe mais agendamentos para a tela "Meus agendamentos" ficar cheia.
                     User client = random.nextDouble() < 0.25 ? clients.getFirst() : clients.get(random.nextInt(clients.size()));
-                    Appointment appointment = Appointment.schedule(seeded.establishment(), client, professional, service, day.atTime(slot));
+                    Customer customer = customerRepository.findByEstablishmentIdAndUserId(
+                            seeded.establishment().getId(), client.getId()).orElseGet(() -> {
+                        Customer newCustomer = Customer.create(seeded.establishment(), client.getName(),
+                                client.getPhone(), client.getEmail());
+                        newCustomer.link(client);
+                        return customerRepository.save(newCustomer);
+                    });
+                    Appointment appointment = Appointment.schedule(seeded.establishment(), customer, professional, service, day.atTime(slot));
                     applyStatus(appointment, offset, administrator);
                     created.add(appointment);
                 }

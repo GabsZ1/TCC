@@ -19,7 +19,7 @@ class AppointmentSnapshotTests {
                 .build();
         Appointment appointment = Appointment.schedule(
                 Establishment.builder().name("Salão").build(),
-                User.builder().name("Cliente").build(),
+                Customer.create(Establishment.builder().name("Salão").build(), "Cliente", null, null),
                 User.builder().name("Profissional").build(),
                 service,
                 LocalDateTime.of(2026, 1, 1, 10, 0));
