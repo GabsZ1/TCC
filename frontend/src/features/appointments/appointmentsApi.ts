@@ -50,6 +50,7 @@ export interface ActiveEstablishment {
   name: string
   minimumAdvanceHours: number
   maximumAdvanceDays: number
+  distanceKm?: number | null
 }
 
 export interface PublicEstablishmentProfile {
@@ -73,6 +74,10 @@ export interface PublicEstablishmentProfile {
 
 export function fetchActiveEstablishments() {
   return api.get<ActiveEstablishment[]>('/estabelecimentos').then((response) => response.data)
+}
+
+export function fetchNearbyEstablishments(latitude: number, longitude: number) {
+  return api.post<ActiveEstablishment[]>('/estabelecimentos/proximos', { latitude, longitude }).then((response) => response.data)
 }
 
 export function fetchEstablishmentProfile(establishmentId: number) {

@@ -21,6 +21,7 @@ public record EstablishmentProfileResponse(
         String neighborhood,
         String city,
         String state,
+        boolean locationAvailable,
         List<BusinessHourResponse> businessHours,
         List<CatalogProfessionalResponse> professionals,
         List<CatalogServiceResponse> services
@@ -45,6 +46,7 @@ public record EstablishmentProfileResponse(
                 profile == null ? null : profile.getNeighborhood(),
                 profile == null ? null : profile.getCity(),
                 profile == null ? null : profile.getState(),
+                profile != null && profile.hasLocation(),
                 businessHours,
                 professionals,
                 services);

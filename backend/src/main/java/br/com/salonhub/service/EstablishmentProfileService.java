@@ -8,6 +8,7 @@ import br.com.salonhub.dto.establishment.BusinessHourResponse;
 import br.com.salonhub.entity.Establishment;
 import br.com.salonhub.entity.EstablishmentProfile;
 import br.com.salonhub.entity.UserRole;
+import br.com.salonhub.service.geocoding.GeocodingService;
 import br.com.salonhub.exception.ConflictException;
 import br.com.salonhub.exception.ResourceNotFoundException;
 import br.com.salonhub.repository.EstablishmentProfileRepository;
@@ -31,6 +32,7 @@ public class EstablishmentProfileService {
     private final EstablishmentServiceRepository serviceRepository;
     private final UserRepository userRepository;
     private final TenantAuthorizationService tenantAuthorizationService;
+    private final GeocodingService geocodingService;
 
     @Transactional(readOnly = true)
     public EstablishmentProfileResponse findPublic(Long establishmentId) {
@@ -56,6 +58,7 @@ public class EstablishmentProfileService {
         }
         EstablishmentProfile profile = profileRepository.findByEstablishmentId(establishment.getId())
                 .orElseGet(() -> EstablishmentProfile.builder().establishment(establishment).build());
+        String previousAddress = addressOf(profile);
         profile.update(
                 normalize(request.aboutUs()),
                 normalizeInstagram(request.instagram()),
@@ -68,6 +71,9 @@ public class EstablishmentProfileService {
                 normalize(request.neighborhood()),
                 normalize(request.city()),
                 normalizeState(request.state()));
+        if (!previousAddress.equals(addressOf(profile))) {
+            geocodingService.geocode(addressOf(profile)).ifPresent(c -> profile.updateLocation(c.latitude(), c.longitude()));
+        }
         profileRepository.save(profile);
         return response(establishment, profile);
     }
@@ -84,6 +90,12 @@ public class EstablishmentProfileService {
         return EstablishmentProfileResponse.from(establishment, profile, businessHours, professionals, services);
     }
 
+    private String addressOf(EstablishmentProfile profile) {
+        if (profile.getStreet() == null || profile.getCity() == null || profile.getState() == null) return "";
+        return java.util.stream.Stream.of(profile.getStreet(), profile.getStreetNumber(), profile.getNeighborhood(),
+                profile.getCity(), profile.getState(), profile.getPostalCode(), "Brasil")
+                .filter(v -> v != null && !v.isBlank()).collect(java.util.stream.Collectors.joining(", "));
+    }
     private String normalize(String value) {
         return value == null || value.isBlank() ? null : value.trim();
     }
