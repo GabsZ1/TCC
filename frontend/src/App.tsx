@@ -55,7 +55,6 @@ function App() {
               <Route path="/estabelecimento" element={<EstablishmentPage />} />
               <Route path="/perfil-estabelecimento" element={<EstablishmentProfilePage />} />
               <Route path="/agenda" element={<AdminAgendaPage />} />
-              <Route path="/clientes" element={<CustomersPage />} />
               <Route path="/relatorio-comissoes" element={<CommissionReportPage />} />
               <Route path="/relatorio-atendimentos" element={<EstablishmentAppointmentsPage />} />
             </Route>
@@ -69,8 +68,13 @@ function App() {
               <Route path="/meu-perfil" element={<MyProfilePage />} />
             </Route>
 
-            <Route element={<ProtectedRoute allowedRoles={['PROFESSIONAL']} />}>
+            {/* Uma rota só para os dois perfis: com duas rotas iguais, o React Router usa a primeira
+                (só ADMIN) e o profissional caía em "sem permissão". */}
+            <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'PROFESSIONAL']} />}>
               <Route path="/clientes" element={<CustomersPage />} />
+            </Route>
+
+            <Route element={<ProtectedRoute allowedRoles={['PROFESSIONAL']} />}>
               <Route path="/minha-agenda" element={<ProfessionalAgendaPage />} />
               <Route path="/meus-servicos" element={<MyServicesPage />} />
               <Route path="/meus-atendimentos" element={<MyCompletedServicesPage />} />
