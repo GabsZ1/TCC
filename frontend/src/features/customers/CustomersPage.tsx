@@ -1,10 +1,14 @@
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useAuth } from '@/hooks/useAuth'
 import { getApiErrorMessage } from '@/lib/apiError'
 import { createCustomer, createCustomerAppointment, fetchBookingOptions, fetchCustomerAppointments, fetchCustomers, updateCustomer, type Customer } from './customersApi'
 
 export function CustomersPage() {
   const queryClient = useQueryClient()
+  const { user } = useAuth()
+  // O profissional só agenda na própria agenda (o backend também garante isso).
+  const isProfessional = user?.role === 'PROFESSIONAL'
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<Customer | null>(null)
   const [editing, setEditing] = useState<Customer | 'new' | null>(null)
@@ -22,7 +26,7 @@ export function CustomersPage() {
     onSuccess: (customer) => { queryClient.invalidateQueries({ queryKey: ['customers'] }); setSelected(customer); setEditing(null) },
   })
   const booking = useMutation({
-    mutationFn: () => createCustomerAppointment(selected!.id, Number(serviceId), Number(professionalId), startsAt),
+    mutationFn: () => createCustomerAppointment(selected!.id, Number(serviceId), isProfessional ? Number(user!.id) : Number(professionalId), startsAt),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['customer-appointments', selected?.id] }); queryClient.invalidateQueries({ queryKey: ['establishment-agenda'] }); setStartsAt('') },
   })
   const status = useMutation({
@@ -66,7 +70,9 @@ export function CustomersPage() {
           <section className="surface-card p-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-semibold">{selected.name}</h2><p className="text-sm text-text-600">{selected.phone}{selected.email ? ` · ${selected.email}` : ''}</p></div><div className="flex gap-3"><button onClick={() => openForm(selected)}>Editar</button><button onClick={() => status.mutate()} disabled={status.isPending}>{selected.active ? 'Desativar' : 'Reativar'}</button></div></div></section>
           {selected.active && <form onSubmit={submitBooking} className="surface-card space-y-3 p-5"><h2 className="font-semibold">Agendar para {selected.name}</h2>
             <label className="block text-sm">Serviço<select required className="filter-input mt-1 w-full" value={serviceId} onChange={(event) => setServiceId(event.target.value)}><option value="">Selecione</option>{options.data?.services.map((service) => <option key={service.id} value={service.id}>{service.name}</option>)}</select></label>
-            <label className="block text-sm">Profissional<select required className="filter-input mt-1 w-full" value={professionalId} onChange={(event) => setProfessionalId(event.target.value)}><option value="">Selecione</option>{options.data?.professionals.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}</select></label>
+            {isProfessional
+              ? <p className="text-sm">Profissional<span className="filter-input mt-1 block w-full bg-background-100 text-text-700">{user?.name} (sua agenda)</span></p>
+              : <label className="block text-sm">Profissional<select required className="filter-input mt-1 w-full" value={professionalId} onChange={(event) => setProfessionalId(event.target.value)}><option value="">Selecione</option>{options.data?.professionals.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}</select></label>}
             <label className="block text-sm">Data e horário<input required type="datetime-local" className="filter-input mt-1 w-full" value={startsAt} onChange={(event) => setStartsAt(event.target.value)} /></label>
             {booking.isError && <p role="alert" className="text-danger-600">{getApiErrorMessage(booking.error, 'Não foi possível agendar.')}</p>}
             {booking.isSuccess && <p role="status" className="text-success-700">Agendamento criado.</p>}

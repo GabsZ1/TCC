@@ -68,6 +68,11 @@ public class AppointmentCommandService {
     public AppointmentResponse createForCustomer(Long administratorId, Long customerId,
                                                  AppointmentCreateRequest request) {
         User administrator = tenantAuthorizationService.requireEstablishmentStaff(administratorId);
+        // O administrador agenda para qualquer profissional; o profissional, só para si mesmo.
+        if (administrator.getRole() == UserRole.PROFESSIONAL
+                && !administrator.getId().equals(request.professionalId())) {
+            throw new AccessDeniedException("O profissional só pode criar agendamentos na própria agenda.");
+        }
         Long establishmentId = administrator.getEstablishment().getId();
         Establishment establishment = findActiveEstablishmentForUpdate(establishmentId);
         Customer customer = customerRepository.findByIdAndEstablishmentId(customerId, establishmentId)
