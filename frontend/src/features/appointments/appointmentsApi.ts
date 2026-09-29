@@ -122,6 +122,13 @@ export function completeAppointment(appointmentId: number) {
   return api.patch<Appointment>(`/agendamentos/${appointmentId}/conclusao`).then((response) => response.data)
 }
 
+export const PENDING_CLOSURE_KEY = ['pending-closure']
+
+/** Atendimentos que já terminaram e continuam confirmados (admin: do estabelecimento; profissional: os dele). */
+export function fetchPendingClosure() {
+  return api.get<Appointment[]>('/agendamentos/pendentes-fechamento').then((response) => response.data)
+}
+
 export function markAppointmentNoShow(appointmentId: number) {
   return api.patch<Appointment>(`/agendamentos/${appointmentId}/falta`).then((response) => response.data)
 }

@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.LocalDateTime;
 
 @Service
@@ -155,6 +156,12 @@ public class AppointmentCommandService {
         return AppointmentResponse.fromEntity(appointment);
     }
 
+    /**
+     * Tolerância de atraso: a falta pode ser registrada a partir do início + 15 min (não é preciso
+     * esperar o fim previsto). É sempre manual; não há marcação automática.
+     */
+    public static final Duration NO_SHOW_TOLERANCE = Duration.ofMinutes(15);
+
     @Transactional
     public AppointmentResponse markNoShow(Long userId, Long appointmentId) {
         Appointment appointment = appointmentRepository.findByIdForUpdate(appointmentId)
@@ -163,8 +170,9 @@ public class AppointmentCommandService {
         if (appointment.getStatus() != AppointmentStatus.CONFIRMED) {
             throw new ConflictException("Apenas agendamentos confirmados podem ser marcados como falta.");
         }
-        if (appointment.getEndsAt().isAfter(LocalDateTime.now(clock))) {
-            throw new ConflictException("A falta só pode ser registrada após o horário previsto de término.");
+        if (appointment.getStartsAt().plus(NO_SHOW_TOLERANCE).isAfter(LocalDateTime.now(clock))) {
+            throw new ConflictException("A falta só pode ser registrada "
+                    + NO_SHOW_TOLERANCE.toMinutes() + " minutos após o horário de início.");
         }
         appointment.markNoShow();
         return AppointmentResponse.fromEntity(appointment);

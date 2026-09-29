@@ -198,7 +198,7 @@ O que é criado:
 - 8 estabelecimentos: 7 aceitando agendamentos (para a paginação de 6 aparecer na tela do cliente) e o "Studio Aurora", pausado, que não aparece para clientes. Todos com perfil público, endereço e horário (seg–sex 9h–18h, sáb 9h–14h, domingo fechado).
 - Serviços em cada estabelecimento (um deles inativo no Studio Bella).
 - Funcionários com CPF, admissão, ocupação e contatos; alguns atendem só parte dos serviços, e há um funcionário desativado.
-- 10 clientes e agendamentos dos últimos 60 dias e dos próximos 14: concluídos, cancelados, invalidados, confirmados e alguns recentes pendentes de conclusão (alimentam relatórios, comissões, dashboard e agendas).
+- 10 clientes e agendamentos dos últimos 60 dias e dos próximos 14: concluídos, cancelados, invalidados, faltas (`NO_SHOW`), confirmados e alguns recentes pendentes de fechamento (alimentam relatórios, comissões, dashboard e agendas).
 - Na agenda da Camila, horário próprio (quintas só à tarde) e um evento de dia inteiro ("Curso de coloração").
 - As fotos dos funcionários não são criadas; cada um pode enviar a sua em "Meu perfil".
 
@@ -369,6 +369,20 @@ Exemplo de criação:
 ```
 
 A duração do serviço define automaticamente o término. A API valida o horário geral do estabelecimento, a atividade do serviço e do profissional e conflitos com agendamentos confirmados. A criação bloqueia temporariamente o registro do profissional e revalida a disponibilidade, reduzindo o risco de reservas concorrentes no mesmo período.
+
+### Status do agendamento e falta do cliente (`NO_SHOW`)
+
+```text
+                  ┌──> COMPLETED ───> INVALIDATED
+CONFIRMED ────────┼──> CANCELLED
+                  └──> NO_SHOW
+```
+
+- **Não compareceu (`NO_SHOW`):** registrado pelo profissional do atendimento ou pelo administrador, com `PATCH /api/agendamentos/{id}/falta`. Só vale para agendamentos confirmados e a partir de **15 minutos após o início** (tolerância de atraso), sem precisar esperar o fim previsto. A falta libera o horário do profissional. Não pode ser desfeita.
+- **Nada é automático:** o sistema nunca marca falta ou conclusão sozinho, porque um atendimento feito e não fechado seria registrado como falta e afetaria a comissão.
+- **Pendentes de fechamento:** `GET /api/agendamentos/pendentes-fechamento` lista os agendamentos que já terminaram e continuam `CONFIRMED` (o admin vê os do estabelecimento; o profissional, os dele). As duas agendas mostram um aviso com essa lista e os botões "Concluir" e "Não compareceu".
+- **Pausa do estabelecimento:** só é bloqueada por agendamentos confirmados que ainda não terminaram. Um confirmado esquecido no passado não impede a pausa.
+- **Relatórios:** o relatório de atendimentos conta as faltas separadamente. Faltas não geram comissão.
 
 ### Funcionários (US 2.1, 2.2 e 2.6) e perfil do funcionário
 

@@ -160,6 +160,13 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     long countByEstablishmentId(Long establishmentId);
 
+    /** Atendimentos que já terminaram e continuam confirmados (ninguém concluiu nem registrou falta). */
+    List<Appointment> findByEstablishmentIdAndStatusAndEndsAtLessThanEqualOrderByStartsAt(
+            Long establishmentId, AppointmentStatus status, LocalDateTime endsAt);
+
+    List<Appointment> findByProfessionalIdAndStatusAndEndsAtLessThanEqualOrderByStartsAt(
+            Long professionalId, AppointmentStatus status, LocalDateTime endsAt);
+
     long countByEstablishmentIdAndStatusAndStartsAtGreaterThanEqual(
             Long establishmentId, AppointmentStatus status, LocalDateTime from);
 

@@ -10,7 +10,9 @@ import { CalendarDays, Clock3, Mail, Plus, RefreshCw, Settings2, Trash2, User } 
 import { Modal } from '@/components/ui/Modal'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { getApiErrorMessage } from '@/lib/apiError'
-import { completeAppointment, markAppointmentNoShow } from '@/features/appointments/appointmentsApi'
+import { PENDING_CLOSURE_KEY, completeAppointment, markAppointmentNoShow } from '@/features/appointments/appointmentsApi'
+import { canMarkNoShow } from '@/features/appointments/noShowPolicy'
+import { PendingClosurePanel } from '@/features/appointments/PendingClosurePanel'
 import { createCalendarEvent, deleteCalendarEvent, fetchProfessionalAgenda, fetchProfessionalAgendaConfiguration, fetchProfessionalSchedule, updateCalendarEvent, updateProfessionalSchedule, type CalendarEventInput, type ProfessionalAgendaItem, type ProfessionalHour, type ProfessionalHourInput } from '@/features/appointments/professionalAgendaApi'
 import { filterAgendaItems, findAgendaConflict, normalizeEventInput, rangeAfterStartChange, type AgendaFilter } from '@/features/appointments/professionalAgendaUtils'
 
@@ -54,6 +56,7 @@ export function ProfessionalAgendaPage() {
       <div><p className="eyebrow">Operação</p><h1 className="page-title mt-3">Minha agenda</h1><p className="page-subtitle">Visualize atendimentos, organize sua jornada e bloqueie horários pessoais.</p></div>
       <div className="flex flex-wrap gap-2"><button type="button" onClick={() => setScheduleOpen(true)} className="inline-flex items-center gap-2 rounded-xl border border-background-300 bg-background-50 px-4 py-2.5 text-sm font-semibold text-text-700 hover:bg-primary-50"><Settings2 size={17} /> Jornada</button><button type="button" onClick={() => { const start = contextualEventStart(calendarRef.current?.getApi().getDate(), schedule.data ?? [], agendaTimeZone); openNewEvent(start, addHours(start, 1), false) }} className="primary-button"><Plus size={18} /> Novo compromisso</button></div>
     </header>
+    <PendingClosurePanel showProfessional={false} onChanged={() => queryClient.invalidateQueries({ queryKey: AGENDA_KEY })} />
     <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
       <div className="inline-flex rounded-xl border border-background-300 bg-background-50 p-1" aria-label="Visualização da agenda">{(['day', 'week', 'month'] as CalendarView[]).map((option) => <button key={option} type="button" aria-pressed={view === option} onClick={() => changeView(option)} className={`rounded-lg px-3 py-1.5 text-sm font-medium ${view === option ? 'bg-primary-600 text-on-primary' : 'text-text-700 hover:bg-primary-50'}`}>{VIEW_LABELS[option]}</button>)}</div>
       <label className="flex items-center gap-2 text-sm font-medium text-text-700"><span>Exibir</span><select value={filter} onChange={(event) => setFilter(event.target.value as AgendaFilter)} className="rounded-lg border border-background-300 bg-background-50 px-3 py-2"><option value="active">Ativos</option><option value="finished">Encerrados</option><option value="all">Todos</option></select></label>
@@ -66,7 +69,7 @@ export function ProfessionalAgendaPage() {
     <p className="mt-2 text-xs text-text-600">As áreas sombreadas ficam fora da sua jornada. Fuso da agenda: {agendaTimeZone}.</p>
     <div className="mt-4 flex flex-wrap gap-4 text-xs text-text-600"><Legend color="bg-primary-600" label="Atendimento confirmado" /><Legend color="bg-secondary-600" label="Compromisso pessoal" /><Legend color="bg-success-600" label="Atendimento concluído" /><Legend color="bg-danger-600" label="Atendimento cancelado" /><Legend color="bg-warning-700" label="Atendimento invalidado" /></div>
     {editor && <EventEditor initial={editor} agendaItems={agenda.data ?? []} timeZone={agendaTimeZone} onClose={() => setEditor(null)} onSaved={() => { setEditor(null); queryClient.invalidateQueries({ queryKey: AGENDA_KEY }) }} onDelete={editor.event ? () => { setEditor(null); setDeletingEvent(editor.event) } : undefined} />}
-    {selectedAppointment && <AppointmentDetails item={selectedAppointment} timeZone={agendaTimeZone} onClose={() => setSelectedAppointment(null)} onCompleted={() => { setSelectedAppointment(null); queryClient.invalidateQueries({ queryKey: AGENDA_KEY }) }} />}
+    {selectedAppointment && <AppointmentDetails item={selectedAppointment} timeZone={agendaTimeZone} onClose={() => setSelectedAppointment(null)} onCompleted={() => { setSelectedAppointment(null); queryClient.invalidateQueries({ queryKey: AGENDA_KEY }); queryClient.invalidateQueries({ queryKey: PENDING_CLOSURE_KEY }) }} />}
     {scheduleOpen && <ScheduleEditor onClose={() => setScheduleOpen(false)} />}
     {deletingEvent && <DeleteEventDialog event={deletingEvent} onClose={() => setDeletingEvent(null)} onDeleted={() => { setDeletingEvent(null); queryClient.invalidateQueries({ queryKey: AGENDA_KEY }) }} />}
   </div>
@@ -222,7 +225,7 @@ function AppointmentDetails({ item, timeZone, onClose, onCompleted }: { item: Pr
   const now = useCurrentLocalTime(timeZone, item.status === 'CONFIRMED')
   const [confirming, setConfirming] = useState<'complete' | 'no-show' | null>(null)
   const canComplete = item.status === 'CONFIRMED' && item.startsAt <= now
-  const canNoShow = item.status === 'CONFIRMED' && item.endsAt <= now
+  const canNoShow = item.status === 'CONFIRMED' && canMarkNoShow(item.startsAt, now)
   const mutation = useMutation({ mutationFn: () => confirming === 'no-show' ? markAppointmentNoShow(item.id) : completeAppointment(item.id), onSuccess: onCompleted })
   if (confirming) {
     return <ConfirmDialog

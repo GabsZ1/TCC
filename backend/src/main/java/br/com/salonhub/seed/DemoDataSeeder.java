@@ -303,9 +303,12 @@ public class DemoDataSeeder {
             appointment.cancelByAdministrator("Cliente pediu para remarcar.", administrator, startsAt.minusDays(1));
         } else if (roll < 0.12) {
             appointment.cancel();
-        } else if (roll < 0.17) {
-            appointment.invalidate("Cliente não compareceu.");
-        } else if (roll < 0.22 && dayOffset > -7) {
+        } else if (roll < 0.14) {
+            appointment.complete(appointment.getEndsAt());
+            appointment.invalidate("Atendimento registrado por engano.");
+        } else if (roll < 0.19) {
+            appointment.markNoShow();
+        } else if (roll < 0.24 && dayOffset > -7) {
             // Alguns atendimentos recentes ficam pendentes de conclusão.
             return;
         } else {

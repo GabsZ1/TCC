@@ -24,9 +24,11 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -40,6 +42,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @Transactional
 class AppointmentCompletionIntegrationTests {
+
+    @Autowired
+    private Clock clock;
 
     @Autowired
     private MockMvc mockMvc;
@@ -70,6 +75,53 @@ class AppointmentCompletionIntegrationTests {
         mockMvc.perform(patch("/api/agendamentos/{id}/falta", appointmentId)
                         .header("Authorization", bearer(fixture.administratorToken())))
                 .andExpect(status().isConflict());
+    }
+
+    @Test
+    void shouldAllowNoShowFifteenMinutesAfterStartEvenBeforeTheEnd() throws Exception {
+        Fixture fixture = setUp("no-show-tolerance", "32345678000100");
+        LocalDateTime now = LocalDateTime.now(clock);
+        // Serviço de 60 min: um começou há 5 min (ainda na tolerância), o outro há 20 min (antes do fim previsto).
+        Appointment tooEarly = appointmentRepository.saveAndFlush(schedule(fixture.establishment(), fixture.client(),
+                fixture.professional(), fixture.service(), now.minusMinutes(5)));
+        Appointment startedTwentyMinutesAgo = appointmentRepository.saveAndFlush(schedule(fixture.establishment(),
+                fixture.client(), fixture.professional(), fixture.service(), now.minusMinutes(20)));
+
+        mockMvc.perform(patch("/api/agendamentos/{id}/falta", tooEarly.getId())
+                        .header("Authorization", bearer(fixture.administratorToken())))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("A falta só pode ser registrada 15 minutos após o horário de início."));
+        mockMvc.perform(patch("/api/agendamentos/{id}/falta", startedTwentyMinutesAgo.getId())
+                        .header("Authorization", bearer(fixture.administratorToken())))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("NO_SHOW"));
+    }
+
+    @Test
+    void shouldListFinishedConfirmedAppointmentsAsPendingClosure() throws Exception {
+        Fixture fixture = setUp("pending-closure", "42345678000156");
+        Long pastId = createPastAppointment(fixture);
+        appointmentRepository.saveAndFlush(schedule(fixture.establishment(), fixture.client(), fixture.professional(),
+                fixture.service(), LocalDateTime.now(clock).plusDays(2)));
+
+        mockMvc.perform(get("/api/agendamentos/pendentes-fechamento")
+                        .header("Authorization", bearer(fixture.administratorToken())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(pastId));
+        mockMvc.perform(get("/api/agendamentos/pendentes-fechamento")
+                        .header("Authorization", bearer(fixture.professionalToken())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1));
+        mockMvc.perform(get("/api/agendamentos/pendentes-fechamento")
+                        .header("Authorization", bearer(fixture.clientToken())))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(patch("/api/agendamentos/{id}/falta", pastId)
+                        .header("Authorization", bearer(fixture.professionalToken())))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/agendamentos/pendentes-fechamento")
+                        .header("Authorization", bearer(fixture.administratorToken())))
+                .andExpect(jsonPath("$.length()").value(0));
     }
 
     @Test

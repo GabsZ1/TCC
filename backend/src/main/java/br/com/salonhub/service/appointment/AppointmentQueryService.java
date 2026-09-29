@@ -61,6 +61,22 @@ public class AppointmentQueryService {
                 .toList();
     }
 
+    /**
+     * Pendentes de fechamento: já terminaram e continuam CONFIRMED. O administrador vê os do
+     * estabelecimento; o profissional, só os dele.
+     */
+    @Transactional(readOnly = true)
+    public List<AppointmentResponse> findPendingClosure(Long userId) {
+        User staff = tenantAuthorizationService.requireEstablishmentStaff(userId);
+        LocalDateTime now = LocalDateTime.now(clock);
+        List<br.com.salonhub.entity.Appointment> pending = staff.getRole() == UserRole.ADMIN
+                ? appointmentRepository.findByEstablishmentIdAndStatusAndEndsAtLessThanEqualOrderByStartsAt(
+                        staff.getEstablishment().getId(), AppointmentStatus.CONFIRMED, now)
+                : appointmentRepository.findByProfessionalIdAndStatusAndEndsAtLessThanEqualOrderByStartsAt(
+                        staff.getId(), AppointmentStatus.CONFIRMED, now);
+        return pending.stream().map(AppointmentResponse::fromEntity).toList();
+    }
+
     @Transactional(readOnly = true)
     public List<AppointmentResponse> findEstablishmentAgenda(
             Long administratorId, LocalDate date, Long professionalId, AppointmentStatus status) {

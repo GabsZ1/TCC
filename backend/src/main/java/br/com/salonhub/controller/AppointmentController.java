@@ -105,6 +105,12 @@ public class AppointmentController {
         return queryService.findMineAsProfessional(currentUserId(jwt));
     }
 
+    /** Atendimentos que já terminaram e ainda não foram concluídos nem marcados como falta. */
+    @GetMapping("/agendamentos/pendentes-fechamento")
+    public List<AppointmentResponse> findPendingClosure(@AuthenticationPrincipal Jwt jwt) {
+        return queryService.findPendingClosure(currentUserId(jwt));
+    }
+
     @GetMapping("/agendamentos/estabelecimento/me")
     public List<AppointmentResponse> findEstablishmentAgenda(
             @AuthenticationPrincipal Jwt jwt,

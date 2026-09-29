@@ -4,9 +4,11 @@ import { CalendarDays, Clock3, LockKeyhole, Scissors, User } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { InvalidateAppointmentModal } from '@/features/appointments/InvalidateAppointmentModal'
 import { AdminCancelAppointmentModal } from '@/features/appointments/AdminCancelAppointmentModal'
-import { completeAppointment, markAppointmentNoShow, fetchEstablishmentAgenda, fetchTeamAvailability, type Appointment } from '@/features/appointments/appointmentsApi'
+import { PENDING_CLOSURE_KEY, completeAppointment, markAppointmentNoShow, fetchEstablishmentAgenda, fetchTeamAvailability, type Appointment } from '@/features/appointments/appointmentsApi'
 import { fetchEmployees } from '@/features/employees/services/employeesApi'
 import { getApiErrorMessage } from '@/lib/apiError'
+import { canMarkNoShow } from '@/features/appointments/noShowPolicy'
+import { PendingClosurePanel } from '@/features/appointments/PendingClosurePanel'
 
 type StatusFilter = '' | Appointment['status']
 
@@ -40,6 +42,7 @@ export function AdminAgendaPage() {
 
   function refreshAgenda() {
     queryClient.invalidateQueries({ queryKey: [AGENDA_QUERY_KEY] })
+    queryClient.invalidateQueries({ queryKey: PENDING_CLOSURE_KEY })
   }
 
   function handleInvalidated() {
@@ -55,7 +58,9 @@ export function AdminAgendaPage() {
         <p className="page-subtitle">Consulte os atendimentos de toda a equipe e filtre por data, profissional ou situação.</p>
       </header>
 
-      <section className="surface-card mt-6 grid gap-4 p-5 sm:grid-cols-3">
+      <div className="mt-6"><PendingClosurePanel showProfessional onChanged={refreshAgenda} /></div>
+
+      <section className="surface-card grid gap-4 p-5 sm:grid-cols-3">
         <Filter label="Data"><input type="date" value={date} onChange={(event) => setDate(event.target.value)} className="filter-input" /></Filter>
         <Filter label="Profissional"><select value={professionalId} onChange={(event) => setProfessionalId(event.target.value)} className="filter-input"><option value="">Todos</option>{employees.data?.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}{employee.active ? '' : ' (inativo)'}</option>)}</select></Filter>
         <Filter label="Situação"><select value={status} onChange={(event) => setStatus(event.target.value as StatusFilter)} className="filter-input"><option value="">Todas</option><option value="CONFIRMED">Confirmado</option><option value="COMPLETED">Concluído</option><option value="CANCELLED">Cancelado</option><option value="NO_SHOW">Não compareceu</option><option value="INVALIDATED">Invalidado</option></select></Filter>
@@ -162,7 +167,7 @@ function AppointmentCard({
   onCancel: () => void
 }) {
   const canComplete = appointment.status === 'CONFIRMED' && hasStarted(appointment)
-  const canNoShow = appointment.status === 'CONFIRMED' && new Date(appointment.endsAt).getTime() <= Date.now()
+  const canNoShow = appointment.status === 'CONFIRMED' && canMarkNoShow(appointment.startsAt)
   const canInvalidate = appointment.status === 'COMPLETED'
   const canCancel = appointment.status === 'CONFIRMED'
 
