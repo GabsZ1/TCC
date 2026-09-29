@@ -164,6 +164,39 @@ Para criar o administrador da plataforma no primeiro início do backend, configu
 
 Esse usuário recebe o perfil `SYSTEM_ADMIN`, não fica vinculado a um estabelecimento e acessa a tela de gestão de estabelecimentos após o login.
 
+### Dados de demonstração (seed)
+
+O banco pode ser populado com dados fictícios para ver todas as telas funcionando. **Nada roda automaticamente**: o seeder só existe no profile `seed` e é executado apenas com o comando abaixo (com o `docker compose` de pé):
+
+```bash
+cd backend
+./mvnw spring-boot:run "-Dspring-boot.run.profiles=local,seed"
+```
+
+O comando sobe o backend numa porta aleatória (não conflita com um backend já rodando na 8080), grava os dados, mostra um resumo no log e encerra. Se os dados já existirem, não altera nada. Para recriar do zero: `docker compose down -v`, `docker compose up -d` e rode o comando de novo (isso apaga **todo** o banco local).
+
+O que é criado:
+
+- 8 estabelecimentos: 7 aceitando agendamentos (para a paginação de 6 aparecer na tela do cliente) e o "Studio Aurora", pausado, que não aparece para clientes. Todos com perfil público, endereço e horário (seg–sex 9h–18h, sáb 9h–14h, domingo fechado).
+- Serviços em cada estabelecimento (um deles inativo no Studio Bella).
+- Funcionários com CPF, admissão, ocupação e contatos; alguns atendem só parte dos serviços, e há um funcionário desativado.
+- 10 clientes e agendamentos dos últimos 60 dias e dos próximos 14: concluídos, cancelados, invalidados, confirmados e alguns recentes pendentes de conclusão (alimentam relatórios, comissões, dashboard e agendas).
+- Na agenda da Camila, horário próprio (quintas só à tarde) e um evento de dia inteiro ("Curso de coloração").
+- As fotos dos funcionários não são criadas; cada um pode enviar a sua em "Meu perfil".
+
+Contas (senha de todas: `Demo@123`):
+
+| Perfil | E-mail |
+|---|---|
+| Admin da plataforma | `plataforma@salonhub.demo` |
+| Admin do Studio Bella | `admin@studiobella.demo` |
+| Admin da Barbearia Dom Corte | `admin@domcorte.demo` |
+| Profissionais do Studio Bella | `camila@`, `juliana@`, `patricia@`, `rafael@studiobella.demo` (`bruno@` está desativado) |
+| Profissionais da Dom Corte | `lucas@`, `thiago@`, `gustavo@domcorte.demo` |
+| Clientes | `maria@cliente.demo` (a com mais agendamentos), `joao@`, `larissa@`, `pedro@`, `beatriz@`, `gabriel@`, `amanda@`, `felipe@`, `carolina@`, `rodrigo@cliente.demo` |
+
+Os outros estabelecimentos seguem o padrão `admin@<nome>.demo` (ex.: `admin@espacozen.demo`), e cada um tem um profissional com o primeiro nome do dono (ex.: `fernanda@espacozen.demo`).
+
 ### Estados operacionais do estabelecimento
 
 - **Agendamentos bloqueados:** impede novas reservas e remarcações, preservando todos os atendimentos existentes.
