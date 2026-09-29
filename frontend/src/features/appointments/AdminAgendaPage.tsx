@@ -4,7 +4,7 @@ import { CalendarDays, Clock3, LockKeyhole, Scissors, User } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { InvalidateAppointmentModal } from '@/features/appointments/InvalidateAppointmentModal'
 import { AdminCancelAppointmentModal } from '@/features/appointments/AdminCancelAppointmentModal'
-import { completeAppointment, fetchEstablishmentAgenda, fetchTeamAvailability, type Appointment } from '@/features/appointments/appointmentsApi'
+import { completeAppointment, markAppointmentNoShow, fetchEstablishmentAgenda, fetchTeamAvailability, type Appointment } from '@/features/appointments/appointmentsApi'
 import { fetchEmployees } from '@/features/employees/services/employeesApi'
 import { getApiErrorMessage } from '@/lib/apiError'
 
@@ -20,6 +20,7 @@ export function AdminAgendaPage() {
   const [invalidating, setInvalidating] = useState<Appointment | null>(null)
   const [cancelling, setCancelling] = useState<Appointment | null>(null)
   const [completing, setCompleting] = useState<Appointment | null>(null)
+  const [noShowing, setNoShowing] = useState<Appointment | null>(null)
   const employees = useQuery({ queryKey: ['employees'], queryFn: fetchEmployees })
   const agenda = useQuery({
     queryKey: [AGENDA_QUERY_KEY, date, professionalId, status],
@@ -57,7 +58,7 @@ export function AdminAgendaPage() {
       <section className="surface-card mt-6 grid gap-4 p-5 sm:grid-cols-3">
         <Filter label="Data"><input type="date" value={date} onChange={(event) => setDate(event.target.value)} className="filter-input" /></Filter>
         <Filter label="Profissional"><select value={professionalId} onChange={(event) => setProfessionalId(event.target.value)} className="filter-input"><option value="">Todos</option>{employees.data?.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}{employee.active ? '' : ' (inativo)'}</option>)}</select></Filter>
-        <Filter label="Situação"><select value={status} onChange={(event) => setStatus(event.target.value as StatusFilter)} className="filter-input"><option value="">Todas</option><option value="CONFIRMED">Confirmado</option><option value="COMPLETED">Concluído</option><option value="CANCELLED">Cancelado</option><option value="INVALIDATED">Invalidado</option></select></Filter>
+        <Filter label="Situação"><select value={status} onChange={(event) => setStatus(event.target.value as StatusFilter)} className="filter-input"><option value="">Todas</option><option value="CONFIRMED">Confirmado</option><option value="COMPLETED">Concluído</option><option value="CANCELLED">Cancelado</option><option value="NO_SHOW">Não compareceu</option><option value="INVALIDATED">Invalidado</option></select></Filter>
         <button type="button" onClick={() => { setDate(''); setProfessionalId(''); setStatus('') }} className="text-left text-sm font-semibold text-text-600 hover:text-text-800 sm:col-span-3">Limpar filtros</button>
       </section>
 
@@ -83,6 +84,7 @@ export function AdminAgendaPage() {
             key={appointment.id}
             appointment={appointment}
             onComplete={() => setCompleting(appointment)}
+            onNoShow={() => setNoShowing(appointment)}
             onInvalidate={() => setInvalidating(appointment)}
             onCancel={() => setCancelling(appointment)}
           />
@@ -96,6 +98,8 @@ export function AdminAgendaPage() {
           onCompleted={() => { refreshAgenda(); setCompleting(null) }}
         />
       )}
+      {noShowing && <NoShowDialog appointment={noShowing} onClose={() => setNoShowing(null)}
+        onMarked={() => { refreshAgenda(); setNoShowing(null) }} />}
       {cancelling && (
         <AdminCancelAppointmentModal
           appointment={cancelling}
@@ -135,18 +139,30 @@ function CompleteAppointmentDialog({
   />
 }
 
+function NoShowDialog({ appointment, onClose, onMarked }: { appointment: Appointment; onClose: () => void; onMarked: () => void }) {
+  const mutation = useMutation({ mutationFn: () => markAppointmentNoShow(appointment.id), onSuccess: onMarked })
+  return <ConfirmDialog title="Registrar falta"
+    message={`Confirmar que ${appointment.clientName} não compareceu ao atendimento?`}
+    confirmLabel={mutation.isPending ? 'Registrando...' : 'Registrar falta'} isLoading={mutation.isPending}
+    errorMessage={mutation.isError ? getApiErrorMessage(mutation.error, 'Não foi possível registrar a falta.') : null}
+    onConfirm={() => mutation.mutate()} onCancel={onClose} />
+}
+
 function AppointmentCard({
   appointment,
   onComplete,
+  onNoShow,
   onInvalidate,
   onCancel,
 }: {
   appointment: Appointment
   onComplete: () => void
+  onNoShow: () => void
   onInvalidate: () => void
   onCancel: () => void
 }) {
   const canComplete = appointment.status === 'CONFIRMED' && hasStarted(appointment)
+  const canNoShow = appointment.status === 'CONFIRMED' && new Date(appointment.endsAt).getTime() <= Date.now()
   const canInvalidate = appointment.status === 'COMPLETED'
   const canCancel = appointment.status === 'CONFIRMED'
 
@@ -175,7 +191,7 @@ function AppointmentCard({
           <StatusBadge status={appointment.status} />
           <p className="mt-2 font-semibold text-text-900">{formatMoney(appointment.agreedPrice)}</p>
           <p className="text-text-600">Comissão: {formatMoney(appointment.commissionAmount)}</p>
-          {(canComplete || canInvalidate || canCancel) && (
+          {(canComplete || canNoShow || canInvalidate || canCancel) && (
             <div className="mt-3 flex flex-wrap justify-end gap-2">
               {canCancel && (
                 <button type="button" onClick={onCancel} className="rounded-lg border border-danger-500/30 px-3 py-1.5 text-xs font-semibold text-danger-600 hover:bg-danger-500/5">
@@ -191,6 +207,7 @@ function AppointmentCard({
                   Concluir
                 </button>
               )}
+              {canNoShow && <button type="button" onClick={onNoShow} className="rounded-lg border border-warning-300 px-3 py-1.5 text-xs font-semibold text-warning-700 hover:bg-warning-50">Não compareceu</button>}
               {canInvalidate && (
                 <button
                   type="button"
@@ -210,12 +227,13 @@ function AppointmentCard({
 
 function Filter({ label, children }: { label: string; children: React.ReactNode }) { return <label className="text-sm font-medium text-text-800">{label}{children}</label> }
 function StatusBadge({ status }: { status: Appointment['status'] }) {
-  const labels: Record<Appointment['status'], string> = { CONFIRMED: 'Confirmado', CANCELLED: 'Cancelado', COMPLETED: 'Concluído', INVALIDATED: 'Invalidado' }
+  const labels: Record<Appointment['status'], string> = { CONFIRMED: 'Confirmado', CANCELLED: 'Cancelado', COMPLETED: 'Concluído', INVALIDATED: 'Invalidado', NO_SHOW: 'Não compareceu' }
   const styles: Record<Appointment['status'], string> = {
     CONFIRMED: 'bg-primary-100 text-text-800',
     CANCELLED: 'bg-danger-500/10 text-danger-600',
     COMPLETED: 'bg-success-50 text-success-700',
     INVALIDATED: 'bg-warning-100 text-warning-700',
+    NO_SHOW: 'bg-warning-100 text-warning-700',
   }
   return <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${styles[status]}`}>{labels[status]}</span>
 }

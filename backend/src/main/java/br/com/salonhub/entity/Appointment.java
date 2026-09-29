@@ -39,8 +39,8 @@ public class Appointment {
     private Establishment establishment;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "client_id", nullable = false)
-    private User client;
+    @JoinColumn(name = "customer_id", nullable = false)
+    private Customer customer;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "professional_id", nullable = false)
@@ -101,13 +101,13 @@ public class Appointment {
 
     public static Appointment schedule(
             Establishment establishment,
-            User client,
+            Customer customer,
             User professional,
             EstablishmentService service,
             LocalDateTime startsAt) {
         Appointment appointment = new Appointment();
         appointment.establishment = establishment;
-        appointment.client = client;
+        appointment.customer = customer;
         appointment.professional = professional;
         appointment.service = service;
         appointment.snapshotService(service);
@@ -116,6 +116,7 @@ public class Appointment {
         appointment.status = AppointmentStatus.CONFIRMED;
         return appointment;
     }
+
 
     public void cancel() {
         this.status = AppointmentStatus.CANCELLED;
@@ -138,6 +139,10 @@ public class Appointment {
     public void complete(LocalDateTime completedAt) {
         this.status = AppointmentStatus.COMPLETED;
         this.completedAt = completedAt;
+    }
+
+    public void markNoShow() {
+        this.status = AppointmentStatus.NO_SHOW;
     }
 
     public void invalidate(String reason) {

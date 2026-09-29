@@ -1,6 +1,7 @@
 /docs/
 /output/
 /.idea/
+.m2/
 
 # Arquivos de sistema (macOS / Windows)
 .DS_Store

@@ -26,7 +26,7 @@ public record CompletedAppointmentEntry(
                 appointment.getProfessional().getName(),
                 appointment.getService().getId(),
                 appointment.getServiceName(),
-                appointment.getClient().getName(),
+                appointment.getCustomer().getName(),
                 appointment.getAgreedPrice(),
                 appointment.getCommissionPercentage(),
                 appointment.getCommissionAmount());

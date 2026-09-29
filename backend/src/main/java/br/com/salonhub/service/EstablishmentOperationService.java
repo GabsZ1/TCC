@@ -122,11 +122,11 @@ public class EstablishmentOperationService {
     }
 
     private void requireNoPendingAppointments(Establishment establishment) {
-        if (appointmentRepository.existsByEstablishmentIdAndStatus(
-                establishment.getId(), AppointmentStatus.CONFIRMED)) {
+        if (appointmentRepository.existsByEstablishmentIdAndStatusAndEndsAtGreaterThan(
+                establishment.getId(), AppointmentStatus.CONFIRMED, LocalDateTime.now(clock))) {
             throw new ConflictException(
-                    "Não é possível pausar enquanto houver atendimentos pendentes. "
-                            + "Cancele ou conclua todos os atendimentos confirmados.");
+                    "Não é possível pausar enquanto houver atendimentos futuros em aberto. "
+                            + "Cancele ou conclua os atendimentos confirmados.");
         }
     }
 

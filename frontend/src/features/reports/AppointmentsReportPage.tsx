@@ -82,11 +82,12 @@ export function AppointmentsReportPage({ embedded = false }: { embedded?: boolea
 
       {report.data && !report.isError && (
         <>
-          <section className="surface-card mt-6 grid overflow-hidden sm:grid-cols-2 lg:grid-cols-4">
+          <section className="surface-card mt-6 grid overflow-hidden sm:grid-cols-2 lg:grid-cols-5">
             <SummaryCard icon={CalendarRange} label="Período consultado" value={`${formatDate(report.data.periodStart)} a ${formatDate(report.data.periodEnd)}`} />
             <SummaryCard icon={CalendarCheck} label="Concluídos" value={String(report.data.totalCompleted)} bordered />
             <SummaryCard icon={CalendarX2} label="Cancelados" value={String(report.data.totalCancelled)} bordered />
             <SummaryCard icon={ShieldAlert} label="Invalidados" value={String(report.data.totalInvalidated)} bordered />
+            <SummaryCard icon={ShieldAlert} label="Faltas" value={String(report.data.totalNoShows)} bordered />
           </section>
 
           {report.data.entries.length === 0
@@ -100,11 +101,12 @@ export function AppointmentsReportPage({ embedded = false }: { embedded?: boolea
                         <div className="flex items-center gap-2"><UsersRound size={18} className="text-text-600" /><h2 className="truncate text-lg font-semibold text-text-900">{entry.professionalName}</h2></div>
                         <p className="mt-2 text-sm text-text-600">{formatCount(entry.totalCount)}</p>
                       </div>
-                      <dl className="grid gap-4 sm:grid-cols-5 lg:min-w-[38rem]">
+                      <dl className="grid gap-4 sm:grid-cols-3 lg:min-w-[42rem] lg:grid-cols-6">
                         <Metric label="Confirmados" value={String(entry.confirmedCount)} />
                         <Metric label="Concluídos" value={String(entry.completedCount)} />
                         <Metric label="Cancelados" value={String(entry.cancelledCount)} />
                         <Metric label="Invalidados" value={String(entry.invalidatedCount)} />
+                        <Metric label="Faltas" value={String(entry.noShowCount)} />
                         <Metric label="Taxa de conclusão" value={formatPercentage(entry.completionRate)} highlight />
                       </dl>
                     </div>

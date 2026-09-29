@@ -22,7 +22,7 @@ public record CompletedServiceEntry(
                 appointment.getCompletedAt(),
                 appointment.getService().getId(),
                 appointment.getServiceName(),
-                appointment.getClient().getName(),
+                appointment.getCustomer().getName(),
                 appointment.getAgreedPrice(),
                 appointment.getCommissionPercentage(),
                 appointment.getCommissionAmount());

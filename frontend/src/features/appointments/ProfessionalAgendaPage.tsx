@@ -10,7 +10,7 @@ import { CalendarDays, Clock3, Mail, Plus, RefreshCw, Settings2, Trash2, User } 
 import { Modal } from '@/components/ui/Modal'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { getApiErrorMessage } from '@/lib/apiError'
-import { completeAppointment } from '@/features/appointments/appointmentsApi'
+import { completeAppointment, markAppointmentNoShow } from '@/features/appointments/appointmentsApi'
 import { createCalendarEvent, deleteCalendarEvent, fetchProfessionalAgenda, fetchProfessionalAgendaConfiguration, fetchProfessionalSchedule, updateCalendarEvent, updateProfessionalSchedule, type CalendarEventInput, type ProfessionalAgendaItem, type ProfessionalHour, type ProfessionalHourInput } from '@/features/appointments/professionalAgendaApi'
 import { filterAgendaItems, findAgendaConflict, normalizeEventInput, rangeAfterStartChange, type AgendaFilter } from '@/features/appointments/professionalAgendaUtils'
 
@@ -220,22 +220,23 @@ function ScheduleForm({ initial, onClose, onSaved }: { initial: ProfessionalHour
 
 function AppointmentDetails({ item, timeZone, onClose, onCompleted }: { item: ProfessionalAgendaItem; timeZone: string; onClose: () => void; onCompleted: () => void }) {
   const now = useCurrentLocalTime(timeZone, item.status === 'CONFIRMED')
-  const [confirming, setConfirming] = useState(false)
+  const [confirming, setConfirming] = useState<'complete' | 'no-show' | null>(null)
   const canComplete = item.status === 'CONFIRMED' && item.startsAt <= now
-  const mutation = useMutation({ mutationFn: () => completeAppointment(item.id), onSuccess: onCompleted })
+  const canNoShow = item.status === 'CONFIRMED' && item.endsAt <= now
+  const mutation = useMutation({ mutationFn: () => confirming === 'no-show' ? markAppointmentNoShow(item.id) : completeAppointment(item.id), onSuccess: onCompleted })
   if (confirming) {
     return <ConfirmDialog
-      title="Concluir atendimento"
-      message={`Confirmar a conclusão do atendimento de ${item.clientName ?? 'cliente'}? Essa ação não pode ser desfeita.`}
-      confirmLabel={mutation.isPending ? 'Concluindo...' : 'Concluir atendimento'}
+      title={confirming === 'no-show' ? 'Registrar falta' : 'Concluir atendimento'}
+      message={confirming === 'no-show' ? `Confirmar que ${item.clientName ?? 'o cliente'} não compareceu?` : `Confirmar a conclusão do atendimento de ${item.clientName ?? 'cliente'}? Essa ação não pode ser desfeita.`}
+      confirmLabel={mutation.isPending ? 'Salvando...' : confirming === 'no-show' ? 'Registrar falta' : 'Concluir atendimento'}
       isLoading={mutation.isPending}
-      errorMessage={mutation.isError ? getApiErrorMessage(mutation.error, 'Não foi possível concluir o atendimento.') : null}
+      errorMessage={mutation.isError ? getApiErrorMessage(mutation.error, 'Não foi possível atualizar o atendimento.') : null}
       onConfirm={() => mutation.mutate()}
-      onCancel={() => setConfirming(false)}
+      onCancel={() => setConfirming(null)}
     />
   }
   const reason = item.cancellationReason ?? item.invalidationReason
-  return <Modal title={item.serviceName ?? item.title} onClose={onClose}><div className="space-y-3 text-sm text-text-700"><p className="flex items-center gap-2"><User size={16} /> {item.clientName}</p>{item.clientEmail && <a href={`mailto:${item.clientEmail}`} className="flex items-center gap-2 text-text-700 hover:underline"><Mail size={16} /> {item.clientEmail}</a>}<p className="flex items-center gap-2"><CalendarDays size={16} /> {formatDate(item.startsAt)}</p><p className="flex items-center gap-2"><Clock3 size={16} /> {formatTime(item.startsAt)} às {formatTime(item.endsAt)}{item.durationMinutes ? ` · ${formatDuration(item.durationMinutes)}` : ''}</p><p>Status: <strong>{statusLabel(item.status)}</strong></p>{item.agreedPrice != null && <p>Valor combinado: <strong>{formatMoney(item.agreedPrice)}</strong></p>}{reason && <div className="rounded-lg bg-background-50 px-3 py-2"><span className="font-semibold">Motivo:</span> {reason}</div>}{mutation.isError && <p role="alert" className="text-danger-600">{getApiErrorMessage(mutation.error, 'Não foi possível concluir o atendimento.')}</p>}{canComplete && <button type="button" onClick={() => setConfirming(true)} className="primary-button">Concluir atendimento</button>}</div></Modal>
+  return <Modal title={item.serviceName ?? item.title} onClose={onClose}><div className="space-y-3 text-sm text-text-700"><p className="flex items-center gap-2"><User size={16} /> {item.clientName}</p>{item.clientEmail && <a href={`mailto:${item.clientEmail}`} className="flex items-center gap-2 text-text-700 hover:underline"><Mail size={16} /> {item.clientEmail}</a>}<p className="flex items-center gap-2"><CalendarDays size={16} /> {formatDate(item.startsAt)}</p><p className="flex items-center gap-2"><Clock3 size={16} /> {formatTime(item.startsAt)} às {formatTime(item.endsAt)}{item.durationMinutes ? ` · ${formatDuration(item.durationMinutes)}` : ''}</p><p>Status: <strong>{statusLabel(item.status)}</strong></p>{item.agreedPrice != null && <p>Valor combinado: <strong>{formatMoney(item.agreedPrice)}</strong></p>}{reason && <div className="rounded-lg bg-background-50 px-3 py-2"><span className="font-semibold">Motivo:</span> {reason}</div>}{mutation.isError && <p role="alert" className="text-danger-600">{getApiErrorMessage(mutation.error, 'Não foi possível atualizar o atendimento.')}</p>}<div className="flex flex-wrap gap-2">{canComplete && <button type="button" onClick={() => setConfirming('complete')} className="primary-button">Concluir atendimento</button>}{canNoShow && <button type="button" onClick={() => setConfirming('no-show')} className="secondary-button">Não compareceu</button>}</div></div></Modal>
 }
 
 function DeleteEventDialog({ event, onClose, onDeleted }: { event: ProfessionalAgendaItem; onClose: () => void; onDeleted: () => void }) { const mutation = useMutation({ mutationFn: () => deleteCalendarEvent(event.id), onSuccess: onDeleted }); return <ConfirmDialog title="Excluir compromisso" message={`Deseja excluir “${event.title}”?`} confirmLabel="Excluir compromisso" isLoading={mutation.isPending} errorMessage={mutation.isError ? getApiErrorMessage(mutation.error, 'Não foi possível excluir o compromisso.') : null} onConfirm={() => mutation.mutate()} onCancel={onClose} /> }
@@ -264,6 +265,7 @@ function eventColor(item: ProfessionalAgendaItem) {
     case 'COMPLETED': return 'var(--calendar-completed)'
     case 'CANCELLED': return 'var(--calendar-cancelled)'
     case 'INVALIDATED': return 'var(--calendar-invalidated)'
+    case 'NO_SHOW': return 'var(--calendar-invalidated)'
     default: return 'var(--calendar-active)'
   }
 }
@@ -273,6 +275,7 @@ function eventTextColor(item: ProfessionalAgendaItem) {
     case 'COMPLETED': return 'var(--on-success)'
     case 'INVALIDATED': return 'var(--on-warning)'
     case 'CANCELLED': return 'var(--on-danger)'
+    case 'NO_SHOW': return 'var(--on-warning)'
     default: return 'var(--on-primary)'
   }
 }
@@ -385,7 +388,7 @@ function formatMoney(value: number) { return new Intl.NumberFormat('pt-BR', { st
 function formatDuration(minutes: number) { const hours = Math.floor(minutes / 60); const rest = minutes % 60; return [hours ? `${hours}h` : '', rest ? `${rest}min` : ''].filter(Boolean).join(' ') }
 function laterTime(first: string | null, second: string | null) { if (!first) return second; if (!second) return first; return first > second ? first : second }
 function earlierTime(first: string | null, second: string | null) { if (!first) return second; if (!second) return first; return first < second ? first : second }
-function statusLabel(status: ProfessionalAgendaItem['status']) { return ({ CONFIRMED: 'Confirmado', CANCELLED: 'Cancelado', COMPLETED: 'Concluído', INVALIDATED: 'Invalidado' } as const)[status ?? 'CONFIRMED'] }
+function statusLabel(status: ProfessionalAgendaItem['status']) { return ({ CONFIRMED: 'Confirmado', CANCELLED: 'Cancelado', COMPLETED: 'Concluído', INVALIDATED: 'Invalidado', NO_SHOW: 'Não compareceu' } as const)[status ?? 'CONFIRMED'] }
 function viewName(view: CalendarView) { return ({ day: 'timeGridDay', week: 'timeGridWeek', month: 'dayGridMonth' } as const)[view] }
 function contextualEventStart(calendarDate: Date | undefined, hours: ProfessionalHour[], timeZone: string) {
   const now = new Date(localDateTimeInZone(timeZone))

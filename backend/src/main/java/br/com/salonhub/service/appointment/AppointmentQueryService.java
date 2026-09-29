@@ -48,7 +48,7 @@ public class AppointmentQueryService {
     @Transactional(readOnly = true)
     public List<AppointmentResponse> findMine(Long clientId) {
         User client = tenantAuthorizationService.requireClient(clientId);
-        return appointmentRepository.findByClientIdOrderByStartsAtDesc(client.getId()).stream()
+        return appointmentRepository.findByCustomerUserIdOrderByStartsAtDesc(client.getId()).stream()
                 .map(AppointmentResponse::fromEntity)
                 .toList();
     }
@@ -150,7 +150,7 @@ public class AppointmentQueryService {
                 .findByProfessionalIdAndStatusAndStartsAtLessThanAndEndsAtGreaterThanOrderByStartsAt(
                         professionalId, AppointmentStatus.CONFIRMED, dayEnd, dayStart);
         List<Appointment> clientAppointments = appointmentRepository
-                .findByClientIdAndStatusAndStartsAtLessThanAndEndsAtGreaterThanOrderByStartsAt(
+                .findByCustomerUserIdAndStatusAndStartsAtLessThanAndEndsAtGreaterThanOrderByStartsAt(
                         client.getId(), AppointmentStatus.CONFIRMED, dayEnd, dayStart);
         List<ProfessionalCalendarEvent> calendarEvents = calendarEventRepository
                 .findByProfessionalIdAndStartsAtLessThanAndEndsAtGreaterThanOrderByStartsAt(
@@ -221,7 +221,7 @@ public class AppointmentQueryService {
 
     private void validateAppointmentOwnership(Long appointmentId, User client) {
         if (appointmentId != null) {
-            appointmentRepository.findByIdAndClientId(appointmentId, client.getId())
+            appointmentRepository.findByIdAndCustomerUserId(appointmentId, client.getId())
                     .orElseThrow(() -> new ResourceNotFoundException("Agendamento não encontrado."));
         }
     }

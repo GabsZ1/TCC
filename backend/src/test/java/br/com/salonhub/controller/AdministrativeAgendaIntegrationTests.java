@@ -154,8 +154,22 @@ class AdministrativeAgendaIntegrationTests {
 
     private void add(String name, User client, User professional, EstablishmentService service,
                      LocalDateTime start, boolean cancelled) {
-        Appointment appointment = Appointment.schedule(service.getEstablishment(), client, professional, service, start);
+        Appointment appointment = schedule(service.getEstablishment(), client, professional, service, start);
         if (cancelled) appointment.cancel();
         ids.put(name, appointments.saveAndFlush(appointment).getId());
     }
-}
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private CustomerRepository customerRepository;
+
+    private Appointment schedule(br.com.salonhub.entity.Establishment establishment,
+            br.com.salonhub.entity.User client, br.com.salonhub.entity.User professional,
+            br.com.salonhub.entity.EstablishmentService service, java.time.LocalDateTime startsAt) {
+        Customer customer = customerRepository.findByEstablishmentIdAndUserId(establishment.getId(), client.getId())
+                .orElseGet(() -> {
+                    Customer created = Customer.create(establishment, client.getName(), client.getPhone(), client.getEmail());
+                    created.link(client);
+                    return customerRepository.saveAndFlush(created);
+                });
+        return Appointment.schedule(establishment, customer, professional, service, startsAt);
+    }}

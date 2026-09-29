@@ -3,6 +3,8 @@ package br.com.salonhub.controller;
 import br.com.salonhub.support.TestDocuments;
 
 import br.com.salonhub.entity.Appointment;
+import br.com.salonhub.entity.Customer;
+import br.com.salonhub.repository.CustomerRepository;
 import br.com.salonhub.entity.Establishment;
 import br.com.salonhub.entity.EstablishmentService;
 import br.com.salonhub.entity.User;
@@ -53,6 +55,37 @@ class AppointmentCompletionIntegrationTests {
 
     @Autowired
     private EstablishmentServiceRepository serviceRepository;
+
+    @Test
+    void shouldMarkPastConfirmedAppointmentAsNoShow() throws Exception {
+        Fixture fixture = setUp("no-show", "12345678000195");
+        Long appointmentId = createPastAppointment(fixture);
+
+        mockMvc.perform(patch("/api/agendamentos/{id}/falta", appointmentId)
+                        .header("Authorization", bearer(fixture.professionalToken())))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("NO_SHOW"));
+        mockMvc.perform(patch("/api/agendamentos/{id}/conclusao", appointmentId)
+                        .header("Authorization", bearer(fixture.professionalToken())))
+                .andExpect(status().isConflict());
+        mockMvc.perform(patch("/api/agendamentos/{id}/falta", appointmentId)
+                        .header("Authorization", bearer(fixture.administratorToken())))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void shouldRejectNoShowBeforeEndAndForClient() throws Exception {
+        Fixture fixture = setUp("no-show-future", "22345678000149");
+        Appointment appointment = appointmentRepository.saveAndFlush(schedule(
+                fixture.establishment(), fixture.client(), fixture.professional(), fixture.service(),
+                LocalDateTime.now().plusDays(2)));
+
+        mockMvc.perform(patch("/api/agendamentos/{id}/falta", appointment.getId())
+                        .header("Authorization", bearer(fixture.administratorToken())))
+                .andExpect(status().isConflict());
+        mockMvc.perform(patch("/api/agendamentos/{id}/falta", appointment.getId())
+                        .header("Authorization", bearer(fixture.clientToken())))
+                .andExpect(status().isForbidden());
+    }
 
     @Test
     void shouldAllowOwningProfessionalToCompletePastConfirmedAppointment() throws Exception {
@@ -113,7 +146,7 @@ class AppointmentCompletionIntegrationTests {
     @Test
     void shouldRejectCompletionBeforeAppointmentStartTime() throws Exception {
         Fixture fixture = setUp("complete-future", "52345678000100");
-        Appointment appointment = appointmentRepository.saveAndFlush(Appointment.schedule(
+        Appointment appointment = appointmentRepository.saveAndFlush(schedule(
                 fixture.establishment(), fixture.client(), fixture.professional(), fixture.service(),
                 LocalDateTime.now().plusDays(2)));
 
@@ -233,7 +266,7 @@ class AppointmentCompletionIntegrationTests {
     @Test
     void shouldAllowAdministratorToCancelConfirmedAppointmentAndPersistAudit() throws Exception {
         Fixture fixture = setUp("admin-cancel", "12345678000195");
-        Appointment appointment = appointmentRepository.saveAndFlush(Appointment.schedule(
+        Appointment appointment = appointmentRepository.saveAndFlush(schedule(
                 fixture.establishment(), fixture.client(), fixture.professional(), fixture.service(),
                 LocalDateTime.now().plusDays(2)));
 
@@ -264,7 +297,7 @@ class AppointmentCompletionIntegrationTests {
     @Test
     void shouldRejectAdministrativeCancellationWithoutReason() throws Exception {
         Fixture fixture = setUp("admin-cancel-blank", "12345678000195");
-        Appointment appointment = appointmentRepository.saveAndFlush(Appointment.schedule(
+        Appointment appointment = appointmentRepository.saveAndFlush(schedule(
                 fixture.establishment(), fixture.client(), fixture.professional(), fixture.service(),
                 LocalDateTime.now().plusDays(2)));
 
@@ -297,7 +330,7 @@ class AppointmentCompletionIntegrationTests {
     @Test
     void shouldHideAppointmentFromAdministratorOfAnotherEstablishmentOnCancellation() throws Exception {
         Fixture fixture = setUp("admin-cancel-isolation", "12345678000195");
-        Appointment appointment = appointmentRepository.saveAndFlush(Appointment.schedule(
+        Appointment appointment = appointmentRepository.saveAndFlush(schedule(
                 fixture.establishment(), fixture.client(), fixture.professional(), fixture.service(),
                 LocalDateTime.now().plusDays(2)));
         setUp("other-admin-cancel", "22345678000149");
@@ -321,7 +354,7 @@ class AppointmentCompletionIntegrationTests {
     }
 
     private Long createPastAppointment(Fixture fixture) {
-        Appointment appointment = Appointment.schedule(
+        Appointment appointment = schedule(
                 fixture.establishment(), fixture.client(), fixture.professional(), fixture.service(),
                 LocalDateTime.now().minusDays(1));
         return appointmentRepository.saveAndFlush(appointment).getId();
@@ -423,4 +456,18 @@ class AppointmentCompletionIntegrationTests {
     private String bearer(String token) {
         return "Bearer " + token;
     }
-}
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private CustomerRepository customerRepository;
+
+    private Appointment schedule(br.com.salonhub.entity.Establishment establishment,
+            br.com.salonhub.entity.User client, br.com.salonhub.entity.User professional,
+            br.com.salonhub.entity.EstablishmentService service, java.time.LocalDateTime startsAt) {
+        Customer customer = customerRepository.findByEstablishmentIdAndUserId(establishment.getId(), client.getId())
+                .orElseGet(() -> {
+                    Customer created = Customer.create(establishment, client.getName(), client.getPhone(), client.getEmail());
+                    created.link(client);
+                    return customerRepository.saveAndFlush(created);
+                });
+        return Appointment.schedule(establishment, customer, professional, service, startsAt);
+    }}

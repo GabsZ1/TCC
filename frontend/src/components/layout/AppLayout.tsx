@@ -45,6 +45,7 @@ export function AppLayout() {
           { to: '/relatorio-atendimentos', label: 'Atendimentos', icon: ClipboardList, group: 'Operação' },
           { to: '/relatorio-comissoes', label: 'Comissões', icon: BadgeDollarSign, group: 'Operação' },
           { to: '/funcionarios', label: 'Equipe', icon: UsersRound, group: 'Gestão' },
+          { to: '/clientes', label: 'Clientes', icon: UserRound, group: 'Gestão' },
           { to: '/servicos', label: 'Serviços', icon: Scissors, group: 'Gestão' },
           { to: '/perfil-estabelecimento', label: 'Perfil público', icon: Store, group: 'Gestão' },
           { to: '/estabelecimento', label: 'Configurações', icon: Settings, group: 'Gestão' },
@@ -58,6 +59,7 @@ export function AppLayout() {
           ? [
               { to: '/', label: 'Início', icon: House, group: 'Visão geral' },
               { to: '/minha-agenda', label: 'Minha agenda', icon: CalendarDays, group: 'Operação' },
+              { to: '/clientes', label: 'Clientes', icon: UserRound, group: 'Gestão' },
               { to: '/meus-atendimentos', label: 'Atendimentos realizados', icon: BadgeDollarSign, group: 'Operação' },
               { to: '/meus-servicos', label: 'Meus serviços', icon: Scissors, group: 'Gestão' },
             ]

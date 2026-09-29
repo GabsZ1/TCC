@@ -26,6 +26,7 @@ const ResetPasswordPage = lazy(() => import('@/features/auth/pages/ResetPassword
 const MyProfilePage = lazy(() => import('@/features/client/MyProfilePage').then((module) => ({ default: module.MyProfilePage })))
 const ChangePasswordPage = lazy(() => import('@/features/auth/pages/ChangePasswordPage').then((module) => ({ default: module.ChangePasswordPage })))
 const SystemEstablishmentsPage = lazy(() => import('@/features/system-admin/SystemEstablishmentsPage').then((module) => ({ default: module.SystemEstablishmentsPage })))
+const CustomersPage = lazy(() => import('@/features/customers/CustomersPage').then((module) => ({ default: module.CustomersPage })))
 
 function App() {
   return (
@@ -54,6 +55,7 @@ function App() {
               <Route path="/estabelecimento" element={<EstablishmentPage />} />
               <Route path="/perfil-estabelecimento" element={<EstablishmentProfilePage />} />
               <Route path="/agenda" element={<AdminAgendaPage />} />
+              <Route path="/clientes" element={<CustomersPage />} />
               <Route path="/relatorio-comissoes" element={<CommissionReportPage />} />
               <Route path="/relatorio-atendimentos" element={<EstablishmentAppointmentsPage />} />
             </Route>
@@ -68,6 +70,7 @@ function App() {
             </Route>
 
             <Route element={<ProtectedRoute allowedRoles={['PROFESSIONAL']} />}>
+              <Route path="/clientes" element={<CustomersPage />} />
               <Route path="/minha-agenda" element={<ProfessionalAgendaPage />} />
               <Route path="/meus-servicos" element={<MyServicesPage />} />
               <Route path="/meus-atendimentos" element={<MyCompletedServicesPage />} />

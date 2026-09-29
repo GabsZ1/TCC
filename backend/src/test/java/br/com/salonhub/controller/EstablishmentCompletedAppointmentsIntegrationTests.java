@@ -1,6 +1,8 @@
 package br.com.salonhub.controller;
 
 import br.com.salonhub.entity.Appointment;
+import br.com.salonhub.entity.Customer;
+import br.com.salonhub.repository.CustomerRepository;
 import br.com.salonhub.entity.Establishment;
 import br.com.salonhub.entity.EstablishmentService;
 import br.com.salonhub.entity.User;
@@ -90,7 +92,7 @@ class EstablishmentCompletedAppointmentsIntegrationTests {
     void shouldCombineProfessionalAndPeriodUsingTheCompletionDate() throws Exception {
         Fixture fixture = fixture();
         // Agendado em fevereiro, concluído em março: deve contar em março.
-        Appointment lateCompletion = Appointment.schedule(fixture.establishment(), fixture.client(),
+        Appointment lateCompletion = schedule(fixture.establishment(), fixture.client(),
                 fixture.professional(), fixture.haircut(), LocalDateTime.of(2026, 2, 28, 18, 0));
         lateCompletion.complete(LocalDateTime.of(2026, 3, 1, 9, 0));
         Long expected = appointmentRepository.saveAndFlush(lateCompletion).getId();
@@ -178,14 +180,14 @@ class EstablishmentCompletedAppointmentsIntegrationTests {
     }
 
     private Long completed(Fixture fixture, User professional, EstablishmentService service, LocalDateTime completedAt) {
-        Appointment appointment = Appointment.schedule(
+        Appointment appointment = schedule(
                 fixture.establishment(), fixture.client(), professional, service, completedAt.minusMinutes(60));
         appointment.complete(completedAt);
         return appointmentRepository.saveAndFlush(appointment).getId();
     }
 
     private void invalidated(Fixture fixture, LocalDateTime completedAt) {
-        Appointment appointment = Appointment.schedule(
+        Appointment appointment = schedule(
                 fixture.establishment(), fixture.client(), fixture.professional(), fixture.haircut(),
                 completedAt.minusMinutes(60));
         appointment.complete(completedAt);
@@ -194,7 +196,7 @@ class EstablishmentCompletedAppointmentsIntegrationTests {
     }
 
     private void cancelled(Fixture fixture, LocalDateTime startsAt) {
-        Appointment appointment = Appointment.schedule(
+        Appointment appointment = schedule(
                 fixture.establishment(), fixture.client(), fixture.professional(), fixture.haircut(), startsAt);
         appointment.cancel();
         appointmentRepository.saveAndFlush(appointment);
@@ -244,4 +246,18 @@ class EstablishmentCompletedAppointmentsIntegrationTests {
             EstablishmentService haircut,
             EstablishmentService blowDry) {
     }
-}
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private CustomerRepository customerRepository;
+
+    private Appointment schedule(br.com.salonhub.entity.Establishment establishment,
+            br.com.salonhub.entity.User client, br.com.salonhub.entity.User professional,
+            br.com.salonhub.entity.EstablishmentService service, java.time.LocalDateTime startsAt) {
+        Customer customer = customerRepository.findByEstablishmentIdAndUserId(establishment.getId(), client.getId())
+                .orElseGet(() -> {
+                    Customer created = Customer.create(establishment, client.getName(), client.getPhone(), client.getEmail());
+                    created.link(client);
+                    return customerRepository.saveAndFlush(created);
+                });
+        return Appointment.schedule(establishment, customer, professional, service, startsAt);
+    }}

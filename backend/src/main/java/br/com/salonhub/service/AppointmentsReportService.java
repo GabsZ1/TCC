@@ -72,11 +72,13 @@ public class AppointmentsReportService {
                 entries.stream().mapToLong(AppointmentsReportEntry::confirmedCount).sum(),
                 entries.stream().mapToLong(AppointmentsReportEntry::completedCount).sum(),
                 entries.stream().mapToLong(AppointmentsReportEntry::cancelledCount).sum(),
-                entries.stream().mapToLong(AppointmentsReportEntry::invalidatedCount).sum());
+                entries.stream().mapToLong(AppointmentsReportEntry::invalidatedCount).sum(),
+                entries.stream().mapToLong(AppointmentsReportEntry::noShowCount).sum());
     }
 
     private AppointmentsReportEntry toEntry(AppointmentsReportRow row) {
-        long resolvedCount = row.getCompletedCount() + row.getCancelledCount() + row.getInvalidatedCount();
+        long resolvedCount = row.getCompletedCount() + row.getCancelledCount()
+                + row.getInvalidatedCount() + row.getNoShowCount();
         BigDecimal completionRate = resolvedCount == 0
                 ? BigDecimal.ZERO.setScale(2)
                 : BigDecimal.valueOf(row.getCompletedCount())
@@ -90,6 +92,7 @@ public class AppointmentsReportService {
                 row.getCompletedCount(),
                 row.getCancelledCount(),
                 row.getInvalidatedCount(),
+                row.getNoShowCount(),
                 totalCount,
                 completionRate);
     }

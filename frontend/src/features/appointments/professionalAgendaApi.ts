@@ -45,7 +45,7 @@ export interface ProfessionalAgendaItem {
   startsAt: string
   endsAt: string
   allDay: boolean
-  status: 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'INVALIDATED' | null
+  status: 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'INVALIDATED' | 'NO_SHOW' | null
   clientName: string | null
   clientEmail: string | null
   serviceName: string | null

@@ -71,8 +71,9 @@ public class EstablishmentProfileService {
                 normalize(request.neighborhood()),
                 normalize(request.city()),
                 normalizeState(request.state()));
-        if (!previousAddress.equals(addressOf(profile))) {
-            geocodingService.geocode(addressOf(profile)).ifPresent(c -> profile.updateLocation(c.latitude(), c.longitude()));
+        String currentAddress = addressOf(profile);
+        if (!currentAddress.isBlank() && (!previousAddress.equals(currentAddress) || !profile.hasLocation())) {
+            geocodingService.geocode(currentAddress).ifPresent(c -> profile.updateLocation(c.latitude(), c.longitude()));
         }
         profileRepository.save(profile);
         return response(establishment, profile);
