@@ -46,6 +46,7 @@ export interface EstablishmentProfile {
   neighborhood: string | null
   city: string | null
   state: string | null
+  locationAvailable: boolean
   businessHours: BusinessHour[]
   professionals: Array<{ id: number; name: string }>
   services: Array<{ id: number; name: string; description: string | null; price: number; durationMinutes: number }>

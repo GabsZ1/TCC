@@ -172,7 +172,9 @@ public class DemoDataSeeder {
         profileRepository.save(EstablishmentProfile.builder().establishment(establishment)
                 .aboutUs(about).instagram(instagram).whatsapp(whatsapp).phone(whatsapp)
                 .postalCode(postalCode).street(street).streetNumber(number).addressComplement(complement)
-                .neighborhood(neighborhood).city(city).state(state).build());
+                .neighborhood(neighborhood).city(city).state(state)
+                .latitude(new BigDecimal(city.equals("Londrina") ? "-23.310280" : city.equals("Sarandi") ? "-23.443690" : city.equals("Paiçandu") ? "-23.457240" : "-23.420999"))
+                .longitude(new BigDecimal(city.equals("Londrina") ? "-51.162780" : city.equals("Sarandi") ? "-51.873720" : city.equals("Paiçandu") ? "-52.048610" : "-51.933056")).build());
         for (DayOfWeek day : DayOfWeek.values()) {
             boolean closed = day == DayOfWeek.SUNDAY;
             LocalTime closing = day == DayOfWeek.SATURDAY ? LocalTime.of(14, 0) : LocalTime.of(18, 0);

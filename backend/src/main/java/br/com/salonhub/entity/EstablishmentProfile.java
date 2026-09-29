@@ -10,6 +10,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.OffsetDateTime;
+import java.math.BigDecimal;
+import java.util.Objects;
 
 @Entity
 @Table(name = "establishment_profiles")
@@ -60,6 +62,12 @@ public class EstablishmentProfile {
     @Column(length = 2)
     private String state;
 
+    @Column(precision = 9, scale = 6)
+    private BigDecimal latitude;
+
+    @Column(precision = 9, scale = 6)
+    private BigDecimal longitude;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
@@ -80,6 +88,9 @@ public class EstablishmentProfile {
             String neighborhood,
             String city,
             String state) {
+        boolean addressChanged = !Objects.equals(this.postalCode, postalCode) || !Objects.equals(this.street, street)
+                || !Objects.equals(this.streetNumber, streetNumber) || !Objects.equals(this.neighborhood, neighborhood)
+                || !Objects.equals(this.city, city) || !Objects.equals(this.state, state);
         this.aboutUs = aboutUs;
         this.instagram = instagram;
         this.whatsapp = whatsapp;
@@ -91,5 +102,9 @@ public class EstablishmentProfile {
         this.neighborhood = neighborhood;
         this.city = city;
         this.state = state;
+        if (addressChanged) { latitude = null; longitude = null; }
     }
+
+    public boolean hasLocation() { return latitude != null && longitude != null; }
+    public void updateLocation(BigDecimal latitude, BigDecimal longitude) { this.latitude = latitude; this.longitude = longitude; }
 }

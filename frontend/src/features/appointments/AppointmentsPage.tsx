@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { AppointmentEditModal } from '@/features/appointments/AppointmentEditModal'
 import { EstablishmentDetailsModal } from '@/features/appointments/EstablishmentDetailsModal'
-import { cancelAppointment, fetchActiveEstablishments, fetchMyAppointments, type ActiveEstablishment, type Appointment } from '@/features/appointments/appointmentsApi'
+import { cancelAppointment, fetchActiveEstablishments, fetchNearbyEstablishments, fetchMyAppointments, type ActiveEstablishment, type Appointment } from '@/features/appointments/appointmentsApi'
 import { getApiErrorMessage } from '@/lib/apiError'
 
 const QUERY_KEY = ['my-appointments']
@@ -22,15 +22,20 @@ export function AppointmentsPage() {
   const [cancellationError, setCancellationError] = useState<string | null>(null)
   const [establishmentSearch, setEstablishmentSearch] = useState('')
   const [establishmentPage, setEstablishmentPage] = useState(0)
+  const [proximityActive, setProximityActive] = useState(false)
+  const [locationLoading, setLocationLoading] = useState(false)
+  const [locationMessage, setLocationMessage] = useState<string | null>(null)
   const appointments = useQuery({ queryKey: QUERY_KEY, queryFn: fetchMyAppointments })
   const establishments = useQuery({ queryKey: ['active-establishments'], queryFn: fetchActiveEstablishments })
+  const nearby = useMutation({ mutationFn: ({ latitude, longitude }: { latitude: number; longitude: number }) => fetchNearbyEstablishments(latitude, longitude), onSuccess: () => { setProximityActive(true); setLocationLoading(false); setEstablishmentPage(0) }, onError: () => { setLocationLoading(false); setLocationMessage('Não foi possível ordenar por proximidade. A lista continuará disponível normalmente.') } })
+  const establishmentData = proximityActive && nearby.data ? nearby.data : establishments.data
   const upcomingAppointments = (appointments.data ?? []).filter(isUpcoming)
   const historyAppointments = (appointments.data ?? []).filter((appointment) => !isUpcoming(appointment))
   const displayedAppointments = section === 'upcoming' ? upcomingAppointments : historyAppointments
 
   // Lista de estabelecimentos: busca por nome (US 2.23, CT04) e paginação de 6 em 6.
   const searchTerm = normalizeText(establishmentSearch)
-  const filteredEstablishments = (establishments.data ?? []).filter((establishment) => normalizeText(establishment.name).includes(searchTerm))
+  const filteredEstablishments = (establishmentData ?? []).filter((establishment) => normalizeText(establishment.name).includes(searchTerm))
   const establishmentPages = Math.max(1, Math.ceil(filteredEstablishments.length / ESTABLISHMENTS_PER_PAGE))
   const currentEstablishmentPage = Math.min(establishmentPage, establishmentPages - 1)
   const visibleEstablishments = filteredEstablishments.slice(
@@ -38,6 +43,15 @@ export function AppointmentsPage() {
     (currentEstablishmentPage + 1) * ESTABLISHMENTS_PER_PAGE,
   )
 
+  function activateProximity() {
+    if (!navigator.geolocation) { setLocationMessage('Seu navegador não oferece suporte à localização.'); return }
+    setLocationLoading(true); setLocationMessage(null)
+    navigator.geolocation.getCurrentPosition(
+      position => nearby.mutate({ latitude: position.coords.latitude, longitude: position.coords.longitude }),
+      error => { setLocationLoading(false); setLocationMessage(error.code === error.PERMISSION_DENIED ? 'Você não permitiu o acesso à localização. A lista continuará disponível normalmente.' : error.code === error.TIMEOUT ? 'A localização demorou mais que o esperado. Tente novamente.' : 'Não foi possível determinar sua localização neste dispositivo.') },
+      { enableHighAccuracy: false, timeout: 9000, maximumAge: 300000 },
+    )
+  }
   const cancelMutation = useMutation({
     mutationFn: cancelAppointment,
     onSuccess: () => {
@@ -112,10 +126,12 @@ export function AppointmentsPage() {
             <h2 className="mt-5 text-2xl font-extrabold tracking-[-0.04em]">Marcar um horário</h2>
             <p className="mt-2 text-sm leading-6 text-[#c3cde0]">Conheça cada estabelecimento ou vá direto para o agendamento.</p>
             <div className="mt-6 space-y-3">
-              {establishments.isLoading && <p className="rounded-xl bg-white/10 px-4 py-3 text-sm text-[#c3cde0]">Carregando estabelecimentos...</p>}
+              <button type="button" disabled={locationLoading} onClick={proximityActive ? () => { setProximityActive(false); nearby.reset(); setLocationMessage(null) } : activateProximity} className="secondary-button w-full"><MapPin size={15} /> {locationLoading ? 'Obtendo sua localização...' : proximityActive ? 'Desativar proximidade' : 'Perto de mim'}</button>
+              <p className="text-[0.68rem] leading-4 text-[#c3cde0]">Sua localização será usada somente para ordenar os estabelecimentos e não será salva.</p>
+              {locationMessage && <p role="alert" className="text-xs text-warning-100">{locationMessage}</p>}              {establishments.isLoading && <p className="rounded-xl bg-white/10 px-4 py-3 text-sm text-[#c3cde0]">Carregando estabelecimentos...</p>}
               {establishments.isError && <p className="mt-3 text-sm text-danger-700">{getApiErrorMessage(establishments.error, 'Não foi possível carregar os estabelecimentos.')}</p>}
-              {!establishments.isLoading && !establishments.isError && establishments.data?.length === 0 && <p className="mt-3 text-sm text-[#c3cde0]">Nenhum estabelecimento está disponível no momento.</p>}
-              {(establishments.data?.length ?? 0) > ESTABLISHMENTS_PER_PAGE && (
+              {!establishments.isLoading && !establishments.isError && establishmentData?.length === 0 && <p className="mt-3 text-sm text-[#c3cde0]">Nenhum estabelecimento está disponível no momento.</p>}
+              {(establishmentData?.length ?? 0) > ESTABLISHMENTS_PER_PAGE && (
                 <label className="relative block">
                   <span className="sr-only">Buscar estabelecimento</span>
                   <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#c3cde0]" />
@@ -128,13 +144,13 @@ export function AppointmentsPage() {
                   />
                 </label>
               )}
-              {!establishments.isLoading && !establishments.isError && (establishments.data?.length ?? 0) > 0 && filteredEstablishments.length === 0 && (
+              {!establishments.isLoading && !establishments.isError && (establishmentData?.length ?? 0) > 0 && filteredEstablishments.length === 0 && (
                 <p className="text-sm text-[#c3cde0]">Nenhum estabelecimento encontrado para "{establishmentSearch.trim()}".</p>
               )}
               {visibleEstablishments.map((establishment) => (
                 <article key={establishment.id} className="rounded-[0.75rem] border border-white/12 bg-white/[0.055] p-3.5">
                   <p className="font-semibold text-white">{establishment.name}</p>
-                  <div className="mt-3 grid grid-cols-2 gap-2">
+                  {proximityActive && <p className="mt-1 text-xs text-primary-200">{establishment.distanceKm == null ? 'Distância indisponível' : establishment.distanceKm < 1 ? `${Math.round(establishment.distanceKm * 1000)} m de você` : `${establishment.distanceKm.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} km de você`}</p>}                  <div className="mt-3 grid grid-cols-2 gap-2">
                     <button type="button" onClick={() => setDetails(establishment)} className="inline-flex items-center justify-center gap-1.5 rounded-[0.6rem] border border-white/20 px-3 py-2 text-xs font-semibold text-white hover:bg-white/10"><Eye size={14} /> Detalhes</button>
                     <button type="button" onClick={() => navigate(`/estabelecimentos/${establishment.id}/agendar`)} className="inline-flex items-center justify-center gap-1.5 rounded-[0.6rem] bg-white px-3 py-2 text-xs font-semibold text-primary-900 hover:bg-primary-50">Agendar <ArrowRight size={14} /></button>
                   </div>
