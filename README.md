@@ -188,7 +188,16 @@ Como funciona:
 - O seed só **acrescenta** registros: não altera nem apaga dados que já existem no banco.
 - Tudo roda numa única transação. Se algo falhar, nada é gravado.
 - Se os dados de demonstração já existirem (conta `admin@studiobella.demo`), o comando não faz nada.
-- Para recriar do zero: `docker compose down -v`, `docker compose up -d` e o comando de novo. Isso apaga **todo** o banco local, não só os dados de demonstração.
+
+Para **recriar só os dados de demonstração** (por exemplo, depois de uma mudança no seed), sem apagar o resto do banco:
+
+```bash
+./mvnw spring-boot:run "-Dspring-boot.run.profiles=local,seed" "-Dspring-boot.run.arguments=--reset"
+```
+
+O `--reset` apaga os estabelecimentos com e-mail `.demo`, os usuários com e-mail `.demo` (e quem estiver vinculado a esses estabelecimentos), com seus agendamentos, serviços, horários, clientes e fotos, e cria tudo de novo. Os seus dados são preservados. Se um cliente de demonstração tiver agendado em um estabelecimento seu, o agendamento continua lá e o cadastro do cliente só perde o vínculo com a conta. Apagar e recriar acontecem numa transação só: se algo falhar, nada muda.
+
+Para zerar **todo** o banco local: `docker compose down -v`, `docker compose up -d` e o comando do seed de novo.
 - O seed se recusa a rodar com o profile `prod`.
 
 Sobre as senhas: as contas abaixo são fictícias, existem só no banco local de quem roda o seed e usam o domínio `.demo`, que não recebe e-mails. Por isso a senha pode ficar documentada aqui. Nunca use essas contas nem essa senha em um ambiente publicado.

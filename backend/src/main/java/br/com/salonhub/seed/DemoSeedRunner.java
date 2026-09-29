@@ -10,12 +10,17 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Ponto de entrada do comando de popular o banco. Só existe com o profile "seed", então
  * nunca roda ao subir o backend normalmente nem nos testes.
  *
  * <pre>./mvnw spring-boot:run "-Dspring-boot.run.profiles=local,seed"</pre>
+ *
+ * Com o argumento --reset, apaga antes só os dados de demonstração e cria tudo de novo:
+ * <pre>./mvnw spring-boot:run "-Dspring-boot.run.profiles=local,seed" "-Dspring-boot.run.arguments=--reset"</pre>
  */
 @Slf4j
 @Component
@@ -24,6 +29,8 @@ import org.springframework.stereotype.Component;
 public class DemoSeedRunner implements ApplicationRunner {
 
     private final DemoDataSeeder seeder;
+    private final DemoDataReset reset;
+    private final PlatformTransactionManager transactionManager;
     private final ConfigurableApplicationContext context;
     private final Environment environment;
 
@@ -38,10 +45,18 @@ public class DemoSeedRunner implements ApplicationRunner {
             return;
         }
         try {
-            DemoDataSeeder.Result result = seeder.seed();
+            // Apagar e recriar ficam na mesma transação: se o seed falhar, os dados antigos voltam.
+            DemoDataSeeder.Result result = new TransactionTemplate(transactionManager).execute(status -> {
+                if (args.containsOption("reset")) {
+                    DemoDataReset.Result removed = reset.reset();
+                    log.info("Dados de demonstração anteriores removidos: {} estabelecimentos, {} usuários, {} agendamentos.",
+                            removed.establishments(), removed.users(), removed.appointments());
+                }
+                return seeder.seed();
+            });
             if (result == null) {
                 log.info("Os dados de demonstração já existem. Nada foi alterado.");
-                log.info("Para recriar do zero: docker compose down -v, docker compose up -d e rode o comando de novo.");
+                log.info("Para recriar só os dados de demonstração, rode de novo com \"-Dspring-boot.run.arguments=--reset\".");
             } else {
                 log.info("Dados de demonstração criados: {} estabelecimentos, {} funcionários, {} clientes, {} agendamentos.",
                         result.establishments(), result.professionals(), result.clients(), result.appointments());
