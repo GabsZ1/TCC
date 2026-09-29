@@ -1,7 +1,8 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AtSign, MapPin, Phone, Save, Store } from 'lucide-react'
 import { getApiErrorMessage } from '@/lib/apiError'
+import { CepNotFoundError, cepDigits, formatCep, lookupCep } from '@/lib/cep'
 import {
   fetchMyEstablishmentProfile,
   updateMyEstablishmentProfile,
@@ -17,6 +18,9 @@ export function EstablishmentProfilePage() {
   const [form, setForm] = useState<EstablishmentProfileInput | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [cepStatus, setCepStatus] = useState<{ tone: 'info' | 'error'; text: string } | null>(null)
+  const cepRequest = useRef<AbortController | null>(null)
+  const streetNumberInput = useRef<HTMLInputElement>(null)
   const profile = profileQuery.data
   const currentForm = form ?? (profile ? profileToForm(profile) : null)
 
@@ -36,6 +40,43 @@ export function EstablishmentProfilePage() {
 
   function updateField(field: keyof EstablishmentProfileInput, value: string) {
     if (currentForm) setForm({ ...currentForm, [field]: value })
+  }
+
+  /** Ao completar os 8 dígitos do CEP, busca o endereço e preenche logradouro, bairro, cidade e UF. */
+  function changePostalCode(value: string) {
+    if (!currentForm) return
+    const digits = cepDigits(value)
+    setForm({ ...currentForm, postalCode: digits })
+    cepRequest.current?.abort()
+    setCepStatus(null)
+    if (digits.length !== 8) return
+
+    const controller = new AbortController()
+    cepRequest.current = controller
+    setCepStatus({ tone: 'info', text: 'Buscando endereço...' })
+    lookupCep(digits, controller.signal)
+      .then((address) => {
+        if (controller.signal.aborted) return
+        // Campo que o CEP não informa (ex.: CEP único da cidade) mantém o que já estava digitado.
+        setForm((previous) => {
+          const base = previous ?? currentForm
+          return {
+            ...base,
+            street: address.street || base.street,
+            neighborhood: address.neighborhood || base.neighborhood,
+            city: address.city || base.city,
+            state: address.state || base.state,
+          }
+        })
+        setCepStatus(address.street ? null : { tone: 'info', text: 'CEP geral da cidade: preencha o logradouro e o bairro.' })
+        streetNumberInput.current?.focus()
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return
+        setCepStatus(error instanceof CepNotFoundError
+          ? { tone: 'error', text: 'CEP não encontrado. Confira o número ou preencha o endereço manualmente.' }
+          : { tone: 'error', text: 'Não foi possível consultar o CEP agora. Preencha o endereço manualmente.' })
+      })
   }
 
   function submit(event: FormEvent) {
@@ -82,9 +123,9 @@ export function EstablishmentProfilePage() {
             <div className="flex items-center gap-2 text-text-700"><MapPin size={18} /><h2 className="font-semibold text-text-900">Endereço</h2></div>
             <p className="mt-1 text-sm text-text-600">Os campos estão separados para facilitar a futura integração com o mapa.</p>
             <div className="mt-4 grid gap-5 sm:grid-cols-6">
-              <ProfileField label="CEP" value={currentForm.postalCode} onChange={(value) => updateField('postalCode', value.replace(/\D/g, '').slice(0, 8))} placeholder="00000000" className="sm:col-span-2" />
+              <ProfileField label="CEP" value={formatCep(currentForm.postalCode)} onChange={changePostalCode} placeholder="00000-000" inputMode="numeric" className="sm:col-span-2" hint={cepStatus?.text ?? 'Digite o CEP para preencher o endereço.'} hintTone={cepStatus?.tone} />
               <ProfileField label="Logradouro" value={currentForm.street} onChange={(value) => updateField('street', value)} placeholder="Rua, avenida..." className="sm:col-span-4" />
-              <ProfileField label="Número" value={currentForm.streetNumber} onChange={(value) => updateField('streetNumber', value)} className="sm:col-span-2" />
+              <ProfileField label="Número" value={currentForm.streetNumber} onChange={(value) => updateField('streetNumber', value)} className="sm:col-span-2" inputRef={streetNumberInput} />
               <ProfileField label="Complemento" value={currentForm.addressComplement} onChange={(value) => updateField('addressComplement', value)} className="sm:col-span-4" />
               <ProfileField label="Bairro" value={currentForm.neighborhood} onChange={(value) => updateField('neighborhood', value)} className="sm:col-span-2" />
               <ProfileField label="Cidade" value={currentForm.city} onChange={(value) => updateField('city', value)} className="sm:col-span-3" />
@@ -111,8 +152,20 @@ export function EstablishmentProfilePage() {
   )
 }
 
-function ProfileField({ label, value, onChange, placeholder, className = '', icon }: { label: string; value: string | null; onChange: (value: string) => void; placeholder?: string; className?: string; icon?: React.ReactNode }) {
-  return <label className={`block ${className}`}><span className="flex items-center gap-1.5 text-sm font-medium text-text-800">{icon}{label}</span><input value={value ?? ''} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="mt-2 w-full rounded-xl border border-background-300 px-3.5 py-3 text-text-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 disabled:bg-background-100" /></label>
+interface ProfileFieldProps {
+  label: string
+  value: string | null
+  onChange: (value: string) => void
+  placeholder?: string
+  className?: string
+  icon?: React.ReactNode
+  inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode']
+  inputRef?: React.Ref<HTMLInputElement>
+  hint?: string
+  hintTone?: 'info' | 'error'
+}
+function ProfileField({ label, value, onChange, placeholder, className = '', icon, inputMode, inputRef, hint, hintTone = 'info' }: ProfileFieldProps) {
+  return <label className={`block ${className}`}><span className="flex items-center gap-1.5 text-sm font-medium text-text-800">{icon}{label}</span><input ref={inputRef} value={value ?? ''} inputMode={inputMode} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="mt-2 w-full rounded-xl border border-background-300 px-3.5 py-3 text-text-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 disabled:bg-background-100" />{hint && <span role={hintTone === 'error' ? 'alert' : 'status'} className={`mt-1.5 block text-xs ${hintTone === 'error' ? 'text-danger-600' : 'text-text-500'}`}>{hint}</span>}</label>
 }
 function SectionHeader({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) { return <div><div className="flex items-center gap-2 text-text-600">{icon}<h2 className="text-lg font-semibold text-text-900">{title}</h2></div><p className="mt-1 text-sm text-text-600">{description}</p></div> }
 function PageContainer({ children }: { children: React.ReactNode }) { return <div className="page-shell">{children}</div> }
