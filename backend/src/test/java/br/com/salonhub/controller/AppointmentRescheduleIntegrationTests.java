@@ -68,6 +68,15 @@ class AppointmentRescheduleIntegrationTests {
                 .andExpect(jsonPath("$.serviceId").value(service))
                 .andExpect(jsonPath("$.agreedPrice").value(50.0));
 
+        mvc.perform(put("/api/agendamentos/{id}/remarcacao", appointment).header("Authorization", admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body(null, bruno, day + "T13:15:00")))
+                .andExpect(status().isOk());
+        mvc.perform(put("/api/agendamentos/{id}/remarcacao", appointment).header("Authorization", admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body(null, bruno, day + "T13:07:00")))
+                .andExpect(status().isConflict());
+
         // Conflito com outro agendamento do Bruno.
         mvc.perform(put("/api/agendamentos/{id}/remarcacao", appointment).header("Authorization", admin)
                         .contentType(MediaType.APPLICATION_JSON)

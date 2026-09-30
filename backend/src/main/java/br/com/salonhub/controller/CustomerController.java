@@ -80,21 +80,26 @@ public class CustomerController {
 
     @GetMapping("/opcoes-agendamento")
     @Transactional(readOnly = true)
-    public BookingOptions bookingOptions(@AuthenticationPrincipal Jwt jwt) {
+    public BookingOptions bookingOptions(@AuthenticationPrincipal Jwt jwt,
+                                        @RequestParam(required = false) Long serviceId) {
         var staff = authorization.requireEstablishmentStaff(Long.valueOf(jwt.getSubject()));
         Long establishmentId = staff.getEstablishment().getId();
         var activeServices = services.findByEstablishmentIdAndActiveTrue(establishmentId);
+        if (serviceId != null && activeServices.stream().noneMatch(service -> service.getId().equals(serviceId))) {
+            throw new ResourceNotFoundException("Serviço não encontrado.");
+        }
         if (staff.getRole() == UserRole.PROFESSIONAL) {
             // O profissional agenda só na própria agenda e só os serviços que ele realiza.
             return new BookingOptions(
                     activeServices.stream().filter(staff::offers)
                             .map(service -> new BookingOption(service.getId(), service.getName())).toList(),
-                    List.of(new BookingOption(staff.getId(), staff.getName())));
+                    serviceId == null || activeServices.stream().anyMatch(service -> service.getId().equals(serviceId) && staff.offers(service))
+                            ? List.of(new BookingOption(staff.getId(), staff.getName())) : List.of());
         }
         return new BookingOptions(
                 activeServices.stream()
                         .map(service -> new BookingOption(service.getId(), service.getName())).toList(),
-                users.findByEstablishmentIdAndRoleAndActiveTrue(establishmentId, UserRole.PROFESSIONAL).stream()
+                users.findActiveProfessionalsForService(establishmentId, UserRole.PROFESSIONAL, serviceId).stream()
                         .map(professional -> new BookingOption(professional.getId(), professional.getName())).toList());
     }
 

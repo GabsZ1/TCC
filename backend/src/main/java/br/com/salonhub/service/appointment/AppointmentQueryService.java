@@ -6,6 +6,7 @@ import br.com.salonhub.dto.appointment.AdministrativeProfessionalAvailabilityRes
 import br.com.salonhub.dto.appointment.AvailabilityResponse;
 import br.com.salonhub.entity.Appointment;
 import br.com.salonhub.entity.AppointmentStatus;
+import br.com.salonhub.entity.Customer;
 import br.com.salonhub.entity.Establishment;
 import br.com.salonhub.entity.EstablishmentService;
 import br.com.salonhub.entity.User;
@@ -14,6 +15,7 @@ import br.com.salonhub.exception.ConflictException;
 import br.com.salonhub.exception.InvalidRequestException;
 import br.com.salonhub.exception.ResourceNotFoundException;
 import br.com.salonhub.repository.AppointmentRepository;
+import br.com.salonhub.repository.CustomerRepository;
 import br.com.salonhub.repository.EstablishmentRepository;
 import br.com.salonhub.repository.EstablishmentServiceRepository;
 import br.com.salonhub.repository.UserRepository;
@@ -24,6 +26,7 @@ import br.com.salonhub.repository.ProfessionalCalendarEventRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.time.Clock;
 import java.time.LocalDate;
@@ -37,6 +40,7 @@ import java.util.List;
 public class AppointmentQueryService {
 
     private final AppointmentRepository appointmentRepository;
+    private final CustomerRepository customerRepository;
     private final EstablishmentRepository establishmentRepository;
     private final EstablishmentServiceRepository serviceRepository;
     private final UserRepository userRepository;
@@ -176,8 +180,48 @@ public class AppointmentQueryService {
                 professionalAvailabilityService.requireWorkingHours(professional, date);
         List<LocalTime> availableTimes = calculateAvailableTimes(
                 date, service, workingHours, professionalAppointments, clientAppointments, calendarEvents,
-                earliestStart, latestStart, appointmentId);
+                earliestStart, latestStart, appointmentId, AppointmentSlotPolicy.SLOT_INTERVAL_MINUTES);
         return new AvailabilityResponse(date, service.getDurationMinutes(), availableTimes);
+    }
+
+    @Transactional(readOnly = true)
+    public AvailabilityResponse findInternalAvailability(Long staffId, Long customerId, Long serviceId,
+                                                        Long professionalId, LocalDate date) {
+        User staff = tenantAuthorizationService.requireEstablishmentStaff(staffId);
+        Long establishmentId = staff.getEstablishment().getId();
+        customerRepository.findByIdAndEstablishmentId(customerId, establishmentId)
+                .filter(Customer::isActive)
+                .orElseThrow(() -> new ResourceNotFoundException("Cliente não encontrado."));
+        if (date.isBefore(LocalDate.now(clock))) {
+            throw new InvalidRequestException("A data da consulta não pode estar no passado.");
+        }
+        establishmentRepository.findById(establishmentId)
+                .filter(Establishment::acceptsNewAppointments)
+                .orElseThrow(() -> new ResourceNotFoundException("Estabelecimento não encontrado."));
+        EstablishmentService service = serviceRepository.findByIdAndEstablishmentIdAndActiveTrue(serviceId, establishmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Serviço não encontrado."));
+        User professional = userRepository.findByIdAndEstablishmentIdAndRoleAndActiveTrue(
+                        professionalId, establishmentId, UserRole.PROFESSIONAL)
+                .orElseThrow(() -> new ResourceNotFoundException("Funcionário não encontrado."));
+        if (staff.getRole() == UserRole.PROFESSIONAL && !staff.getId().equals(professionalId)) {
+            throw new AccessDeniedException("O profissional só pode consultar a própria agenda.");
+        }
+        requireProfessionalOffersService(professional, service);
+        LocalDateTime dayStart = date.atStartOfDay();
+        LocalDateTime dayEnd = date.plusDays(1).atStartOfDay();
+        List<Appointment> professionalAppointments = appointmentRepository
+                .findByProfessionalIdAndStatusAndStartsAtLessThanAndEndsAtGreaterThanOrderByStartsAt(
+                        professionalId, AppointmentStatus.CONFIRMED, dayEnd, dayStart);
+        List<Appointment> customerAppointments = appointmentRepository
+                .findByCustomerIdAndStatusAndStartsAtLessThanAndEndsAtGreaterThanOrderByStartsAt(
+                        customerId, AppointmentStatus.CONFIRMED, dayEnd, dayStart);
+        List<ProfessionalCalendarEvent> blocks = calendarEventRepository
+                .findByProfessionalIdAndStartsAtLessThanAndEndsAtGreaterThanOrderByStartsAt(
+                        professionalId, dayEnd, dayStart);
+        var hours = professionalAvailabilityService.requireWorkingHours(professional, date);
+        return new AvailabilityResponse(date, service.getDurationMinutes(), calculateAvailableTimes(
+                date, service, hours, professionalAppointments, customerAppointments, blocks,
+                LocalDateTime.now(clock), null, null, AppointmentSlotPolicy.INTERNAL_SLOT_INTERVAL_MINUTES));
     }
 
     private List<LocalTime> calculateAvailableTimes(
@@ -189,14 +233,16 @@ public class AppointmentQueryService {
             List<ProfessionalCalendarEvent> calendarEvents,
             LocalDateTime earliestStart,
             LocalDateTime latestStart,
-            Long ignoredAppointmentId) {
+            Long ignoredAppointmentId,
+            int slotIntervalMinutes) {
         List<LocalTime> availableTimes = new ArrayList<>();
         LocalDateTime closing = date.atTime(workingHours.closingTime());
-        LocalDateTime candidate = alignToSlotGrid(date.atTime(workingHours.openingTime()));
+        LocalDateTime candidate = alignToSlotGrid(date.atTime(workingHours.openingTime()), slotIntervalMinutes);
         while (!candidate.plusMinutes(service.getDurationMinutes()).isAfter(closing)) {
             LocalDateTime slotStart = candidate;
             LocalDateTime slotEnd = slotStart.plusMinutes(service.getDurationMinutes());
-            boolean withinAdvanceWindow = !slotStart.isBefore(earliestStart) && !slotStart.isAfter(latestStart);
+            boolean withinAdvanceWindow = !slotStart.isBefore(earliestStart)
+                    && (latestStart == null || !slotStart.isAfter(latestStart));
             boolean professionalOverlaps = overlaps(professionalAppointments, slotStart, slotEnd, ignoredAppointmentId);
             boolean clientOverlaps = overlaps(clientAppointments, slotStart, slotEnd, ignoredAppointmentId);
             boolean calendarEventOverlaps = calendarEvents.stream().anyMatch(event ->
@@ -204,23 +250,17 @@ public class AppointmentQueryService {
             if (withinAdvanceWindow && !professionalOverlaps && !clientOverlaps && !calendarEventOverlaps) {
                 availableTimes.add(slotStart.toLocalTime());
             }
-            candidate = candidate.plusMinutes(AppointmentSlotPolicy.SLOT_INTERVAL_MINUTES);
+            candidate = candidate.plusMinutes(slotIntervalMinutes);
         }
         return availableTimes;
     }
 
-    /**
-     * Garante que o primeiro horário candidato já esteja alinhado à grade de slots de
-     * {@link AppointmentSlotPolicy#SLOT_INTERVAL_MINUTES} minutos, mesmo quando a jornada
-     * (do estabelecimento ou do profissional) abre em um minuto que não é múltiplo do
-     * intervalo. Sem isso, a disponibilidade podia oferecer horários (ex.: 09:15) que a
-     * criação do agendamento rejeitava em seguida, por não estarem alinhados aos slots.
-     */
-    private LocalDateTime alignToSlotGrid(LocalDateTime time) {
-        int slot = AppointmentSlotPolicy.SLOT_INTERVAL_MINUTES;
+    /** Alinha o início da jornada à próxima posição da grade selecionada. */
+    private LocalDateTime alignToSlotGrid(LocalDateTime time, int slot) {
         LocalDateTime truncated = time.withSecond(0).withNano(0);
         int remainder = truncated.getMinute() % slot;
-        return remainder == 0 ? truncated : truncated.plusMinutes(slot - remainder);
+        return remainder == 0 && time.equals(truncated)
+                ? truncated : truncated.plusMinutes(slot - remainder);
     }
 
     private boolean overlaps(

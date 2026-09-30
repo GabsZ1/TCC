@@ -16,7 +16,7 @@ interface Props {
  * O backend repete as validações de jornada, bloqueios e conflitos. Manter o serviço mantém o preço combinado.
  */
 export function RescheduleAppointmentModal({ appointment, onRescheduled, onClose }: Props) {
-  const options = useQuery({ queryKey: ['customer-booking-options'], queryFn: fetchBookingOptions })
+  const options = useQuery({ queryKey: ['customer-booking-options'], queryFn: () => fetchBookingOptions() })
   const [serviceId, setServiceId] = useState(String(appointment.serviceId))
   const [professionalId, setProfessionalId] = useState(String(appointment.professionalId))
   const [startsAt, setStartsAt] = useState(appointment.startsAt.slice(0, 16))
@@ -32,7 +32,7 @@ export function RescheduleAppointmentModal({ appointment, onRescheduled, onClose
   return (
     <Modal title="Remarcar agendamento" onClose={onClose}>
       <form onSubmit={(event) => { event.preventDefault(); mutation.mutate() }} className="space-y-4">
-        <p className="text-sm text-text-700">Cliente: <strong>{appointment.clientName}</strong>. Os horários seguem a grade de 30 minutos.</p>
+        <p className="text-sm text-text-700">Cliente: <strong>{appointment.clientName}</strong>. Os horários seguem a grade de 15 minutos.</p>
         <label className="block text-sm font-medium text-text-800">Serviço
           <select className="filter-input mt-1 w-full" value={serviceId} onChange={(event) => setServiceId(event.target.value)}>
             {!currentServiceListed && <option value={appointment.serviceId}>{appointment.serviceName} (atual)</option>}
@@ -47,7 +47,7 @@ export function RescheduleAppointmentModal({ appointment, onRescheduled, onClose
           </select>
         </label>
         <label className="block text-sm font-medium text-text-800">Data e horário
-          <input required type="datetime-local" step={1800} className="filter-input mt-1 w-full" value={startsAt} onChange={(event) => setStartsAt(event.target.value)} />
+          <input required type="datetime-local" step={900} className="filter-input mt-1 w-full" value={startsAt} onChange={(event) => setStartsAt(event.target.value)} />
         </label>
         {mutation.isError && <p role="alert" className="text-sm text-danger-600">{getApiErrorMessage(mutation.error, 'Não foi possível remarcar o agendamento.')}</p>}
         <div className="flex justify-end gap-3">

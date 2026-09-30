@@ -159,6 +159,13 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             LocalDateTime periodStart
     );
 
+    List<Appointment> findByCustomerIdAndStatusAndStartsAtLessThanAndEndsAtGreaterThanOrderByStartsAt(
+            Long customerId,
+            AppointmentStatus status,
+            LocalDateTime periodEnd,
+            LocalDateTime periodStart
+    );
+
     long countByEstablishmentId(Long establishmentId);
 
     /** Relatório financeiro: concluídos no período (pela data de conclusão), agrupados por serviço. */

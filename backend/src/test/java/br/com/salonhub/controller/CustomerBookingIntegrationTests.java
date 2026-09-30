@@ -19,6 +19,7 @@ import java.time.LocalDate;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -297,6 +298,20 @@ class CustomerBookingIntegrationTests {
                 .andExpect(jsonPath("$.services[0].id").value(serviceId));
         mvc.perform(get("/api/clientes/estabelecimento/me/opcoes-agendamento").header("Authorization", auth))
                 .andExpect(jsonPath("$.professionals.length()").value(2));
+        mvc.perform(get("/api/clientes/estabelecimento/me/opcoes-agendamento").header("Authorization", auth)
+                .param("serviceId", serviceId.toString()))
+                .andExpect(jsonPath("$.professionals.length()").value(2));
+        mvc.perform(get("/api/agendamentos/estabelecimento/me/clientes/{id}/disponibilidade", customerId.longValue())
+                .header("Authorization", professionalAuth).param("serviceId", serviceId.toString())
+                .param("professionalId", colleagueId.toString()).param("date", day.toString()))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/agendamentos/estabelecimento/me/clientes/{id}/disponibilidade", customerId.longValue())
+                .header("Authorization", professionalAuth).param("serviceId", serviceId.toString())
+                .param("professionalId", professionalId.toString()).param("date", day.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.availableTimes[?(@ == '10:00:00')]").isEmpty())
+                .andExpect(jsonPath("$.availableTimes[?(@ == '11:15:00')]").isNotEmpty())
+                .andExpect(jsonPath("$.availableTimes[?(@ == '17:30:00')]").isEmpty());
         mvc.perform(post("/api/agendamentos/estabelecimento/me/clientes/{id}", customerId.longValue())
                 .header("Authorization", professionalAuth).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"serviceId\":%d,\"professionalId\":%d,\"startsAt\":\"%sT14:00:00\"}"
@@ -308,6 +323,59 @@ class CustomerBookingIntegrationTests {
                         .formatted(serviceId.longValue(), professionalId.longValue(), day)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.professionalId").value(professionalId));
+        customers.findById(customerId.longValue()).orElseThrow().getEstablishment()
+                .updateAppointmentAdvancePolicy(3 * 24 * 60, 60);
+        mvc.perform(post("/api/agendamentos/estabelecimento/me/clientes/{id}", customerId.longValue())
+                .header("Authorization", auth).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"serviceId\":%d,\"professionalId\":%d,\"startsAt\":\"%sT11:07:00\"}"
+                        .formatted(serviceId.longValue(), professionalId.longValue(), day)))
+                .andExpect(status().isConflict());
+        mvc.perform(post("/api/agendamentos/estabelecimento/me/clientes/{id}", customerId.longValue())
+                .header("Authorization", auth).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"serviceId\":%d,\"professionalId\":%d,\"startsAt\":\"%sT11:15:00\"}"
+                        .formatted(serviceId.longValue(), professionalId.longValue(), day)))
+                .andExpect(status().isCreated());
+        registerClient("online.slot@salonhub.test", "44977771111");
+        String onlineAuth = login("online.slot@salonhub.test");
+        mvc.perform(post("/api/estabelecimentos/{id}/agendamentos",
+                        customers.findById(customerId.longValue()).orElseThrow().getEstablishment().getId())
+                .header("Authorization", onlineAuth).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"serviceId\":%d,\"professionalId\":%d,\"startsAt\":\"%sT12:15:00\"}"
+                        .formatted(serviceId.longValue(), professionalId.longValue(), day)))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.message").value("O horário deve estar alinhado aos intervalos de 30 minutos."));
+        mvc.perform(post("/api/estabelecimentos/{id}/agendamentos",
+                        customers.findById(customerId.longValue()).orElseThrow().getEstablishment().getId())
+                .header("Authorization", onlineAuth).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"serviceId\":%d,\"professionalId\":%d,\"startsAt\":\"%sT12:30:00\"}"
+                        .formatted(serviceId.longValue(), professionalId.longValue(), day)))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.message").exists());
+        mvc.perform(post("/api/agendamentos/estabelecimento/me/clientes/{id}", customerId.longValue())
+                .header("Authorization", auth).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"serviceId\":%d,\"professionalId\":%d,\"startsAt\":\"%sT15:00:00\"}"
+                        .formatted(serviceId.longValue(), colleagueId.longValue(), day)))
+                .andExpect(status().isCreated());
+        mvc.perform(post("/api/profissionais/me/agenda/eventos").header("Authorization", professionalAuth)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"title\":\"Bloqueio\",\"startsAt\":\"%sT12:30:00\",\"endsAt\":\"%sT13:00:00\",\"allDay\":false}"
+                        .formatted(day, day))).andExpect(status().isCreated());
+        mvc.perform(get("/api/agendamentos/estabelecimento/me/clientes/{id}/disponibilidade", customerId.longValue())
+                .header("Authorization", auth).param("serviceId", serviceId.toString())
+                .param("professionalId", professionalId.toString()).param("date", day.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.availableTimes[?(@ == '12:30:00')]").isEmpty())
+                .andExpect(jsonPath("$.availableTimes[?(@ == '15:15:00')]").isEmpty());
+        mvc.perform(put("/api/funcionarios/{id}/servicos", colleagueId.longValue())
+                .header("Authorization", auth).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"allServices\":false,\"serviceIds\":[]}"))
+                .andExpect(status().isOk());
+        mvc.perform(get("/api/clientes/estabelecimento/me/opcoes-agendamento").header("Authorization", auth)
+                .param("serviceId", serviceId.toString()))
+                .andExpect(jsonPath("$.professionals.length()").value(1))
+                .andExpect(jsonPath("$.professionals[0].id").value(professionalId));
+        mvc.perform(get("/api/agendamentos/estabelecimento/me/clientes/{id}/disponibilidade", customerId.longValue())
+                .header("Authorization", auth).param("serviceId", serviceId.toString())
+                .param("professionalId", colleagueId.toString()).param("date", day.toString()))
+                .andExpect(status().isConflict());
 
         mvc.perform(post("/api/auth/cadastro").contentType(MediaType.APPLICATION_JSON).content("""
                 {"ownerName":"Admin outro salão","ownerEmail":"outro.balcao@salonhub.test",

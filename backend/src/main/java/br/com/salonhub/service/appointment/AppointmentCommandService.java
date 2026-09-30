@@ -264,7 +264,7 @@ public class AppointmentCommandService {
             LocalDateTime endsAt,
             Long ignoredAppointmentId,
             boolean enforceAdvanceWindow) {
-        validateSlotAlignment(startsAt);
+        validateSlotAlignment(startsAt, enforceAdvanceWindow);
         if (enforceAdvanceWindow) validateAdvanceWindow(establishment, startsAt);
         else if (startsAt.isBefore(LocalDateTime.now(clock))) {
             throw new ConflictException("O agendamento não pode começar no passado.");
@@ -278,9 +278,11 @@ public class AppointmentCommandService {
         validateClientAvailability(customer.getId(), startsAt, endsAt, ignoredAppointmentId);
     }
 
-    private void validateSlotAlignment(LocalDateTime startsAt) {
-        if (!AppointmentSlotPolicy.isAligned(startsAt)) {
-            throw new ConflictException("O horário deve estar alinhado aos intervalos de 30 minutos.");
+    private void validateSlotAlignment(LocalDateTime startsAt, boolean online) {
+        int interval = online ? AppointmentSlotPolicy.SLOT_INTERVAL_MINUTES
+                : AppointmentSlotPolicy.INTERNAL_SLOT_INTERVAL_MINUTES;
+        if (!AppointmentSlotPolicy.isAligned(startsAt, interval)) {
+            throw new ConflictException("O horário deve estar alinhado aos intervalos de " + interval + " minutos.");
         }
     }
 

@@ -54,6 +54,13 @@ public class AppointmentController {
         return commandService.createForCustomer(currentUserId(jwt), customerId, request);
     }
 
+    @GetMapping("/agendamentos/estabelecimento/me/clientes/{customerId}/disponibilidade")
+    public AvailabilityResponse findInternalAvailability(@AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long customerId, @RequestParam Long serviceId, @RequestParam Long professionalId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return queryService.findInternalAvailability(currentUserId(jwt), customerId, serviceId, professionalId, date);
+    }
+
     @GetMapping("/agendamentos/me")
     public List<AppointmentResponse> findMine(@AuthenticationPrincipal Jwt jwt) {
         return queryService.findMine(currentUserId(jwt));

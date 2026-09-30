@@ -31,8 +31,10 @@ export const keepCustomersSeparate = (id: number, otherId: number) =>
   api.patch(`/clientes/estabelecimento/me/${id}/manter-separados/${otherId}`)
 export const fetchCustomerAppointments = (id: number) =>
   api.get<Appointment[]>(`/clientes/estabelecimento/me/${id}/agendamentos`).then((response) => response.data)
-export const fetchBookingOptions = () =>
-  api.get<{ services: Array<{ id: number; name: string }>; professionals: Array<{ id: number; name: string }> }>('/clientes/estabelecimento/me/opcoes-agendamento').then((response) => response.data)
+export const fetchBookingOptions = (serviceId?: number) =>
+  api.get<{ services: Array<{ id: number; name: string }>; professionals: Array<{ id: number; name: string }> }>('/clientes/estabelecimento/me/opcoes-agendamento', { params: { serviceId } }).then((response) => response.data)
+export const fetchInternalAvailability = (customerId: number, serviceId: number, professionalId: number, date: string) =>
+  api.get<{ date: string; durationMinutes: number; availableTimes: string[] }>(`/agendamentos/estabelecimento/me/clientes/${customerId}/disponibilidade`, { params: { serviceId, professionalId, date } }).then((response) => response.data)
 export const createCustomerAppointment = (customerId: number, serviceId: number, professionalId: number, startsAt: string) =>
   api.post<Appointment>(`/agendamentos/estabelecimento/me/clientes/${customerId}`, { serviceId, professionalId, startsAt })
     .then((response) => response.data)

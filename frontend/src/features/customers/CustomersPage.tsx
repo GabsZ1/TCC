@@ -8,7 +8,7 @@ import { APPOINTMENT_STATUS_LABELS, APPOINTMENT_STATUS_STYLES } from '@/features
 import type { Appointment } from '@/features/appointments/appointmentsApi'
 import { getApiErrorMessage } from '@/lib/apiError'
 import { formatPhone, isValidPhone, PHONE_MASK } from '@/lib/phone'
-import { createCustomer, createCustomerAppointment, fetchBookingOptions, fetchCustomerAppointments, fetchCustomerDuplicates, fetchCustomerSuggestions, fetchCustomers, keepCustomersSeparate, mergeCustomers, updateCustomer, type Customer } from './customersApi'
+import { createCustomer, createCustomerAppointment, fetchBookingOptions, fetchCustomerAppointments, fetchCustomerDuplicates, fetchCustomerSuggestions, fetchCustomers, fetchInternalAvailability, keepCustomersSeparate, mergeCustomers, updateCustomer, type Customer } from './customersApi'
 
 export function CustomersPage() {
   const queryClient = useQueryClient()
@@ -23,7 +23,12 @@ export function CustomersPage() {
   const [email, setEmail] = useState('')
   const [serviceId, setServiceId] = useState('')
   const [professionalId, setProfessionalId] = useState('')
-  const [startsAt, setStartsAt] = useState('')
+  const [date, setDate] = useState('')
+  const [time, setTime] = useState('')
+  const [minBookingDate] = useState(() => {
+    const now = new Date()
+    return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
+  })
   const customers = useQuery({ queryKey: ['customers', search], queryFn: () => fetchCustomers(search) })
   const suggestions = useQuery({
     queryKey: ['customer-suggestions', phone, email],
@@ -32,14 +37,21 @@ export function CustomersPage() {
   })
   const history = useQuery({ queryKey: ['customer-appointments', selected?.id], queryFn: () => fetchCustomerAppointments(selected!.id), enabled: !!selected })
   const duplicates = useQuery({ queryKey: ['customer-duplicates', selected?.id], queryFn: () => fetchCustomerDuplicates(selected!.id), enabled: !!selected && user?.role === 'ADMIN' })
-  const options = useQuery({ queryKey: ['customer-booking-options'], queryFn: fetchBookingOptions })
+  const options = useQuery({ queryKey: ['customer-booking-options', serviceId], queryFn: () => fetchBookingOptions(serviceId ? Number(serviceId) : undefined) })
+  const bookingProfessionalId = isProfessional ? Number(user?.id) : Number(professionalId)
+  const availability = useQuery({
+    queryKey: ['internal-availability', selected?.id, serviceId, bookingProfessionalId, date],
+    queryFn: () => fetchInternalAvailability(selected!.id, Number(serviceId), bookingProfessionalId, date),
+    enabled: !!selected?.active && !!serviceId && !!bookingProfessionalId && !!date,
+    retry: false,
+  })
   const save = useMutation({
     mutationFn: () => editing === 'new' ? createCustomer({ name, phone, email }) : updateCustomer((editing as Customer).id, { name, phone, email, active: (editing as Customer).active }),
-    onSuccess: (customer) => { queryClient.invalidateQueries({ queryKey: ['customers'] }); setSelected(customer); setEditing(null) },
+    onSuccess: (customer) => { queryClient.invalidateQueries({ queryKey: ['customers'] }); setSelected(customer); setTime(''); setEditing(null) },
   })
   const booking = useMutation({
-    mutationFn: () => createCustomerAppointment(selected!.id, Number(serviceId), isProfessional ? Number(user!.id) : Number(professionalId), startsAt),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['customer-appointments', selected?.id] }); queryClient.invalidateQueries({ queryKey: ['establishment-agenda'] }); setStartsAt('') },
+    mutationFn: () => createCustomerAppointment(selected!.id, Number(serviceId), bookingProfessionalId, `${date}T${time.slice(0, 5)}:00`),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['customer-appointments', selected?.id] }); queryClient.invalidateQueries({ queryKey: ['internal-availability'] }); queryClient.invalidateQueries({ queryKey: ['establishment-agenda'] }); setTime('') },
   })
   const status = useMutation({
     mutationFn: () => updateCustomer(selected!.id, { name: selected!.name, phone: selected!.phone, email: selected!.email ?? '', active: !selected!.active }),
@@ -47,7 +59,7 @@ export function CustomersPage() {
   })
   const merge = useMutation({
     mutationFn: (otherId: number) => mergeCustomers(selected!.id, otherId),
-    onSuccess: (customer) => { setSelected(customer); queryClient.invalidateQueries({ queryKey: ['customers'] }); queryClient.invalidateQueries({ queryKey: ['customer-duplicates'] }); queryClient.invalidateQueries({ queryKey: ['customer-appointments'] }) },
+    onSuccess: (customer) => { setSelected(customer); setTime(''); queryClient.invalidateQueries({ queryKey: ['customers'] }); queryClient.invalidateQueries({ queryKey: ['customer-duplicates'] }); queryClient.invalidateQueries({ queryKey: ['customer-appointments'] }) },
   })
   const separate = useMutation({
     mutationFn: (otherId: number) => keepCustomersSeparate(selected!.id, otherId),
@@ -73,7 +85,7 @@ export function CustomersPage() {
         <div className="flex items-center justify-between gap-3"><h2 className="font-semibold">Clientes</h2><button className="btn-primary" onClick={() => openForm('new')}>Novo cliente</button></div>
         <input className="filter-input mt-4 w-full" aria-label="Buscar cliente" placeholder="Buscar por nome ou telefone" value={search} onChange={(event) => setSearch(event.target.value)} />
         {customers.isError && <p role="alert" className="mt-3 text-danger-600">{getApiErrorMessage(customers.error, 'Não foi possível carregar os clientes.')}</p>}
-        <div className="mt-4 space-y-2">{customers.data?.map((customer) => <button key={customer.id} type="button" onClick={() => { setSelected(customer); merge.reset(); separate.reset() }} className="w-full rounded-xl border border-background-300 p-3 text-left hover:bg-background-50">
+        <div className="mt-4 space-y-2">{customers.data?.map((customer) => <button key={customer.id} type="button" onClick={() => { setSelected(customer); setTime(''); merge.reset(); separate.reset() }} className="w-full rounded-xl border border-background-300 p-3 text-left hover:bg-background-50">
           <strong className="block">{customer.name}</strong><span className="text-sm text-text-600">{formatPhone(customer.phone)}{customer.active ? '' : ' · Inativo'}</span>
         </button>)}</div>
       </section>
@@ -89,7 +101,7 @@ export function CustomersPage() {
             <p className="mt-1 text-text-600">Selecione um cadastro existente para agendar, ou salve este formulário para criar outro cliente.</p>
             {suggestions.data.map((customer) => <div key={customer.id} className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-background-300 pt-2">
               <span>{customer.name} · {formatPhone(customer.phone)}{customer.email ? ` · ${customer.email}` : ''}</span>
-              <button type="button" className="font-semibold" onClick={() => { setSelected(customer); setEditing(null) }}>Usar cadastro existente</button>
+              <button type="button" className="font-semibold" onClick={() => { setSelected(customer); setTime(''); setEditing(null) }}>Usar cadastro existente</button>
             </div>)}
           </div>}
           {editing === 'new' && suggestions.isError && <p role="alert" className="text-danger-600">{getApiErrorMessage(suggestions.error, 'Não foi possível consultar cadastros semelhantes.')}</p>}
@@ -113,14 +125,20 @@ export function CustomersPage() {
             {separate.isError && <p role="alert" className="mt-3 text-sm text-danger-600">{getApiErrorMessage(separate.error, 'Não foi possível manter os cadastros separados.')}</p>}
           </section>}
           {selected.active && <form onSubmit={submitBooking} className="surface-card space-y-3 p-5"><h2 className="font-semibold">Agendar para {selected.name}</h2>
-            <label className="block text-sm">Serviço<select required className="filter-input mt-1 w-full" value={serviceId} onChange={(event) => setServiceId(event.target.value)}><option value="">Selecione</option>{options.data?.services.map((service) => <option key={service.id} value={service.id}>{service.name}</option>)}</select></label>
+            <label className="block text-sm">Serviço<select required className="filter-input mt-1 w-full" value={serviceId} onChange={(event) => { setServiceId(event.target.value); setProfessionalId(''); setTime('') }}><option value="">Selecione</option>{options.data?.services.map((service) => <option key={service.id} value={service.id}>{service.name}</option>)}</select></label>
             {isProfessional
               ? <p className="text-sm">Profissional<span className="filter-input mt-1 block w-full bg-background-100 text-text-700">{user?.name} (sua agenda)</span></p>
-              : <label className="block text-sm">Profissional<select required className="filter-input mt-1 w-full" value={professionalId} onChange={(event) => setProfessionalId(event.target.value)}><option value="">Selecione</option>{options.data?.professionals.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}</select></label>}
-            <label className="block text-sm">Data e horário<input required type="datetime-local" className="filter-input mt-1 w-full" value={startsAt} onChange={(event) => setStartsAt(event.target.value)} /></label>
+              : <label className="block text-sm">Profissional<select required disabled={!serviceId} className="filter-input mt-1 w-full" value={professionalId} onChange={(event) => { setProfessionalId(event.target.value); setTime('') }}><option value="">Selecione</option>{options.data?.professionals.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}</select></label>}
+            <label className="block text-sm">Data<input required type="date" min={minBookingDate} className="filter-input mt-1 w-full" value={date} onChange={(event) => { setDate(event.target.value); setTime('') }} /></label>
+            <div><p className="text-sm">Horários disponíveis</p><div className="mt-2 flex flex-wrap gap-2">
+              {availability.isFetching && <span className="text-sm text-text-600">Buscando horários...</span>}
+              {availability.data?.availableTimes.map((slot) => <button key={slot} type="button" aria-pressed={time === slot} onClick={() => setTime(slot)} className={time === slot ? 'btn-primary' : 'rounded-lg border border-background-300 px-3 py-2 text-sm'}>{slot.slice(0, 5)}</button>)}
+              {availability.data?.availableTimes.length === 0 && <span className="text-sm text-text-600">Nenhum horário disponível nesta data.</span>}
+              {availability.isError && <p role="alert" className="text-sm text-danger-600">{getApiErrorMessage(availability.error, 'Não foi possível consultar os horários.')}</p>}
+            </div></div>
             {booking.isError && <p role="alert" className="text-danger-600">{getApiErrorMessage(booking.error, 'Não foi possível agendar.')}</p>}
             {booking.isSuccess && <p role="status" className="text-success-700">Agendamento criado.</p>}
-            <button className="btn-primary" disabled={booking.isPending}>Agendar</button>
+            <button className="btn-primary" disabled={booking.isPending || !time || !availability.data?.availableTimes.includes(time)}>Agendar</button>
           </form>}
           <CustomerHistory key={selected.id} appointments={history.data} isLoading={history.isLoading} isError={history.isError} />
         </> : <div className="surface-card p-5 text-text-600">Selecione um cliente para ver o histórico e agendar.</div>}
