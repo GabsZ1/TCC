@@ -2,6 +2,7 @@ package br.com.salonhub.controller;
 
 import br.com.salonhub.dto.service.EstablishmentServiceRequest;
 import br.com.salonhub.dto.service.EstablishmentServiceResponse;
+import br.com.salonhub.dto.PagedResponse;
 import br.com.salonhub.service.ServiceCatalogService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -10,8 +11,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/servicos")
@@ -29,8 +28,12 @@ public class SalonServiceController {
     }
 
     @GetMapping
-    public ResponseEntity<List<EstablishmentServiceResponse>> findAll(@AuthenticationPrincipal Jwt jwt) {
-        return ResponseEntity.ok(serviceCatalogService.findAll(currentUserId(jwt)));
+    public ResponseEntity<PagedResponse<EstablishmentServiceResponse>> findAll(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(PagedResponse.from(serviceCatalogService.findAll(
+                currentUserId(jwt), Math.max(0, page), Math.max(1, Math.min(size, 100)))));
     }
 
     @PutMapping("/{id}")

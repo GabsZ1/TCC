@@ -11,6 +11,9 @@ import br.com.salonhub.repository.EstablishmentServiceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 import java.util.List;
 import java.math.BigDecimal;
@@ -42,13 +45,12 @@ public class ServiceCatalogService {
     }
 
     @Transactional(readOnly = true)
-    public List<EstablishmentServiceResponse> findAll(Long administratorId) {
+    public Page<EstablishmentServiceResponse> findAll(Long administratorId, int page, int size) {
         User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
 
-        return establishmentServiceRepository.findByEstablishmentId(administrator.getEstablishment().getId())
-                .stream()
-                .map(EstablishmentServiceResponse::fromEntity)
-                .toList();
+        return establishmentServiceRepository.findByEstablishmentId(administrator.getEstablishment().getId(),
+                        PageRequest.of(page, size, Sort.by("name").ascending().and(Sort.by("id"))))
+                .map(EstablishmentServiceResponse::fromEntity);
     }
 
     @Transactional

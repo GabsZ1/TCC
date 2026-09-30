@@ -50,8 +50,8 @@ class ServiceLifecycleIntegrationTests {
     void shouldKeepInactiveServicesVisibleOnlyToAdminAndReactivateInClientCatalog() throws Exception {
         long id = create(admin, "Corte");
         mvc.perform(get("/api/servicos").with(as(admin)))
-                .andExpect(status().isOk()).andExpect(jsonPath("$[0].id").value(id))
-                .andExpect(jsonPath("$[0].active").value(true));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.content[0].id").value(id))
+                .andExpect(jsonPath("$.content[0].active").value(true));
         catalogSize(1);
         mvc.perform(delete("/api/servicos/{id}", id).with(as(admin)))
                 .andExpect(status().isNoContent());
@@ -59,8 +59,8 @@ class ServiceLifecycleIntegrationTests {
         entityManager.clear();
         assertThat(services.findById(id).orElseThrow().isActive()).isFalse();
         mvc.perform(get("/api/servicos").with(as(admin)))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].active").value(false));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].active").value(false));
         catalogSize(0);
         mvc.perform(patch("/api/servicos/{id}/ativacao", id).with(as(admin)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.active").value(true));
@@ -104,8 +104,36 @@ class ServiceLifecycleIntegrationTests {
         mvc.perform(patch("/api/servicos/{id}/ativacao", id).with(as(otherAdmin)))
                 .andExpect(status().isNotFound());
         mvc.perform(get("/api/servicos").with(as(otherAdmin)))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.content.length()").value(1));
         assertThat(services.findById(id).orElseThrow().isActive()).isFalse();
+    }
+
+    @Test
+    void shouldPageServicesOrderedByNameAndIsolatedByEstablishment() throws Exception {
+        create(admin, "Zeta");
+        create(admin, "Alfa");
+        create(admin, "Beta");
+        Establishment other = establishments.saveAndFlush(Establishment.builder()
+                .name("Other page").cnpj("96969696000196").build());
+        User otherAdmin = user("other-page", UserRole.ADMIN, other);
+        create(otherAdmin, "Outro serviço");
+
+        mvc.perform(get("/api/servicos").with(as(admin)).param("page", "0").param("size", "2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.number").value(0))
+                .andExpect(jsonPath("$.totalPages").value(2))
+                .andExpect(jsonPath("$.totalElements").value(3))
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[0].name").value("Alfa"))
+                .andExpect(jsonPath("$.content[1].name").value("Beta"));
+        mvc.perform(get("/api/servicos").with(as(admin)).param("page", "1").param("size", "2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].name").value("Zeta"));
+        mvc.perform(get("/api/servicos").with(as(otherAdmin)).param("size", "100"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].name").value("Outro serviço"));
     }
 
     @Test
