@@ -8,6 +8,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.OffsetDateTime;
+import java.util.Locale;
+import br.com.salonhub.validation.PhoneNumbers;
 
 @Entity
 @Table(name = "customers", uniqueConstraints = @UniqueConstraint(
@@ -48,16 +50,21 @@ public class Customer {
         Customer customer = new Customer();
         customer.establishment = establishment;
         customer.name = name;
-        customer.phone = phone;
-        customer.email = email;
+        customer.phone = PhoneNumbers.normalize(phone);
+        customer.email = normalizeEmail(email);
         return customer;
     }
 
     public void link(User user) { this.user = user; }
     public void update(String name, String phone, String email, boolean active) {
         this.name = name;
-        this.phone = phone;
-        this.email = email;
+        this.phone = PhoneNumbers.normalize(phone);
+        this.email = normalizeEmail(email);
         this.active = active;
+    }
+
+    private static String normalizeEmail(String value) {
+        if (value == null || value.isBlank()) return null;
+        return value.trim().toLowerCase(Locale.ROOT);
     }
 }

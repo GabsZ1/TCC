@@ -89,10 +89,8 @@ public class AuthController {
     @PostMapping("/recuperar-senha")
     @ResponseStatus(HttpStatus.ACCEPTED)
     @Operation(summary = "Solicitar recuperação de senha", description = "Envia por e-mail um link de redefinição, único e temporário.")
-    @ApiResponse(responseCode = "202", description = "Link enviado")
-    @ApiResponse(responseCode = "400", description = "E-mail inválido, conta desativada ou primeiro acesso pendente")
-    @ApiResponse(responseCode = "404", description = "Não existe cadastro com o e-mail informado")
-    @ApiResponse(responseCode = "429", description = "Novo pedido antes do intervalo mínimo")
+    @ApiResponse(responseCode = "202", description = "Solicitação recebida sem revelar a existência ou estado da conta")
+    @ApiResponse(responseCode = "400", description = "Formato de e-mail inválido")
     @SecurityRequirements
     public PasswordRecoveryResponse requestPasswordReset(@Valid @RequestBody PasswordRecoveryRequest request) {
         return passwordRecoveryService.requestReset(request);

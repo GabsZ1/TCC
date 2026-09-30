@@ -51,6 +51,7 @@ export interface ActiveEstablishment {
   name: string
   minimumAdvanceHours: number
   maximumAdvanceDays: number
+  hasLogo: boolean
   distanceKm?: number | null
 }
 
@@ -68,6 +69,8 @@ export interface PublicEstablishmentProfile {
   neighborhood: string | null
   city: string | null
   state: string | null
+  hasLogo: boolean
+  hasCover: boolean
   businessHours: Array<{ dayOfWeek: string; closed: boolean; openingTime: string | null; closingTime: string | null }>
   professionals: CatalogProfessional[]
   services: CatalogService[]
@@ -106,8 +109,19 @@ export function createAppointment(establishmentId: number, serviceId: number, pr
   return api.post<Appointment>(`/estabelecimentos/${establishmentId}/agendamentos`, { serviceId, professionalId, startsAt }).then((response) => response.data)
 }
 
-export function fetchMyAppointments() {
-  return api.get<Appointment[]>('/agendamentos/me').then((response) => response.data)
+export function fetchMyAppointments(page = 0) {
+  return api.get<{ content: Appointment[]; totalElements: number; totalPages: number }>(
+    '/agendamentos/me', { params: { page, size: 20 } }).then((response) => response.data)
+}
+export function fetchMyAppointmentPage(history: boolean, page: number) {
+  return api.get<{ content: Appointment[]; number: number; totalPages: number; totalElements: number }>(
+    '/agendamentos/me/pagina', { params: { history, page, size: 10 } }).then((response) => response.data)
+}
+export function fetchNextClientAppointment() {
+  return api.get<Appointment | null>('/agendamentos/me/proximo').then((response) => response.data || null)
+}
+export function fetchProfessionalToday() {
+  return api.get<{ confirmedCount: number; next: Appointment | null }>('/agendamentos/profissional/me/hoje').then((response) => response.data)
 }
 
 export function cancelAppointment(appointmentId: number) {
@@ -125,8 +139,8 @@ export function completeAppointment(appointmentId: number) {
 export const PENDING_CLOSURE_KEY = ['pending-closure']
 
 /** Atendimentos que já terminaram e continuam confirmados (admin: do estabelecimento; profissional: os dele). */
-export function fetchPendingClosure() {
-  return api.get<Appointment[]>('/agendamentos/pendentes-fechamento').then((response) => response.data)
+export function fetchPendingClosure(page = 0) {
+  return api.get<{ content: Appointment[]; totalElements: number; totalPages: number }>('/agendamentos/pendentes-fechamento', { params: { page, size: 10 } }).then((response) => response.data)
 }
 
 /** Remarcação pelo admin: muda horário e/ou profissional (e, opcionalmente, o serviço). */
@@ -147,13 +161,14 @@ export function updateAppointment(appointmentId: number, serviceId: number, prof
 }
 
 export function fetchMyAppointmentsAsProfessional() {
-  return api.get<Appointment[]>('/agendamentos/profissional/me').then((response) => response.data)
+  return api.get<{ content: Appointment[]; totalElements: number; totalPages: number }>('/agendamentos/profissional/me').then((response) => response.data)
 }
 
 export interface EstablishmentAgendaFilters {
   date?: string
   professionalId?: number
   status?: Appointment['status']
+  page?: number
 }
 
 export interface TeamAvailability {
@@ -166,7 +181,7 @@ export interface TeamAvailability {
 }
 
 export function fetchEstablishmentAgenda(filters: EstablishmentAgendaFilters) {
-  return api.get<Appointment[]>('/agendamentos/estabelecimento/me', { params: filters }).then((response) => response.data)
+  return api.get<{ content: Appointment[]; totalElements: number; totalPages: number }>('/agendamentos/estabelecimento/me', { params: { ...filters, size: 20 } }).then((response) => response.data)
 }
 
 export function fetchTeamAvailability(date: string, professionalId?: number) {

@@ -20,6 +20,7 @@ export function AdminAgendaPage() {
   const [date, setDate] = useState(today())
   const [professionalId, setProfessionalId] = useState('')
   const [status, setStatus] = useState<StatusFilter>('')
+  const [page, setPage] = useState(0)
   const [invalidating, setInvalidating] = useState<Appointment | null>(null)
   const [cancelling, setCancelling] = useState<Appointment | null>(null)
   const [completing, setCompleting] = useState<Appointment | null>(null)
@@ -27,11 +28,12 @@ export function AdminAgendaPage() {
   const [rescheduling, setRescheduling] = useState<Appointment | null>(null)
   const employees = useQuery({ queryKey: ['employees'], queryFn: fetchEmployees })
   const agenda = useQuery({
-    queryKey: [AGENDA_QUERY_KEY, date, professionalId, status],
+    queryKey: [AGENDA_QUERY_KEY, date, professionalId, status, page],
     queryFn: () => fetchEstablishmentAgenda({
       date: date || undefined,
       professionalId: professionalId ? Number(professionalId) : undefined,
       status: status || undefined,
+      page,
     }),
     refetchInterval: 30_000,
   })
@@ -63,10 +65,10 @@ export function AdminAgendaPage() {
       <div className="mt-6"><PendingClosurePanel showProfessional onChanged={refreshAgenda} /></div>
 
       <section className="surface-card grid gap-4 p-5 sm:grid-cols-3">
-        <Filter label="Data"><input type="date" value={date} onChange={(event) => setDate(event.target.value)} className="filter-input" /></Filter>
-        <Filter label="Profissional"><select value={professionalId} onChange={(event) => setProfessionalId(event.target.value)} className="filter-input"><option value="">Todos</option>{employees.data?.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}{employee.active ? '' : ' (inativo)'}</option>)}</select></Filter>
-        <Filter label="Situação"><select value={status} onChange={(event) => setStatus(event.target.value as StatusFilter)} className="filter-input"><option value="">Todas</option><option value="CONFIRMED">Confirmado</option><option value="COMPLETED">Concluído</option><option value="CANCELLED">Cancelado</option><option value="NO_SHOW">Não compareceu</option><option value="INVALIDATED">Invalidado</option></select></Filter>
-        <button type="button" onClick={() => { setDate(''); setProfessionalId(''); setStatus('') }} className="text-left text-sm font-semibold text-text-600 hover:text-text-800 sm:col-span-3">Limpar filtros</button>
+        <Filter label="Data"><input type="date" value={date} onChange={(event) => { setDate(event.target.value); setPage(0) }} className="filter-input" /></Filter>
+        <Filter label="Profissional"><select value={professionalId} onChange={(event) => { setProfessionalId(event.target.value); setPage(0) }} className="filter-input"><option value="">Todos</option>{employees.data?.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}{employee.active ? '' : ' (inativo)'}</option>)}</select></Filter>
+        <Filter label="Situação"><select value={status} onChange={(event) => { setStatus(event.target.value as StatusFilter); setPage(0) }} className="filter-input"><option value="">Todas</option><option value="CONFIRMED">Confirmado</option><option value="COMPLETED">Concluído</option><option value="CANCELLED">Cancelado</option><option value="NO_SHOW">Não compareceu</option><option value="INVALIDATED">Invalidado</option></select></Filter>
+        <button type="button" onClick={() => { setDate(''); setProfessionalId(''); setStatus(''); setPage(0) }} className="text-left text-sm font-semibold text-text-600 hover:text-text-800 sm:col-span-3">Limpar filtros</button>
       </section>
 
       {date && <section className="surface-card mt-6 p-5">
@@ -85,8 +87,8 @@ export function AdminAgendaPage() {
       <div className="mt-6 space-y-4">
         {agenda.isLoading && <StateCard>Carregando agenda...</StateCard>}
         {agenda.isError && <StateCard error>{getApiErrorMessage(agenda.error, 'Não foi possível carregar a agenda.')}</StateCard>}
-        {!agenda.isLoading && !agenda.isError && agenda.data?.length === 0 && <StateCard>Nenhum atendimento encontrado para os filtros selecionados.</StateCard>}
-        {agenda.data?.map((appointment) => (
+        {!agenda.isLoading && !agenda.isError && agenda.data?.totalElements === 0 && <StateCard>Nenhum atendimento encontrado para os filtros selecionados.</StateCard>}
+        {agenda.data?.content.map((appointment) => (
           <AppointmentCard
             key={appointment.id}
             appointment={appointment}
@@ -97,6 +99,7 @@ export function AdminAgendaPage() {
             onCancel={() => setCancelling(appointment)}
           />
         ))}
+        {agenda.data && agenda.data.totalPages > 1 && <nav className="flex justify-between text-sm" aria-label="Páginas da agenda"><button type="button" disabled={page === 0} onClick={() => setPage(page - 1)}>Anterior</button><span>Página {page + 1} de {agenda.data.totalPages}</span><button type="button" disabled={page + 1 >= agenda.data.totalPages} onClick={() => setPage(page + 1)}>Próxima</button></nav>}
       </div>
 
       {completing && (

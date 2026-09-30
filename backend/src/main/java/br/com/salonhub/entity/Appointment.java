@@ -75,6 +75,32 @@ public class Appointment {
     @Column(nullable = false, length = 20)
     private AppointmentStatus status = AppointmentStatus.CONFIRMED;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "source", length = 20)
+    private AppointmentSource source;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by_user_id")
+    private User createdBy;
+
+    @Column(name = "no_show_at")
+    private LocalDateTime noShowAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "no_show_by_user_id")
+    private User noShowBy;
+
+    @Column(name = "invalidated_at")
+    private LocalDateTime invalidatedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "invalidated_by_user_id")
+    private User invalidatedBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "completed_by_user_id")
+    private User completedBy;
+
     @Column(name = "invalidation_reason", length = 500)
     private String invalidationReason;
 
@@ -117,10 +143,30 @@ public class Appointment {
         return appointment;
     }
 
-
-    public void cancel() {
-        this.status = AppointmentStatus.CANCELLED;
+    public void recordCreation(AppointmentSource source, User actor) {
+        this.source = source;
+        this.createdBy = actor;
     }
+
+    public void reassignCustomer(Customer customer) {
+        if (!establishment.getId().equals(customer.getEstablishment().getId())) {
+            throw new IllegalArgumentException("O cliente deve pertencer ao mesmo estabelecimento.");
+        }
+        this.customer = customer;
+    }
+
+
+    public void cancel(User actor, LocalDateTime at) {
+        this.status = AppointmentStatus.CANCELLED;
+        this.cancelledBy = actor;
+        this.cancelledAt = at;
+    }
+
+    // Convenience overloads retained for fixture and historical data creation.
+    public void cancel() { cancel(null, startsAt); }
+    public void complete(LocalDateTime at) { complete(at, null); }
+    public void markNoShow() { markNoShow(null, startsAt.plusMinutes(15)); }
+    public void invalidate(String reason) { invalidate(reason, null, endsAt); }
 
     public void cancelByAdministrator(String reason, User administrator, LocalDateTime cancelledAt) {
         this.status = AppointmentStatus.CANCELLED;
@@ -136,18 +182,23 @@ public class Appointment {
         this.cancelledAt = cancelledAt;
     }
 
-    public void complete(LocalDateTime completedAt) {
+    public void complete(LocalDateTime completedAt, User actor) {
+        this.completedBy = actor;
         this.status = AppointmentStatus.COMPLETED;
         this.completedAt = completedAt;
     }
 
-    public void markNoShow() {
+    public void markNoShow(User actor, LocalDateTime at) {
         this.status = AppointmentStatus.NO_SHOW;
+        this.noShowBy = actor;
+        this.noShowAt = at;
     }
 
-    public void invalidate(String reason) {
+    public void invalidate(String reason, User actor, LocalDateTime at) {
         this.status = AppointmentStatus.INVALIDATED;
         this.invalidationReason = reason;
+        this.invalidatedBy = actor;
+        this.invalidatedAt = at;
     }
 
     /** Muda horário e/ou profissional mantendo o serviço e os valores combinados (snapshot). */

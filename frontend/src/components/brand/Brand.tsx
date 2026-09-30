@@ -6,7 +6,7 @@ interface BrandProps {
 
 export function Brand({ compact = false, inverse = false, className = '' }: BrandProps) {
   return (
-    <div className={`inline-flex items-center gap-3 ${className}`} aria-label="SalonHub">
+    <div className={`inline-flex items-center gap-3 ${className}`} aria-label="Meu Espaço">
       <span
         className={`relative grid size-9 shrink-0 place-items-center overflow-hidden rounded-[0.65rem] border ${
           inverse
@@ -21,7 +21,7 @@ export function Brand({ compact = false, inverse = false, className = '' }: Bran
       {!compact && (
         <span className="leading-none">
           <span className={`block text-[1.08rem] font-extrabold tracking-[-0.045em] ${inverse ? 'text-white' : 'text-text-950'}`}>
-            Salon<span className={inverse ? 'text-primary-300' : 'text-primary-600'}>Hub</span>
+            Meu <span className={inverse ? 'text-primary-300' : 'text-primary-600'}>Espaço</span>
           </span>
           <span className={`mt-1 block text-[0.56rem] font-extrabold uppercase tracking-[0.18em] ${inverse ? 'text-[var(--sidebar-muted)]' : 'text-text-500'}`}>
             beleza em movimento

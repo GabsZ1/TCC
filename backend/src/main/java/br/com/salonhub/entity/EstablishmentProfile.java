@@ -29,6 +29,20 @@ public class EstablishmentProfile {
     @JoinColumn(name = "establishment_id", nullable = false, unique = true)
     private Establishment establishment;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "logo_id")
+    private Media logo;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cover_id")
+    private Media cover;
+
+    public Media image(String kind) { return "logo".equals(kind) ? logo : cover; }
+    public void replaceImage(String kind, Media image) {
+        if ("logo".equals(kind)) logo = image;
+        else cover = image;
+    }
+
     @Column(name = "about_us", columnDefinition = "TEXT")
     private String aboutUs;
 

@@ -72,10 +72,20 @@ public class TokenService {
                 .expiresAt(expiresAt)
                 .subject(user.getId().toString())
                 .claim("purpose", "FIRST_ACCESS")
+                .claim("version", user.getFirstAccessVersion())
                 .build();
         JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
         String value = jwtEncoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
         return new GeneratedToken(value, expiresAt);
+    }
+
+    public Integer firstAccessVersion(String token) {
+        try {
+            Jwt jwt = jwtDecoder.decode(token);
+            if (!"FIRST_ACCESS".equals(jwt.getClaimAsString("purpose"))) return null;
+            Object version = jwt.getClaim("version");
+            return version instanceof Number ? ((Number) version).intValue() : 0;
+        } catch (JwtException | IllegalArgumentException exception) { return null; }
     }
 
     public Long validateFirstAccess(String token) {

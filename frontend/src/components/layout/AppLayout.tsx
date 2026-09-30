@@ -43,6 +43,7 @@ export function AppLayout() {
       ? [
           { to: '/', label: 'Início', icon: House, group: 'Visão geral' },
           { to: '/agenda', label: 'Agenda', icon: CalendarDays, group: 'Operação' },
+          { to: '/estabelecimento/bloqueios', label: 'Bloqueios', icon: CalendarDays, group: 'Operação' },
           { to: '/relatorio-atendimentos', label: 'Atendimentos', icon: ClipboardList, group: 'Operação' },
           { to: '/relatorio-comissoes', label: 'Comissões', icon: BadgeDollarSign, group: 'Operação' },
           { to: '/relatorio-financeiro', label: 'Financeiro', icon: TrendingUp, group: 'Operação' },
@@ -85,7 +86,7 @@ export function AppLayout() {
             <Brand compact />
             <div className="min-w-0 flex-1 border-l border-background-300 pl-3">
               <p className="truncate text-[0.62rem] font-extrabold uppercase tracking-[0.15em] text-primary-700">{roleLabel(user?.role)}</p>
-              <p className="mt-0.5 truncate text-sm font-bold text-text-950">{user?.establishmentName ?? user?.name ?? 'SalonHub'}</p>
+              <p className="mt-0.5 truncate text-sm font-bold text-text-950">{user?.establishmentName ?? user?.name ?? 'Meu Espaço'}</p>
             </div>
             <button
               type="button"
@@ -119,7 +120,7 @@ function DesktopSidebar({ items, user, onLogout }: { items: NavItem[]; user: Ret
         <Brand inverse />
         <div className="mt-7 border-t border-[var(--sidebar-border)] pt-5">
           <p className="text-[0.58rem] font-extrabold uppercase tracking-[0.18em] text-[var(--sidebar-muted)]">Workspace</p>
-          <p className="mt-2 truncate text-sm font-bold text-[var(--sidebar-text)]">{user?.establishmentName ?? 'SalonHub'}</p>
+          <p className="mt-2 truncate text-sm font-bold text-[var(--sidebar-text)]">{user?.establishmentName ?? 'Meu Espaço'}</p>
           <p className="mt-1 text-xs text-[var(--sidebar-muted)]">{roleLabel(user?.role)}</p>
         </div>
       </div>

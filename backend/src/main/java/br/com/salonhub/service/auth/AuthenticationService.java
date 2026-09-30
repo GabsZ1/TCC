@@ -64,6 +64,7 @@ public class AuthenticationService {
                 .filter(candidate -> candidate.getRole() == UserRole.PROFESSIONAL)
                 .filter(this::isEstablishmentLoginAllowed)
                 .filter(candidate -> !candidate.isPasswordInitialized())
+                .filter(candidate -> java.util.Objects.equals(candidate.getFirstAccessVersion(), tokenService.firstAccessVersion(request.token())))
                 .orElseThrow(() -> new InvalidRequestException(
                         "Token de primeiro acesso inválido, expirado ou já utilizado."));
         user.initializePassword(passwordEncoder.encode(request.password()));

@@ -15,19 +15,21 @@ type Action = { appointment: Appointment; kind: 'complete' | 'no-show' }
 export function PendingClosurePanel({ showProfessional, onChanged }: { showProfessional: boolean; onChanged?: () => void }) {
   const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
+  const [page, setPage] = useState(0)
   const [action, setAction] = useState<Action | null>(null)
-  const pending = useQuery({ queryKey: PENDING_CLOSURE_KEY, queryFn: fetchPendingClosure, refetchInterval: 60_000 })
+  const pending = useQuery({ queryKey: [...PENDING_CLOSURE_KEY, page], queryFn: () => fetchPendingClosure(page), refetchInterval: 60_000 })
   const mutation = useMutation({
     mutationFn: ({ appointment, kind }: Action) => kind === 'complete' ? completeAppointment(appointment.id) : markAppointmentNoShow(appointment.id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PENDING_CLOSURE_KEY })
+      setPage(0)
       onChanged?.()
       setAction(null)
     },
   })
 
-  const items = pending.data ?? []
-  if (items.length === 0) return null
+  const items = pending.data?.content ?? []
+  if (pending.data?.totalElements === 0) return null
 
   return (
     <section className="mb-6 rounded-2xl border border-warning-300 bg-warning-50 p-4 sm:p-5">
@@ -35,7 +37,7 @@ export function PendingClosurePanel({ showProfessional, onChanged }: { showProfe
         <div className="flex items-start gap-3">
           <AlertTriangle size={20} className="mt-0.5 shrink-0 text-warning-700" />
           <div>
-            <p className="font-semibold text-text-900">{items.length} atendimento(s) aguardando fechamento</p>
+            <p className="font-semibold text-text-900">{pending.data?.totalElements ?? '—'} atendimento(s) aguardando fechamento</p>
             <p className="mt-0.5 text-sm text-text-700">Já terminaram e continuam como confirmados. Conclua ou registre a falta do cliente.</p>
           </div>
         </div>
@@ -59,6 +61,7 @@ export function PendingClosurePanel({ showProfessional, onChanged }: { showProfe
           ))}
         </ul>
       )}
+      {open && pending.data && pending.data.totalPages > 1 && <div className="mt-3 flex justify-between text-sm"><button type="button" disabled={page === 0} onClick={() => setPage(page - 1)}>Anterior</button><span>Página {page + 1} de {pending.data.totalPages}</span><button type="button" disabled={page + 1 >= pending.data.totalPages} onClick={() => setPage(page + 1)}>Próxima</button></div>}
       {action && (
         <ConfirmDialog
           title={action.kind === 'complete' ? 'Concluir atendimento' : 'Registrar falta'}

@@ -125,7 +125,7 @@ export function LoginPage() {
       </form>
 
       <div className="mt-7 border-t border-background-300 pt-6">
-        <p className="text-center text-xs font-bold uppercase tracking-[0.13em] text-text-400">Primeiro acesso ao SalonHub?</p>
+        <p className="text-center text-xs font-bold uppercase tracking-[0.13em] text-text-400">Primeiro acesso ao Meu Espaço?</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <Link to="/cadastro-cliente" className="secondary-button py-3">Sou cliente</Link>
           <Link to="/cadastro" className="secondary-button py-3">Tenho um negócio</Link>

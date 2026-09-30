@@ -5,6 +5,7 @@ import br.com.salonhub.dto.appointment.AppointmentRescheduleRequest;
 import br.com.salonhub.dto.appointment.AppointmentCancellationRequest;
 import br.com.salonhub.dto.appointment.AppointmentInvalidationRequest;
 import br.com.salonhub.dto.appointment.AppointmentResponse;
+import br.com.salonhub.dto.PagedResponse;
 import br.com.salonhub.dto.appointment.AvailabilityResponse;
 import br.com.salonhub.dto.appointment.AdministrativeProfessionalAvailabilityResponse;
 import br.com.salonhub.entity.AppointmentStatus;
@@ -54,9 +55,37 @@ public class AppointmentController {
         return commandService.createForCustomer(currentUserId(jwt), customerId, request);
     }
 
+    @GetMapping("/agendamentos/estabelecimento/me/clientes/{customerId}/disponibilidade")
+    public AvailabilityResponse findInternalAvailability(@AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long customerId, @RequestParam Long serviceId, @RequestParam Long professionalId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam(required = false) Long appointmentId) {
+        return queryService.findInternalAvailability(currentUserId(jwt), customerId, serviceId, professionalId, date, appointmentId);
+    }
+
     @GetMapping("/agendamentos/me")
-    public List<AppointmentResponse> findMine(@AuthenticationPrincipal Jwt jwt) {
-        return queryService.findMine(currentUserId(jwt));
+    public PagedResponse<AppointmentResponse> findMine(@AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
+        return PagedResponse.from(queryService.findMine(currentUserId(jwt),
+                Math.max(0, page), Math.max(1, Math.min(size, 100))));
+    }
+
+    @GetMapping("/agendamentos/me/proximo")
+    public AppointmentResponse findNextForClient(@AuthenticationPrincipal Jwt jwt) {
+        return queryService.findNextForClient(currentUserId(jwt));
+    }
+
+    @GetMapping("/agendamentos/me/pagina")
+    public PagedResponse<AppointmentResponse> findMinePage(@AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "false") boolean history, @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return PagedResponse.from(queryService.findMinePage(currentUserId(jwt), history,
+                Math.max(0, page), Math.max(1, Math.min(size, 100))));
+    }
+
+    @GetMapping("/agendamentos/profissional/me/hoje")
+    public AppointmentQueryService.ProfessionalToday findTodayForProfessional(@AuthenticationPrincipal Jwt jwt) {
+        return queryService.findTodayForProfessional(currentUserId(jwt));
     }
 
     @PutMapping("/agendamentos/{appointmentId}")
@@ -111,24 +140,30 @@ public class AppointmentController {
     }
 
     @GetMapping("/agendamentos/profissional/me")
-    public List<AppointmentResponse> findMineAsProfessional(@AuthenticationPrincipal Jwt jwt) {
-        return queryService.findMineAsProfessional(currentUserId(jwt));
+    public PagedResponse<AppointmentResponse> findMineAsProfessional(@AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
+        return PagedResponse.from(queryService.findMineAsProfessional(currentUserId(jwt),
+                Math.max(0, page), Math.max(1, Math.min(size, 100))));
     }
 
     /** Atendimentos que já terminaram e ainda não foram concluídos nem marcados como falta. */
     @GetMapping("/agendamentos/pendentes-fechamento")
-    public List<AppointmentResponse> findPendingClosure(@AuthenticationPrincipal Jwt jwt) {
-        return queryService.findPendingClosure(currentUserId(jwt));
+    public PagedResponse<AppointmentResponse> findPendingClosure(@AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
+        return PagedResponse.from(queryService.findPendingClosure(currentUserId(jwt),
+                Math.max(0, page), Math.max(1, Math.min(size, 100))));
     }
 
     @GetMapping("/agendamentos/estabelecimento/me")
-    public List<AppointmentResponse> findEstablishmentAgenda(
+    public PagedResponse<AppointmentResponse> findEstablishmentAgenda(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             @RequestParam(required = false) Long professionalId,
-            @RequestParam(required = false) AppointmentStatus status) {
-        return queryService.findEstablishmentAgenda(
-                currentUserId(jwt), date, professionalId, status);
+            @RequestParam(required = false) AppointmentStatus status,
+            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
+        return PagedResponse.from(queryService.findEstablishmentAgenda(
+                currentUserId(jwt), date, professionalId, status,
+                Math.max(0, page), Math.max(1, Math.min(size, 100))));
     }
 
     @GetMapping("/agendamentos/estabelecimento/me/disponibilidade-equipe")

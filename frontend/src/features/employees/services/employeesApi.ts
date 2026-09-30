@@ -74,6 +74,10 @@ export function createEmployee(input: EmployeeCreateInput) {
   return api.post<EmployeeCreationResult>('/funcionarios', input).then((res) => res.data)
 }
 
+export function resendEmployeeInvitation(id: number) {
+  return api.post<EmployeeCreationResult>(`/funcionarios/${id}/reenviar-convite`).then((res) => res.data)
+}
+
 export function updateEmployee(id: number, input: EmployeeUpdateInput) {
   return api.put<Employee>(`/funcionarios/${id}`, input).then((res) => res.data)
 }

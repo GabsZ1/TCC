@@ -4,7 +4,6 @@ import br.com.salonhub.dto.commission.CommissionReportEntry;
 import br.com.salonhub.dto.commission.CommissionReportResponse;
 import br.com.salonhub.entity.AppointmentStatus;
 import br.com.salonhub.entity.User;
-import br.com.salonhub.exception.InvalidRequestException;
 import br.com.salonhub.repository.AppointmentRepository;
 import br.com.salonhub.repository.CommissionReportRow;
 import lombok.RequiredArgsConstructor;
@@ -15,8 +14,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.YearMonth;
 import java.util.List;
 
 /**
@@ -39,33 +36,17 @@ public class CommissionReportService {
         User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
         Long establishmentId = administrator.getEstablishment().getId();
 
-        if ((startDate == null) != (endDate == null)) {
-            throw new InvalidRequestException("Informe a data inicial e a data final para filtrar por período.");
-        }
-        if (startDate != null && startDate.isAfter(endDate)) {
-            throw new InvalidRequestException("A data inicial não pode ser posterior à data final.");
-        }
-
-        LocalDate periodStart = startDate;
-        LocalDate periodEnd = endDate;
-        if (periodStart == null) {
-            YearMonth currentMonth = YearMonth.now(clock);
-            periodStart = currentMonth.atDay(1);
-            periodEnd = currentMonth.atEndOfMonth();
-        }
-
-        LocalDateTime periodStartInclusive = periodStart.atStartOfDay();
-        LocalDateTime periodEndExclusive = periodEnd.plusDays(1).atStartOfDay();
+        ReportPeriod period = ReportPeriod.resolve(startDate, endDate, clock);
 
         List<CommissionReportRow> rows = appointmentRepository.findCommissionReportRows(
-                establishmentId, AppointmentStatus.COMPLETED, periodStartInclusive, periodEndExclusive, professionalId);
+                establishmentId, AppointmentStatus.COMPLETED, period.startInclusive(), period.endExclusive(), professionalId);
 
         List<CommissionReportEntry> entries = rows.stream().map(this::toEntry).toList();
         BigDecimal totalCommission = entries.stream()
                 .map(CommissionReportEntry::totalCommission)
                 .reduce(BigDecimal.ZERO.setScale(2), BigDecimal::add);
 
-        return new CommissionReportResponse(periodStart, periodEnd, entries, totalCommission);
+        return new CommissionReportResponse(period.start(), period.end(), entries, totalCommission);
     }
 
     private CommissionReportEntry toEntry(CommissionReportRow row) {

@@ -57,6 +57,90 @@ class ProfessionalAgendaIntegrationTests {
     private EstablishmentServiceRepository establishmentServiceRepository;
 
     @Test
+    void administratorManagesOwnProfessionalAgendaButCannotCrossTenant() throws Exception {
+        TestContext own = createContext();
+        TestContext foreign = createContext("11.444.777/0001-61");
+        LocalDate day = LocalDate.now(clock).plusDays(2);
+        String path = "/api/funcionarios/{id}/agenda";
+
+        mockMvc.perform(get(path + "/horarios", own.professionalId())
+                .header("Authorization", bearer(own.administratorToken())))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(7));
+        mockMvc.perform(put(path + "/horarios", own.professionalId())
+                .header("Authorization", bearer(own.administratorToken()))
+                .contentType(MediaType.APPLICATION_JSON).content(weeklySchedule()))
+                .andExpect(status().isOk());
+        MvcResult created = mockMvc.perform(post(path + "/eventos", own.professionalId())
+                .header("Authorization", bearer(own.administratorToken()))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(eventPayload("Bloqueio admin", day.atTime(10, 0), day.atTime(11, 0), false)))
+                .andExpect(status().isCreated()).andReturn();
+        Number eventId = JsonPath.read(created.getResponse().getContentAsString(), "$.id");
+        mockMvc.perform(get(path, own.professionalId())
+                .header("Authorization", bearer(own.administratorToken()))
+                .param("startsAt", day.atStartOfDay().toString())
+                .param("endsAt", day.plusDays(1).atStartOfDay().toString()))
+                .andExpect(jsonPath("$[0].title").value("Bloqueio admin"));
+        mockMvc.perform(put(path + "/eventos/{eventId}", own.professionalId(), eventId.longValue())
+                .header("Authorization", bearer(own.administratorToken()))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(eventPayload("Editado admin", day.atTime(10, 0), day.atTime(11, 0), false)))
+                .andExpect(status().isOk());
+        mockMvc.perform(delete(path + "/eventos/{eventId}", own.professionalId(), eventId.longValue())
+                .header("Authorization", bearer(own.administratorToken())))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get(path + "/horarios", foreign.professionalId())
+                .header("Authorization", bearer(own.administratorToken())))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(put(path + "/horarios", foreign.professionalId())
+                .header("Authorization", bearer(own.administratorToken()))
+                .contentType(MediaType.APPLICATION_JSON).content(weeklySchedule()))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(put(path + "/horarios", foreign.professionalId())
+                .header("Authorization", bearer(own.professionalToken()))
+                .contentType(MediaType.APPLICATION_JSON).content(weeklySchedule()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void establishmentBlockHidesAvailabilityAndRejectsDirectBooking() throws Exception {
+        TestContext context = createContext();
+        LocalDate day = LocalDate.now(clock).plusDays(2);
+        String path = "/api/estabelecimentos/me/bloqueios";
+        String blockPayload = "{\"startsAt\":\"%s\",\"endsAt\":\"%s\",\"reason\":\"Manutenção\"}"
+                .formatted(day.atTime(10, 0), day.atTime(12, 0));
+        MvcResult created = mockMvc.perform(post(path).header("Authorization", bearer(context.administratorToken()))
+                .contentType(MediaType.APPLICATION_JSON).content(blockPayload))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.reason").value("Manutenção")).andReturn();
+        Number blockId = JsonPath.read(created.getResponse().getContentAsString(), "$.id");
+        mockMvc.perform(get(path).header("Authorization", bearer(context.administratorToken()))
+                .param("startsAt", day.atStartOfDay().toString())
+                .param("endsAt", day.plusDays(1).atStartOfDay().toString()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$[0].id").value(blockId));
+        mockMvc.perform(get("/api/estabelecimentos/{id}/agendamentos/disponibilidade", context.establishmentId())
+                .header("Authorization", bearer(context.clientToken()))
+                .param("serviceId", context.serviceId().toString())
+                .param("professionalId", context.professionalId().toString()).param("date", day.toString()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.availableTimes[?(@ == '10:00:00')]").isEmpty());
+        mockMvc.perform(post("/api/estabelecimentos/{id}/agendamentos", context.establishmentId())
+                .header("Authorization", bearer(context.clientToken())).contentType(MediaType.APPLICATION_JSON)
+                .content(appointmentPayload(context, day.atTime(10, 0))))
+                .andExpect(status().isConflict());
+        mockMvc.perform(put(path + "/{id}", blockId.longValue())
+                .header("Authorization", bearer(context.professionalToken()))
+                .contentType(MediaType.APPLICATION_JSON).content(blockPayload))
+                .andExpect(status().isForbidden());
+        TestContext foreign = createContext("11.444.777/0001-61");
+        mockMvc.perform(delete(path + "/{id}", blockId.longValue())
+                .header("Authorization", bearer(foreign.administratorToken())))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(delete(path + "/{id}", blockId.longValue())
+                .header("Authorization", bearer(context.administratorToken())))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
     void shouldManageProfessionalScheduleEventsAndUnifiedAgenda() throws Exception {
         TestContext context = createContext();
         LocalDate date = LocalDate.now(clock).plusDays(2);
@@ -387,12 +471,16 @@ class ProfessionalAgendaIntegrationTests {
     }
 
     private TestContext createContext() throws Exception {
+        return createContext("66.777.888/0001-81");
+    }
+
+    private TestContext createContext(String cnpj) throws Exception {
         String suffix = String.valueOf(System.nanoTime());
         MvcResult registration = mockMvc.perform(post("/api/auth/cadastro")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"ownerName":"Admin Agenda","ownerEmail":"admin.%s@agenda.test","password":"senha123","establishmentName":"Salão Agenda","cnpj":"66.777.888/0001-81"}
-                                """.formatted(suffix)))
+                                {"ownerName":"Admin Agenda","ownerEmail":"admin.%s@agenda.test","password":"senha123","establishmentName":"Salão Agenda","cnpj":"%s"}
+                                """.formatted(suffix, cnpj)))
                 .andExpect(status().isCreated()).andReturn();
         Number establishmentId = JsonPath.read(registration.getResponse().getContentAsString(), "$.establishmentId");
         String adminToken = login("admin." + suffix + "@agenda.test");

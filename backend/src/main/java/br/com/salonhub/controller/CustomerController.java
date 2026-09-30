@@ -1,104 +1,76 @@
 package br.com.salonhub.controller;
 
 import br.com.salonhub.dto.customer.CustomerRequest;
+import br.com.salonhub.dto.PagedResponse;
 import br.com.salonhub.dto.customer.CustomerResponse;
 import br.com.salonhub.dto.appointment.AppointmentResponse;
-import br.com.salonhub.entity.Customer;
-import br.com.salonhub.exception.ResourceNotFoundException;
-import br.com.salonhub.repository.CustomerRepository;
-import br.com.salonhub.repository.AppointmentRepository;
-import br.com.salonhub.repository.EstablishmentServiceRepository;
-import br.com.salonhub.repository.UserRepository;
-import br.com.salonhub.entity.UserRole;
-import br.com.salonhub.service.TenantAuthorizationService;
+import br.com.salonhub.service.CustomerDuplicateService;
+import br.com.salonhub.service.CustomerService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/clientes/estabelecimento/me")
 @RequiredArgsConstructor
 public class CustomerController {
-    private final CustomerRepository customers;
-    private final AppointmentRepository appointments;
-    private final EstablishmentServiceRepository services;
-    private final UserRepository users;
-    private final TenantAuthorizationService authorization;
+    private final CustomerService customers;
+    private final CustomerDuplicateService duplicates;
 
-    @GetMapping
-    @Transactional(readOnly = true)
-    public List<CustomerResponse> list(@AuthenticationPrincipal Jwt jwt,
-                                       @RequestParam(required = false) String search) {
-        Long establishmentId = establishmentId(jwt);
-        List<Customer> result = search == null || search.isBlank()
-                ? customers.findByEstablishmentIdOrderByNameAsc(establishmentId)
-                : search.matches("[0-9]+")
-                    ? customers.findByEstablishmentIdAndPhoneContainingOrderByNameAsc(establishmentId, search)
-                    : customers.findByEstablishmentIdAndNameContainingIgnoreCaseOrderByNameAsc(establishmentId, search);
-        return result.stream().map(CustomerResponse::fromEntity).toList();
+    @GetMapping("/sugestoes")
+    public List<CustomerResponse> suggestions(@AuthenticationPrincipal Jwt jwt,
+            @RequestParam(required = false) String phone, @RequestParam(required = false) String email) {
+        return duplicates.suggestionsForNew(userId(jwt), phone, email);
     }
 
-    public record BookingOption(Long id, String name) {}
-    public record BookingOptions(List<BookingOption> services, List<BookingOption> professionals) {}
+    @GetMapping("/{id}/possiveis-duplicados")
+    public List<CustomerDuplicateService.Candidate> duplicates(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
+        return duplicates.candidates(userId(jwt), id);
+    }
+
+    @PatchMapping("/{id}/mesclar/{otherId}")
+    public CustomerResponse merge(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id, @PathVariable Long otherId) {
+        return CustomerResponse.fromEntity(duplicates.merge(userId(jwt), id, otherId));
+    }
+
+    @PatchMapping("/{id}/manter-separados/{otherId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void keepSeparate(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id, @PathVariable Long otherId) {
+        duplicates.keepSeparate(userId(jwt), id, otherId);
+    }
+
+    @GetMapping
+    public PagedResponse<CustomerResponse> list(@AuthenticationPrincipal Jwt jwt, @RequestParam(required = false) String search,
+            @RequestParam(required = false) Boolean active, @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return PagedResponse.from(customers.list(userId(jwt), search, active, Math.max(0, page), Math.max(1, Math.min(size, 100))));
+    }
 
     @GetMapping("/opcoes-agendamento")
-    @Transactional(readOnly = true)
-    public BookingOptions bookingOptions(@AuthenticationPrincipal Jwt jwt) {
-        var staff = authorization.requireEstablishmentStaff(Long.valueOf(jwt.getSubject()));
-        Long establishmentId = staff.getEstablishment().getId();
-        var activeServices = services.findByEstablishmentIdAndActiveTrue(establishmentId);
-        if (staff.getRole() == UserRole.PROFESSIONAL) {
-            // O profissional agenda só na própria agenda e só os serviços que ele realiza.
-            return new BookingOptions(
-                    activeServices.stream().filter(staff::offers)
-                            .map(service -> new BookingOption(service.getId(), service.getName())).toList(),
-                    List.of(new BookingOption(staff.getId(), staff.getName())));
-        }
-        return new BookingOptions(
-                activeServices.stream()
-                        .map(service -> new BookingOption(service.getId(), service.getName())).toList(),
-                users.findByEstablishmentIdAndRoleAndActiveTrue(establishmentId, UserRole.PROFESSIONAL).stream()
-                        .map(professional -> new BookingOption(professional.getId(), professional.getName())).toList());
+    public CustomerService.BookingOptions bookingOptions(@AuthenticationPrincipal Jwt jwt, @RequestParam(required = false) Long serviceId) {
+        return customers.bookingOptions(userId(jwt), serviceId);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @Transactional
     public CustomerResponse create(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody CustomerRequest request) {
-        var administrator = authorization.requireEstablishmentStaff(Long.valueOf(jwt.getSubject()));
-        Customer customer = Customer.create(administrator.getEstablishment(), request.name().trim(),
-                request.phone().trim(), request.email());
-        return CustomerResponse.fromEntity(customers.save(customer));
+        return customers.create(userId(jwt), request);
     }
 
     @PutMapping("/{id}")
-    @Transactional
-    public CustomerResponse update(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id,
-                                   @Valid @RequestBody CustomerRequest request) {
-        Customer customer = customers.findByIdAndEstablishmentId(id, establishmentId(jwt))
-                .orElseThrow(() -> new ResourceNotFoundException("Cliente não encontrado."));
-        customer.update(request.name().trim(), request.phone().trim(), request.email(),
-                request.active() == null || request.active());
-        return CustomerResponse.fromEntity(customer);
+    public CustomerResponse update(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id, @Valid @RequestBody CustomerRequest request) {
+        return customers.update(userId(jwt), id, request);
     }
 
     @GetMapping("/{id}/agendamentos")
-    @Transactional(readOnly = true)
-    public List<AppointmentResponse> history(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
-        Long establishmentId = establishmentId(jwt);
-        customers.findByIdAndEstablishmentId(id, establishmentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Cliente não encontrado."));
-        return appointments.findByCustomerIdAndEstablishmentIdOrderByStartsAtDesc(id, establishmentId)
-                .stream().map(AppointmentResponse::fromEntity).toList();
+    public PagedResponse<AppointmentResponse> history(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id,
+            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
+        return PagedResponse.from(customers.history(userId(jwt), id, Math.max(0, page), Math.max(1, Math.min(size, 100))));
     }
 
-    private Long establishmentId(Jwt jwt) {
-        return authorization.requireEstablishmentStaff(Long.valueOf(jwt.getSubject())).getEstablishment().getId();
-    }
+    private Long userId(Jwt jwt) { return Long.valueOf(jwt.getSubject()); }
 }

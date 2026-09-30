@@ -126,6 +126,34 @@ class ProfessionalCompletedServicesIntegrationTests {
     }
 
     @Test
+    void shouldPageEntriesWhileKeepingTotalsForTheWholeFilteredPeriod() throws Exception {
+        Fixture fixture = fixture();
+        Long first = completed(fixture, fixture.professional(), fixture.haircut(), LocalDateTime.of(2026, 3, 5, 10, 0));
+        Long second = completed(fixture, fixture.professional(), fixture.blowDry(), LocalDateTime.of(2026, 3, 12, 10, 0));
+
+        perform(fixture.professional(), get(ENDPOINT)
+                        .param("startDate", "2026-03-01").param("endDate", "2026-03-31")
+                        .param("page", "0").param("size", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.totalPages").value(2))
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.entries.length()").value(1))
+                .andExpect(jsonPath("$.entries[0].appointmentId").value(second))
+                .andExpect(jsonPath("$.summary.totalServices").value(2))
+                .andExpect(jsonPath("$.summary.totalServiceValue").value(150.0))
+                .andExpect(jsonPath("$.summary.totalCommission").value(25.0));
+
+        perform(fixture.professional(), get(ENDPOINT)
+                        .param("startDate", "2026-03-01").param("endDate", "2026-03-31")
+                        .param("page", "1").param("size", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.entries.length()").value(1))
+                .andExpect(jsonPath("$.entries[0].appointmentId").value(first))
+                .andExpect(jsonPath("$.summary.totalServices").value(2));
+    }
+
+    @Test
     void shouldKeepTheCommissionFrozenAtCompletionEvenIfTheServiceChangesLater() throws Exception {
         Fixture fixture = fixture();
         completed(fixture, fixture.professional(), fixture.haircut(), LocalDateTime.of(2026, 3, 5, 10, 0));

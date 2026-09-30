@@ -82,9 +82,9 @@ class AdministrativeAgendaIntegrationTests {
         if (status) request.param("status", "CONFIRMED");
         String[] names = expected.split(" ");
         var result = mvc.perform(request).andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(names.length));
+                .andExpect(jsonPath("$.totalElements").value(names.length));
         for (int i = 0; i < names.length; i++) {
-            result.andExpect(jsonPath("$[" + i + "].id").value(ids.get(names[i])));
+            result.andExpect(jsonPath("$.content[" + i + "].id").value(ids.get(names[i])));
         }
     }
 
@@ -92,18 +92,18 @@ class AdministrativeAgendaIntegrationTests {
     void shouldFilterCancelledAppointmentsWithoutDateOrProfessional() throws Exception {
         mvc.perform(get(ENDPOINT).with(jwt().jwt(token -> token.subject(admin.getId().toString())))
                         .param("status", "CANCELLED"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].id").value(ids.get("cancelled")));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].id").value(ids.get("cancelled")));
     }
 
     @Test
     void shouldReturnEmptyForDateWithoutAppointmentsOrProfessionalFromAnotherEstablishment() throws Exception {
         mvc.perform(get(ENDPOINT).with(jwt().jwt(token -> token.subject(admin.getId().toString())))
                         .param("date", DATE.plusDays(2).toString()))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(0));
         mvc.perform(get(ENDPOINT).with(jwt().jwt(token -> token.subject(admin.getId().toString())))
                         .param("professionalId", otherProfessional.getId().toString()))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(0));
     }
 
     @Test

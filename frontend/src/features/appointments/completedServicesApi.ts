@@ -29,15 +29,19 @@ export interface ProfessionalCompletedServices {
   entries: CompletedServiceEntry[]
   summary: CompletedServicesSummary
   availableServices: ServiceOption[]
+  page: number
+  totalPages: number
+  totalElements: number
 }
 
 export interface CompletedServicesFilters {
   startDate?: string
   endDate?: string
   serviceId?: number
+  page?: number
 }
 
 export function fetchMyCompletedServices(filters: CompletedServicesFilters) {
-  return api.get<ProfessionalCompletedServices>('/profissionais/me/atendimentos-realizados', { params: filters })
+  return api.get<ProfessionalCompletedServices>('/profissionais/me/atendimentos-realizados', { params: { ...filters, size: 20 } })
     .then((response) => response.data)
 }

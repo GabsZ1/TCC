@@ -14,6 +14,9 @@ public record ProfessionalCompletedServicesResponse(
         Long serviceId,
         List<CompletedServiceEntry> entries,
         CompletedServicesSummary summary,
-        List<ServiceOption> availableServices
+        List<ServiceOption> availableServices,
+        int page,
+        int totalPages,
+        long totalElements
 ) {
 }

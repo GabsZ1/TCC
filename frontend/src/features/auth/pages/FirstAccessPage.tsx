@@ -35,7 +35,7 @@ export function FirstAccessPage() {
     <AuthShell
       eyebrow="Primeiro acesso"
       title={completed ? 'Tudo pronto.' : 'Defina sua senha'}
-      subtitle={completed ? 'Sua senha foi criada e seu acesso já pode ser usado.' : 'Crie uma senha segura para ativar seu acesso ao SalonHub.'}
+      subtitle={completed ? 'Sua senha foi criada e seu acesso já pode ser usado.' : 'Crie uma senha segura para ativar seu acesso ao Meu Espaço.'}
       maxWidth="sm"
     >
       {completed ? (

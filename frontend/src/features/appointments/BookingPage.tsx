@@ -2,8 +2,9 @@ import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Check, CheckCircle2, Clock3, MapPin, Scissors, UserRound } from 'lucide-react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { createAppointment, fetchActiveEstablishments, fetchAvailability, fetchCatalogProfessionals, fetchCatalogServices } from '@/features/appointments/appointmentsApi'
+import { createAppointment, fetchActiveEstablishments, fetchAvailability, fetchCatalogProfessionals, fetchCatalogServices, fetchEstablishmentProfile } from '@/features/appointments/appointmentsApi'
 import { EmployeeAvatar } from '@/features/employees/components/EmployeeAvatar'
+import { EstablishmentImage } from '@/features/establishment/EstablishmentImage'
 import { getApiErrorMessage } from '@/lib/apiError'
 
 export function BookingPage() {
@@ -19,6 +20,7 @@ export function BookingPage() {
 
   const services = useQuery({ queryKey: ['catalog-services', establishmentId], queryFn: () => fetchCatalogServices(establishmentId), enabled: establishmentId > 0 })
   const establishments = useQuery({ queryKey: ['active-establishments'], queryFn: fetchActiveEstablishments })
+  const profile = useQuery({ queryKey: ['establishment-profile', establishmentId], queryFn: () => fetchEstablishmentProfile(establishmentId), enabled: establishmentId > 0 })
   const professionals = useQuery({ queryKey: ['catalog-professionals', establishmentId, serviceId], queryFn: () => fetchCatalogProfessionals(establishmentId, serviceId), enabled: establishmentId > 0 && !!serviceId })
   const availability = useQuery({
     queryKey: ['availability', establishmentId, serviceId, professionalId, date],
@@ -60,6 +62,7 @@ export function BookingPage() {
     <div className="page-shell">
       <Link to="/agendamentos" className="ghost-button -ml-3 w-fit"><ArrowLeft size={16} /> Voltar</Link>
       <div className="mt-5 flex flex-col gap-2">
+        {profile.data && <div className="relative mb-4"><EstablishmentImage establishmentId={establishmentId} kind="capa" hasImage={profile.data.hasCover} className="h-28 w-full rounded-2xl object-cover" /><EstablishmentImage establishmentId={establishmentId} kind="logo" hasImage={profile.data.hasLogo} className="absolute -bottom-3 left-4 size-14 rounded-xl border-2 border-white object-cover" /></div>}
         <p className="eyebrow">Novo horário</p>
         <h1 className="page-title">Agendar atendimento</h1>
         <p className="page-subtitle flex items-center gap-2"><MapPin size={15} /> {establishment?.name ?? `Estabelecimento #${establishmentId}`}</p>

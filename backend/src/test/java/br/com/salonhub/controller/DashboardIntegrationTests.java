@@ -19,13 +19,18 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -43,6 +48,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @Transactional
 class DashboardIntegrationTests {
+
+    @TestConfiguration
+    static class FixedTimeConfig {
+        @Bean
+        @Primary
+        Clock dashboardTestClock() {
+            return Clock.fixed(Instant.parse("2026-09-15T15:00:00Z"), ZoneId.of("America/Sao_Paulo"));
+        }
+    }
 
     @Autowired
     private MockMvc mockMvc;
@@ -70,6 +84,10 @@ class DashboardIntegrationTests {
                         .header("Authorization", bearer(fixture.administratorToken())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.todaysCompletedServices").value(0))
+                .andExpect(jsonPath("$.todaysAppointments").value(0))
+                .andExpect(jsonPath("$.pendingClosure").value(0))
+                .andExpect(jsonPath("$.todaysRevenue").value(0.0))
+                .andExpect(jsonPath("$.upcomingAppointments.length()").value(0))
                 .andExpect(jsonPath("$.monthlyCommissionTotal").value(0.0))
                 .andExpect(jsonPath("$.activeEmployees").value(1));
     }
@@ -90,6 +108,8 @@ class DashboardIntegrationTests {
                         .header("Authorization", bearer(fixture.administratorToken())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.todaysCompletedServices").value(1))
+                .andExpect(jsonPath("$.todaysRevenue").value(100.0))
+                .andExpect(jsonPath("$.upcomingAppointments.length()").value(1))
                 .andExpect(jsonPath("$.monthlyCommissionTotal").value(20.0))
                 .andExpect(jsonPath("$.activeEmployees").value(1));
     }

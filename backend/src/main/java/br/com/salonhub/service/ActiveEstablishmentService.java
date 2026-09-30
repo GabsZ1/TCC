@@ -15,8 +15,12 @@ public class ActiveEstablishmentService {
     private final EstablishmentProfileRepository profileRepository;
     private final GeographicDistanceCalculator distanceCalculator;
     @Transactional(readOnly=true) public List<ActiveEstablishmentResponse> findAll() {
-        return establishmentRepository.findAllByActiveTrueAndPausedFalseAndBookingsBlockedFalseOrderByNameAsc().stream()
-          .map(e -> new ActiveEstablishmentResponse(e.getId(),e.getName(),e.getMinimumAdvanceMinutes()/60,e.getMaximumAdvanceDays())).toList();
+        var establishments=establishmentRepository.findAllByActiveTrueAndPausedFalseAndBookingsBlockedFalseOrderByNameAsc();
+        Map<Long,EstablishmentProfile> profiles=profileRepository.findByEstablishmentIdIn(establishments.stream().map(e->e.getId()).toList())
+          .stream().collect(Collectors.toMap(p->p.getEstablishment().getId(),Function.identity()));
+        return establishments.stream().map(e -> new ActiveEstablishmentResponse(e.getId(),e.getName(),
+          e.getMinimumAdvanceMinutes()/60,e.getMaximumAdvanceDays(),
+          profiles.get(e.getId()) != null && profiles.get(e.getId()).getLogo() != null)).toList();
     }
     @Transactional(readOnly=true) public List<NearbyEstablishmentResponse> findNearby(double latitude,double longitude) {
         validate(latitude,longitude);
@@ -25,7 +29,8 @@ public class ActiveEstablishmentService {
           .stream().collect(Collectors.toMap(p->p.getEstablishment().getId(),Function.identity()));
         return establishments.stream().map(e->{ var p=profiles.get(e.getId()); Double d=p==null||!p.hasLocation()?null:
           distanceCalculator.distanceKm(latitude,longitude,p.getLatitude().doubleValue(),p.getLongitude().doubleValue());
-          return new NearbyEstablishmentResponse(e.getId(),e.getName(),e.getMinimumAdvanceMinutes()/60,e.getMaximumAdvanceDays(),d);
+          return new NearbyEstablishmentResponse(e.getId(),e.getName(),e.getMinimumAdvanceMinutes()/60,e.getMaximumAdvanceDays(),d,
+            p != null && p.getLogo() != null);
         }).sorted(Comparator.comparing(NearbyEstablishmentResponse::distanceKm,Comparator.nullsLast(Double::compareTo))
           .thenComparing(NearbyEstablishmentResponse::name,String.CASE_INSENSITIVE_ORDER)).toList();
     }

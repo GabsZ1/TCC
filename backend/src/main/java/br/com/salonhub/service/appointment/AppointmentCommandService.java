@@ -5,6 +5,7 @@ import br.com.salonhub.dto.appointment.AppointmentRescheduleRequest;
 import br.com.salonhub.dto.appointment.AppointmentResponse;
 import br.com.salonhub.entity.Appointment;
 import br.com.salonhub.entity.AppointmentStatus;
+import br.com.salonhub.entity.AppointmentSource;
 import br.com.salonhub.entity.Customer;
 import br.com.salonhub.entity.Establishment;
 import br.com.salonhub.entity.EstablishmentService;
@@ -20,6 +21,7 @@ import br.com.salonhub.repository.EstablishmentRepository;
 import br.com.salonhub.repository.EstablishmentServiceRepository;
 import br.com.salonhub.repository.UserRepository;
 import br.com.salonhub.service.TenantAuthorizationService;
+import br.com.salonhub.service.CustomerResolutionService;
 import br.com.salonhub.service.professionalagenda.ProfessionalAvailabilityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -35,6 +37,7 @@ public class AppointmentCommandService {
 
     private final AppointmentRepository appointmentRepository;
     private final CustomerRepository customerRepository;
+    private final CustomerResolutionService customerResolutionService;
     private final EstablishmentRepository establishmentRepository;
     private final EstablishmentServiceRepository serviceRepository;
     private final UserRepository userRepository;
@@ -46,13 +49,7 @@ public class AppointmentCommandService {
     public AppointmentResponse create(Long clientId, Long establishmentId, AppointmentCreateRequest request) {
         User client = lockClient(clientId);
         Establishment establishment = findActiveEstablishmentForUpdate(establishmentId);
-        Customer customer = customerRepository.findByEstablishmentIdAndUserId(establishmentId, clientId)
-                .orElseGet(() -> {
-                    Customer created = Customer.create(establishment, client.getName(), client.getPhone(), client.getEmail());
-                    created.link(client);
-                    return customerRepository.saveAndFlush(created);
-                });
-        if (!customer.isActive()) throw new ConflictException("Cliente inativo neste estabelecimento.");
+        Customer customer = customerResolutionService.resolveForBooking(establishment, client);
         EstablishmentService service = findActiveService(request.serviceId(), establishmentId);
         User professional = findAndLockProfessional(request.professionalId(), establishmentId);
         requireProfessionalOffersService(professional, service);
@@ -62,6 +59,7 @@ public class AppointmentCommandService {
         validateSchedule(establishment, professional, customer, startsAt, endsAt, null, true);
 
         Appointment appointment = Appointment.schedule(establishment, customer, professional, service, startsAt);
+        appointment.recordCreation(AppointmentSource.CLIENT_ONLINE, client);
         return AppointmentResponse.fromEntity(appointmentRepository.save(appointment));
     }
 
@@ -85,8 +83,10 @@ public class AppointmentCommandService {
         LocalDateTime startsAt = request.startsAt();
         validateSchedule(establishment, professional, customer, startsAt,
                 startsAt.plusMinutes(service.getDurationMinutes()), null, false);
-        return AppointmentResponse.fromEntity(appointmentRepository.save(
-                Appointment.schedule(establishment, customer, professional, service, startsAt)));
+        Appointment appointment = Appointment.schedule(establishment, customer, professional, service, startsAt);
+        appointment.recordCreation(administrator.getRole() == UserRole.ADMIN
+                ? AppointmentSource.ADMIN : AppointmentSource.PROFESSIONAL, administrator);
+        return AppointmentResponse.fromEntity(appointmentRepository.save(appointment));
     }
 
     @Transactional
@@ -114,10 +114,16 @@ public class AppointmentCommandService {
         }
 
         LocalDateTime startsAt = request.startsAt();
-        LocalDateTime endsAt = startsAt.plusMinutes(service.getDurationMinutes());
+        boolean changesService = !service.getId().equals(appointment.getService().getId());
+        int durationMinutes = changesService ? service.getDurationMinutes() : appointment.getDurationMinutes();
+        LocalDateTime endsAt = startsAt.plusMinutes(durationMinutes);
         validateSchedule(establishment, professional, appointment.getCustomer(), startsAt, endsAt, appointment.getId(), true);
 
-        appointment.update(service, professional, startsAt);
+        if (changesService) {
+            appointment.update(service, professional, startsAt);
+        } else {
+            appointment.reschedule(professional, startsAt);
+        }
         return AppointmentResponse.fromEntity(appointment);
     }
 
@@ -171,7 +177,7 @@ public class AppointmentCommandService {
                 || !appointment.getStartsAt().isAfter(LocalDateTime.now(clock))) {
             throw new ConflictException("O agendamento não pode ser cancelado.");
         }
-        appointment.cancel();
+        appointment.cancel(client, LocalDateTime.now(clock));
         return AppointmentResponse.fromEntity(appointment);
     }
 
@@ -199,7 +205,7 @@ public class AppointmentCommandService {
         if (appointment.getStartsAt().isAfter(now)) {
             throw new ConflictException("O agendamento só pode ser concluído a partir do horário previsto de início.");
         }
-        appointment.complete(now);
+        appointment.complete(now, userRepository.getReferenceById(userId));
         return AppointmentResponse.fromEntity(appointment);
     }
 
@@ -221,7 +227,7 @@ public class AppointmentCommandService {
             throw new ConflictException("A falta só pode ser registrada "
                     + NO_SHOW_TOLERANCE.toMinutes() + " minutos após o horário de início.");
         }
-        appointment.markNoShow();
+        appointment.markNoShow(userRepository.getReferenceById(userId), LocalDateTime.now(clock));
         return AppointmentResponse.fromEntity(appointment);
     }
 
@@ -234,7 +240,7 @@ public class AppointmentCommandService {
         if (appointment.getStatus() != AppointmentStatus.COMPLETED) {
             throw new ConflictException("Apenas agendamentos concluídos podem ser invalidados.");
         }
-        appointment.invalidate(reason);
+        appointment.invalidate(reason, administrator, LocalDateTime.now(clock));
         return AppointmentResponse.fromEntity(appointment);
     }
 
@@ -262,7 +268,7 @@ public class AppointmentCommandService {
             LocalDateTime endsAt,
             Long ignoredAppointmentId,
             boolean enforceAdvanceWindow) {
-        validateSlotAlignment(startsAt);
+        validateSlotAlignment(startsAt, enforceAdvanceWindow);
         if (enforceAdvanceWindow) validateAdvanceWindow(establishment, startsAt);
         else if (startsAt.isBefore(LocalDateTime.now(clock))) {
             throw new ConflictException("O agendamento não pode começar no passado.");
@@ -276,9 +282,11 @@ public class AppointmentCommandService {
         validateClientAvailability(customer.getId(), startsAt, endsAt, ignoredAppointmentId);
     }
 
-    private void validateSlotAlignment(LocalDateTime startsAt) {
-        if (!AppointmentSlotPolicy.isAligned(startsAt)) {
-            throw new ConflictException("O horário deve estar alinhado aos intervalos de 30 minutos.");
+    private void validateSlotAlignment(LocalDateTime startsAt, boolean online) {
+        int interval = online ? AppointmentSlotPolicy.SLOT_INTERVAL_MINUTES
+                : AppointmentSlotPolicy.INTERNAL_SLOT_INTERVAL_MINUTES;
+        if (!AppointmentSlotPolicy.isAligned(startsAt, interval)) {
+            throw new ConflictException("O horário deve estar alinhado aos intervalos de " + interval + " minutos.");
         }
     }
 

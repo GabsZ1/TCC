@@ -22,6 +22,8 @@ public record EstablishmentProfileResponse(
         String city,
         String state,
         boolean locationAvailable,
+        boolean hasLogo,
+        boolean hasCover,
         List<BusinessHourResponse> businessHours,
         List<CatalogProfessionalResponse> professionals,
         List<CatalogServiceResponse> services
@@ -47,6 +49,8 @@ public record EstablishmentProfileResponse(
                 profile == null ? null : profile.getCity(),
                 profile == null ? null : profile.getState(),
                 profile != null && profile.hasLocation(),
+                profile != null && profile.getLogo() != null,
+                profile != null && profile.getCover() != null,
                 businessHours,
                 professionals,
                 services);

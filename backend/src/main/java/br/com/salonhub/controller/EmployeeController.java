@@ -39,6 +39,11 @@ public class EmployeeController {
                 .body(employeeService.create(currentUserId(jwt), request));
     }
 
+    @PostMapping("/{id}/reenviar-convite")
+    public EmployeeCreationResponse resendInvitation(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        return employeeService.resendInvitation(currentUserId(jwt), id);
+    }
+
     @GetMapping
     public ResponseEntity<List<EmployeeResponse>> findAll(@AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok(employeeService.findAll(currentUserId(jwt)));

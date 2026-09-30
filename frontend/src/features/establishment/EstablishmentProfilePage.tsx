@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AtSign, MapPin, Phone, Save, Store } from 'lucide-react'
 import { getApiErrorMessage } from '@/lib/apiError'
 import { CepNotFoundError, cepDigits, formatCep, lookupCep } from '@/lib/cep'
+import { EstablishmentImage } from './EstablishmentImage'
+import { deleteEstablishmentImage, uploadEstablishmentImage, type ImageKind } from './establishmentImagesApi'
 import {
   fetchMyEstablishmentProfile,
   updateMyEstablishmentProfile,
@@ -11,6 +13,23 @@ import {
 } from '@/features/establishment/establishmentApi'
 
 const QUERY_KEY = ['my-establishment-profile']
+
+function ProfileImageControl({ profile, kind }: { profile: EstablishmentProfile; kind: ImageKind }) {
+  const queryClient = useQueryClient()
+  const hasImage = kind === 'logo' ? profile.hasLogo : profile.hasCover
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: QUERY_KEY })
+    queryClient.invalidateQueries({ queryKey: ['establishment-image', profile.establishmentId, kind] })
+  }
+  const upload = useMutation({ mutationFn: (file: File) => uploadEstablishmentImage(kind, file), onSuccess: refresh })
+  const remove = useMutation({ mutationFn: () => deleteEstablishmentImage(kind), onSuccess: refresh })
+  return <div className="space-y-3"><h3 className="text-sm font-semibold">{kind === 'logo' ? 'Logo' : 'Capa'}</h3>
+    <EstablishmentImage establishmentId={profile.establishmentId} kind={kind} mine hasImage={hasImage} className={kind === 'logo' ? 'size-28 rounded-xl object-cover' : 'h-28 w-full rounded-xl object-cover'} />
+    <input aria-label={`Enviar ${kind}`} type="file" accept="image/jpeg,image/png,image/webp" onChange={event => { const file = event.target.files?.[0]; if (file) upload.mutate(file); event.target.value = '' }} />
+    {hasImage && <button type="button" disabled={remove.isPending} onClick={() => remove.mutate()} className="text-sm font-semibold text-danger-600">Remover</button>}
+    {(upload.isError || remove.isError) && <p role="alert" className="text-sm text-danger-600">{getApiErrorMessage(upload.error ?? remove.error, 'Não foi possível atualizar a imagem.')}</p>}
+  </div>
+}
 
 export function EstablishmentProfilePage() {
   const queryClient = useQueryClient()
@@ -101,6 +120,11 @@ export function EstablishmentProfilePage() {
         <h1 className="page-title mt-2">Perfil do estabelecimento</h1>
         <p className="page-subtitle">Defina as informações que os clientes verão ao consultar os detalhes do seu estabelecimento.</p>
       </header>
+
+      {profile && <section className="surface-card mt-7 p-5"><h2 className="font-semibold">Logo e capa</h2><div className="mt-4 grid gap-5 sm:grid-cols-2">
+        <ProfileImageControl profile={profile} kind="logo" />
+        <ProfileImageControl profile={profile} kind="capa" />
+      </div></section>}
 
       <form onSubmit={submit} className="surface-card mt-7 overflow-hidden">
         <div className="border-b border-background-300 bg-background-100/60 p-5 sm:p-6">

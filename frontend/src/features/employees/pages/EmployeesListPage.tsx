@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, Copy, Eye, Pencil, Plus, Power, RotateCcw, Scissors, Trash2, UserCheck, UsersRound, UserX } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
@@ -9,6 +10,7 @@ import {
   fetchEmployees,
   removeEmployee,
   reactivateEmployee,
+  resendEmployeeInvitation,
   updateEmployee,
   type Employee,
   type EmployeeCreateInput,
@@ -23,6 +25,7 @@ const EMPLOYEES_QUERY_KEY = ['employees']
 type ModalState = { mode: 'create' } | { mode: 'edit'; employee: Employee } | null
 
 export function EmployeesListPage() {
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [modalState, setModalState] = useState<ModalState>(null)
   const [formError, setFormError] = useState<string | null>(null)
@@ -65,6 +68,19 @@ export function EmployeesListPage() {
       closeFormModal()
     },
     onError: (err) => setFormError(getApiErrorMessage(err, 'Não foi possível criar o funcionário.')),
+  })
+
+  const resendMutation = useMutation({
+    mutationFn: resendEmployeeInvitation,
+    onSuccess: (result) => {
+      setFirstAccessInvitation({ employeeName: result.name,
+        link: `${window.location.origin}/primeiro-acesso?token=${encodeURIComponent(result.firstAccessToken)}`,
+        expiresAt: result.firstAccessExpiresAt })
+      setInviteCopied(false)
+      setDeleteError(null)
+      setRemovalMessage(`Convite reenviado para ${result.name}.`)
+    },
+    onError: (err) => setDeleteError(getApiErrorMessage(err, 'Não foi possível reenviar o convite.')),
   })
 
   const updateMutation = useMutation({
@@ -249,6 +265,8 @@ export function EmployeesListPage() {
                     <div className="flex justify-end gap-1">
                       <ActionButton label="Detalhes" onClick={() => setDetailsEmployee(employee)}><Eye size={16} /></ActionButton>
                       <ActionButton label="Serviços" onClick={() => setServicesEmployee(employee)}><Scissors size={16} /></ActionButton>
+                      <ActionButton label="Gerenciar agenda" onClick={() => navigate(`/funcionarios/${employee.id}/agenda`)}><UsersRound size={16} /></ActionButton>
+                      {!employee.passwordInitialized && <ActionButton label="Reenviar convite" disabled={resendMutation.isPending} onClick={() => resendMutation.mutate(employee.id)}><Copy size={16} /></ActionButton>}
                       <ActionButton label="Editar" onClick={() => { setRemovalMessage(null); setModalState({ mode: 'edit', employee }) }}><Pencil size={16} /></ActionButton>
                       {employee.active ? (
                         <ActionButton label="Desativar" danger disabled={isChangingLifecycle} onClick={() => { setDeleteError(null); setRemovalMessage(null); setEmployeeToDeactivate(employee) }}><Power size={16} /></ActionButton>

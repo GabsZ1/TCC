@@ -4,6 +4,10 @@ export interface DashboardSummary {
   todaysCompletedServices: number
   monthlyCommissionTotal: number
   activeEmployees: number
+  todaysAppointments: number
+  pendingClosure: number
+  todaysRevenue: number
+  upcomingAppointments: Array<{ id: number; startsAt: string; customerName: string; serviceName: string; professionalName: string }>
 }
 
 export function fetchDashboardSummary() {

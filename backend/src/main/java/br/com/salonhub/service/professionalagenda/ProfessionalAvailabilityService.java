@@ -7,6 +7,7 @@ import br.com.salonhub.exception.ConflictException;
 import br.com.salonhub.repository.EstablishmentBusinessHourRepository;
 import br.com.salonhub.repository.ProfessionalBusinessHourRepository;
 import br.com.salonhub.repository.ProfessionalCalendarEventRepository;
+import br.com.salonhub.repository.EstablishmentCalendarBlockRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -21,6 +22,7 @@ public class ProfessionalAvailabilityService {
     private final ProfessionalBusinessHourRepository professionalHourRepository;
     private final EstablishmentBusinessHourRepository establishmentHourRepository;
     private final ProfessionalCalendarEventRepository eventRepository;
+    private final EstablishmentCalendarBlockRepository establishmentBlockRepository;
 
     /**
      * Horário efetivo do profissional em uma data: a interseção entre o horário de
@@ -71,6 +73,10 @@ public class ProfessionalAvailabilityService {
         if (eventRepository.existsByProfessionalIdAndStartsAtLessThanAndEndsAtGreaterThan(
                 professional.getId(), endsAt, startsAt)) {
             throw new ConflictException("O profissional possui um bloqueio pessoal nesse período.");
+        }
+        if (establishmentBlockRepository.existsByEstablishmentIdAndStartsAtLessThanAndEndsAtGreaterThan(
+                professional.getEstablishment().getId(), endsAt, startsAt)) {
+            throw new ConflictException("O estabelecimento está bloqueado nesse período.");
         }
     }
 
