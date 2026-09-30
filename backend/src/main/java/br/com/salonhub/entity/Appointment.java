@@ -150,6 +150,13 @@ public class Appointment {
         this.invalidationReason = reason;
     }
 
+    /** Muda horário e/ou profissional mantendo o serviço e os valores combinados (snapshot). */
+    public void reschedule(User professional, LocalDateTime startsAt) {
+        this.professional = professional;
+        this.startsAt = startsAt;
+        this.endsAt = startsAt.plusMinutes(durationMinutes);
+    }
+
     public void update(EstablishmentService service, User professional, LocalDateTime startsAt) {
         this.service = service;
         snapshotService(service);

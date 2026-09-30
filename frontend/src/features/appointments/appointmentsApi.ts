@@ -129,6 +129,11 @@ export function fetchPendingClosure() {
   return api.get<Appointment[]>('/agendamentos/pendentes-fechamento').then((response) => response.data)
 }
 
+/** Remarcação pelo admin: muda horário e/ou profissional (e, opcionalmente, o serviço). */
+export function rescheduleAppointment(appointmentId: number, input: { serviceId: number; professionalId: number; startsAt: string }) {
+  return api.put<Appointment>(`/agendamentos/${appointmentId}/remarcacao`, input).then((response) => response.data)
+}
+
 export function markAppointmentNoShow(appointmentId: number) {
   return api.patch<Appointment>(`/agendamentos/${appointmentId}/falta`).then((response) => response.data)
 }

@@ -4,6 +4,7 @@ import { CalendarDays, Clock3, LockKeyhole, Scissors, User } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { InvalidateAppointmentModal } from '@/features/appointments/InvalidateAppointmentModal'
 import { AdminCancelAppointmentModal } from '@/features/appointments/AdminCancelAppointmentModal'
+import { RescheduleAppointmentModal } from '@/features/appointments/RescheduleAppointmentModal'
 import { PENDING_CLOSURE_KEY, completeAppointment, markAppointmentNoShow, fetchEstablishmentAgenda, fetchTeamAvailability, type Appointment } from '@/features/appointments/appointmentsApi'
 import { fetchEmployees } from '@/features/employees/services/employeesApi'
 import { getApiErrorMessage } from '@/lib/apiError'
@@ -23,6 +24,7 @@ export function AdminAgendaPage() {
   const [cancelling, setCancelling] = useState<Appointment | null>(null)
   const [completing, setCompleting] = useState<Appointment | null>(null)
   const [noShowing, setNoShowing] = useState<Appointment | null>(null)
+  const [rescheduling, setRescheduling] = useState<Appointment | null>(null)
   const employees = useQuery({ queryKey: ['employees'], queryFn: fetchEmployees })
   const agenda = useQuery({
     queryKey: [AGENDA_QUERY_KEY, date, professionalId, status],
@@ -90,6 +92,7 @@ export function AdminAgendaPage() {
             appointment={appointment}
             onComplete={() => setCompleting(appointment)}
             onNoShow={() => setNoShowing(appointment)}
+            onReschedule={() => setRescheduling(appointment)}
             onInvalidate={() => setInvalidating(appointment)}
             onCancel={() => setCancelling(appointment)}
           />
@@ -103,6 +106,8 @@ export function AdminAgendaPage() {
           onCompleted={() => { refreshAgenda(); setCompleting(null) }}
         />
       )}
+      {rescheduling && <RescheduleAppointmentModal appointment={rescheduling} onClose={() => setRescheduling(null)}
+        onRescheduled={() => { refreshAgenda(); queryClient.invalidateQueries({ queryKey: ['team-availability'] }); setRescheduling(null) }} />}
       {noShowing && <NoShowDialog appointment={noShowing} onClose={() => setNoShowing(null)}
         onMarked={() => { refreshAgenda(); setNoShowing(null) }} />}
       {cancelling && (
@@ -157,12 +162,14 @@ function AppointmentCard({
   appointment,
   onComplete,
   onNoShow,
+  onReschedule,
   onInvalidate,
   onCancel,
 }: {
   appointment: Appointment
   onComplete: () => void
   onNoShow: () => void
+  onReschedule: () => void
   onInvalidate: () => void
   onCancel: () => void
 }) {
@@ -170,6 +177,7 @@ function AppointmentCard({
   const canNoShow = appointment.status === 'CONFIRMED' && canMarkNoShow(appointment.startsAt)
   const canInvalidate = appointment.status === 'COMPLETED'
   const canCancel = appointment.status === 'CONFIRMED'
+  const canReschedule = appointment.status === 'CONFIRMED' && !hasStarted(appointment)
 
   return (
     <article className="surface-card p-5">
@@ -196,8 +204,13 @@ function AppointmentCard({
           <StatusBadge status={appointment.status} />
           <p className="mt-2 font-semibold text-text-900">{formatMoney(appointment.agreedPrice)}</p>
           <p className="text-text-600">Comissão: {formatMoney(appointment.commissionAmount)}</p>
-          {(canComplete || canNoShow || canInvalidate || canCancel) && (
+          {(canComplete || canNoShow || canInvalidate || canCancel || canReschedule) && (
             <div className="mt-3 flex flex-wrap justify-end gap-2">
+              {canReschedule && (
+                <button type="button" onClick={onReschedule} className="rounded-lg border border-primary-300 px-3 py-1.5 text-xs font-semibold text-primary-700 hover:bg-primary-50">
+                  Remarcar
+                </button>
+              )}
               {canCancel && (
                 <button type="button" onClick={onCancel} className="rounded-lg border border-danger-500/30 px-3 py-1.5 text-xs font-semibold text-danger-600 hover:bg-danger-500/5">
                   Cancelar
