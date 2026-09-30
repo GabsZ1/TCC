@@ -78,6 +78,45 @@ class CustomerBookingIntegrationTests {
         org.junit.jupiter.api.Assertions.assertEquals(2, customers.findByEstablishmentIdOrderByNameAsc(establishmentId).size());
     }
 
+    @Test
+    void mergeRejectsOverlappingAppointmentsBeforeMovingThem() throws Exception {
+        registerEstablishment("admin.merge.conflict@salonhub.test", "66777888000181");
+        String admin = login("admin.merge.conflict@salonhub.test");
+        long a = createCustomer(admin, "Cliente A", "44999990000", null);
+        long b = createCustomer(admin, "Cliente B", "44999990000", null);
+        long first = createProfessionalForMerge(admin, "prof.merge.a@salonhub.test");
+        long second = createProfessionalForMerge(admin, "prof.merge.b@salonhub.test");
+        long service = ((Number) JsonPath.read(mvc.perform(post("/api/servicos").header("Authorization", admin)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"Serviço merge\",\"price\":50,\"durationMinutes\":60}"))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString(), "$.id")).longValue();
+        LocalDate day = LocalDate.now().plusDays(2);
+        while (day.getDayOfWeek().getValue() > 5) day = day.plusDays(1);
+        long firstId = bookForMerge(admin, a, service, first, day + "T10:00:00");
+        long secondId = bookForMerge(admin, b, service, second, day + "T10:30:00");
+        mvc.perform(patch("/api/clientes/estabelecimento/me/{id}/mesclar/{otherId}", a, b)
+                .header("Authorization", admin)).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("agendamentos conflitantes")));
+        org.junit.jupiter.api.Assertions.assertEquals(a, jdbc.queryForObject("select customer_id from appointments where id = ?", Long.class, firstId));
+        org.junit.jupiter.api.Assertions.assertEquals(b, jdbc.queryForObject("select customer_id from appointments where id = ?", Long.class, secondId));
+    }
+
+    private long createProfessionalForMerge(String admin, String email) throws Exception {
+        return ((Number) JsonPath.read(mvc.perform(post("/api/funcionarios")
+                .header("Authorization", admin).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"Profissional\",\"email\":\"%s\",\"occupation\":\"Cabeleireiro(a)\",\"cpf\":\"%s\",\"hireDate\":\"2025-01-02\"}"
+                        .formatted(email, TestDocuments.cpf())))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString(), "$.id")).longValue();
+    }
+
+    private long bookForMerge(String admin, long customer, long service, long professional, String startsAt) throws Exception {
+        return ((Number) JsonPath.read(mvc.perform(post("/api/agendamentos/estabelecimento/me/clientes/{id}", customer)
+                .header("Authorization", admin).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"serviceId\":%d,\"professionalId\":%d,\"startsAt\":\"%s\"}"
+                        .formatted(service, professional, startsAt)))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString(), "$.id")).longValue();
+    }
+
     private int ignoredPairCount(long customerId) {
         return jdbc.queryForObject("""
                 select count(*) from customer_duplicate_ignores
@@ -288,6 +327,22 @@ class CustomerBookingIntegrationTests {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"email\":\"prof.balcao@salonhub.test\",\"password\":\"senha123\"}"))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(), "$.token");
+        mvc.perform(put("/api/clientes/estabelecimento/me/{id}", customerId.longValue())
+                .header("Authorization", professionalAuth).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"Maria do balcão\",\"phone\":\"44999990000\",\"active\":false}"))
+                .andExpect(status().isForbidden());
+        mvc.perform(put("/api/clientes/estabelecimento/me/{id}", customerId.longValue())
+                .header("Authorization", auth).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"Maria do balcão\",\"phone\":\"44999990000\",\"active\":false}"))
+                .andExpect(status().isOk());
+        mvc.perform(put("/api/clientes/estabelecimento/me/{id}", customerId.longValue())
+                .header("Authorization", professionalAuth).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"Maria do balcão\",\"phone\":\"44999990000\",\"active\":true}"))
+                .andExpect(status().isForbidden());
+        mvc.perform(put("/api/clientes/estabelecimento/me/{id}", customerId.longValue())
+                .header("Authorization", auth).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"Maria do balcão\",\"phone\":\"44999990000\",\"active\":true}"))
+                .andExpect(status().isOk());
         mvc.perform(get("/api/clientes/estabelecimento/me/sugestoes")
                 .header("Authorization", professionalAuth).param("phone", "44999990000"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$[0].id").value(customerId));

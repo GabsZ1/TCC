@@ -179,19 +179,29 @@ public class AppointmentQueryService {
         ProfessionalAvailabilityService.WorkingHours workingHours =
                 professionalAvailabilityService.requireWorkingHours(professional, date);
         List<LocalTime> availableTimes = calculateAvailableTimes(
-                date, service, workingHours, professionalAppointments, clientAppointments, calendarEvents,
+                date, service.getDurationMinutes(), workingHours, professionalAppointments, clientAppointments, calendarEvents,
                 earliestStart, latestStart, appointmentId, AppointmentSlotPolicy.SLOT_INTERVAL_MINUTES);
         return new AvailabilityResponse(date, service.getDurationMinutes(), availableTimes);
     }
 
     @Transactional(readOnly = true)
     public AvailabilityResponse findInternalAvailability(Long staffId, Long customerId, Long serviceId,
-                                                        Long professionalId, LocalDate date) {
+                                                        Long professionalId, LocalDate date, Long appointmentId) {
         User staff = tenantAuthorizationService.requireEstablishmentStaff(staffId);
         Long establishmentId = staff.getEstablishment().getId();
-        customerRepository.findByIdAndEstablishmentId(customerId, establishmentId)
+        Customer customer = customerRepository.findByIdAndEstablishmentId(customerId, establishmentId)
                 .filter(Customer::isActive)
                 .orElseThrow(() -> new ResourceNotFoundException("Cliente não encontrado."));
+        Appointment current = null;
+        if (appointmentId != null) {
+            if (staff.getRole() != UserRole.ADMIN) throw new AccessDeniedException("Apenas o administrador pode consultar a remarcação.");
+            current = appointmentRepository.findByIdAndEstablishmentId(appointmentId, establishmentId)
+                    .filter(item -> item.getCustomer().getId().equals(customer.getId()))
+                    .filter(item -> item.getStatus() == AppointmentStatus.CONFIRMED)
+                    .orElseThrow(() -> new ResourceNotFoundException("Agendamento não encontrado."));
+            if (!current.getStartsAt().isAfter(LocalDateTime.now(clock)))
+                throw new ConflictException("Apenas agendamentos futuros podem ser remarcados.");
+        }
         if (date.isBefore(LocalDate.now(clock))) {
             throw new InvalidRequestException("A data da consulta não pode estar no passado.");
         }
@@ -219,14 +229,16 @@ public class AppointmentQueryService {
                 .findByProfessionalIdAndStartsAtLessThanAndEndsAtGreaterThanOrderByStartsAt(
                         professionalId, dayEnd, dayStart);
         var hours = professionalAvailabilityService.requireWorkingHours(professional, date);
-        return new AvailabilityResponse(date, service.getDurationMinutes(), calculateAvailableTimes(
-                date, service, hours, professionalAppointments, customerAppointments, blocks,
-                LocalDateTime.now(clock), null, null, AppointmentSlotPolicy.INTERNAL_SLOT_INTERVAL_MINUTES));
+        int duration = current != null && current.getService().getId().equals(serviceId)
+                ? current.getDurationMinutes() : service.getDurationMinutes();
+        return new AvailabilityResponse(date, duration, calculateAvailableTimes(
+                date, duration, hours, professionalAppointments, customerAppointments, blocks,
+                LocalDateTime.now(clock), null, appointmentId, AppointmentSlotPolicy.INTERNAL_SLOT_INTERVAL_MINUTES));
     }
 
     private List<LocalTime> calculateAvailableTimes(
             LocalDate date,
-            EstablishmentService service,
+            int durationMinutes,
             ProfessionalAvailabilityService.WorkingHours workingHours,
             List<Appointment> professionalAppointments,
             List<Appointment> clientAppointments,
@@ -238,9 +250,9 @@ public class AppointmentQueryService {
         List<LocalTime> availableTimes = new ArrayList<>();
         LocalDateTime closing = date.atTime(workingHours.closingTime());
         LocalDateTime candidate = alignToSlotGrid(date.atTime(workingHours.openingTime()), slotIntervalMinutes);
-        while (!candidate.plusMinutes(service.getDurationMinutes()).isAfter(closing)) {
+        while (!candidate.plusMinutes(durationMinutes).isAfter(closing)) {
             LocalDateTime slotStart = candidate;
-            LocalDateTime slotEnd = slotStart.plusMinutes(service.getDurationMinutes());
+            LocalDateTime slotEnd = slotStart.plusMinutes(durationMinutes);
             boolean withinAdvanceWindow = !slotStart.isBefore(earliestStart)
                     && (latestStart == null || !slotStart.isAfter(latestStart));
             boolean professionalOverlaps = overlaps(professionalAppointments, slotStart, slotEnd, ignoredAppointmentId);

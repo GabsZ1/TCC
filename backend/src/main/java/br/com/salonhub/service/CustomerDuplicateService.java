@@ -1,6 +1,8 @@
 package br.com.salonhub.service;
 
 import br.com.salonhub.entity.Customer;
+import br.com.salonhub.entity.Appointment;
+import br.com.salonhub.entity.AppointmentStatus;
 import br.com.salonhub.dto.customer.CustomerResponse;
 import br.com.salonhub.exception.ConflictException;
 import br.com.salonhub.exception.ResourceNotFoundException;
@@ -77,8 +79,14 @@ public class CustomerDuplicateService {
         }
         Customer survivor = selected.getUser() == null && other.getUser() != null ? other : selected;
         Customer source = survivor == selected ? other : selected;
-        appointments.findByCustomerIdAndEstablishmentIdOrderByStartsAtDesc(source.getId(), establishmentId)
-                .forEach(appointment -> appointment.reassignCustomer(survivor));
+        List<Appointment> sourceAppointments = appointments.findByCustomerIdAndEstablishmentIdOrderByStartsAtDesc(source.getId(), establishmentId);
+        List<Appointment> survivorAppointments = appointments.findByCustomerIdAndEstablishmentIdOrderByStartsAtDesc(survivor.getId(), establishmentId);
+        boolean conflicting = sourceAppointments.stream().filter(item -> item.getStatus() == AppointmentStatus.CONFIRMED)
+                .anyMatch(left -> survivorAppointments.stream().filter(item -> item.getStatus() == AppointmentStatus.CONFIRMED)
+                        .anyMatch(right -> left.getStartsAt().isBefore(right.getEndsAt())
+                                && left.getEndsAt().isAfter(right.getStartsAt())));
+        if (conflicting) throw new ConflictException("Existem agendamentos conflitantes que precisam ser resolvidos antes da mesclagem.");
+        sourceAppointments.forEach(appointment -> appointment.reassignCustomer(survivor));
         customers.flush();
         customers.delete(source);
         customers.flush();

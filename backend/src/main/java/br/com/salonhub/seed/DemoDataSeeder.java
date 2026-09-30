@@ -281,6 +281,7 @@ public class DemoDataSeeder {
                         return customerRepository.save(newCustomer);
                     });
                     Appointment appointment = Appointment.schedule(seeded.establishment(), customer, professional, service, day.atTime(slot));
+                    appointment.recordCreation(br.com.salonhub.entity.AppointmentSource.CLIENT_ONLINE, client);
                     applyStatus(appointment, offset, administrator);
                     created.add(appointment);
                 }
@@ -302,17 +303,17 @@ public class DemoDataSeeder {
         if (roll < 0.08) {
             appointment.cancelByAdministrator("Cliente pediu para remarcar.", administrator, startsAt.minusDays(1));
         } else if (roll < 0.12) {
-            appointment.cancel();
+            appointment.cancel(appointment.getCustomer().getUser(), appointment.getStartsAt());
         } else if (roll < 0.14) {
-            appointment.complete(appointment.getEndsAt());
-            appointment.invalidate("Atendimento registrado por engano.");
+            appointment.complete(appointment.getEndsAt(), administrator);
+            appointment.invalidate("Atendimento registrado por engano.", administrator, appointment.getEndsAt());
         } else if (roll < 0.19) {
-            appointment.markNoShow();
+            appointment.markNoShow(administrator, appointment.getStartsAt().plusMinutes(15));
         } else if (roll < 0.24 && dayOffset > -7) {
             // Alguns atendimentos recentes ficam pendentes de conclusão.
             return;
         } else {
-            appointment.complete(appointment.getEndsAt());
+            appointment.complete(appointment.getEndsAt(), administrator);
         }
     }
 

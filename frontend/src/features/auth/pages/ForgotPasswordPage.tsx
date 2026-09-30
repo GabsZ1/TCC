@@ -24,9 +24,9 @@ export function ForgotPasswordPage() {
   return (
     <AuthShell
       eyebrow="Recuperar acesso"
-      title={mutation.isSuccess ? 'Verifique seu e-mail' : 'Esqueceu sua senha?'}
+      title={mutation.isSuccess ? 'Solicitação recebida' : 'Esqueceu sua senha?'}
       subtitle={mutation.isSuccess
-        ? 'Se não encontrar a mensagem, confira também a caixa de spam.'
+        ? 'Caso receba a mensagem, confira também a caixa de spam.'
         : 'Informe o e-mail da sua conta e enviaremos um link para você criar uma nova senha.'}
       maxWidth="sm"
     >
@@ -36,7 +36,7 @@ export function ForgotPasswordPage() {
             <MailCheck size={28} />
           </span>
           <p role="status" className="mt-5 text-sm leading-6 text-text-700">{mutation.data.message}</p>
-          <p className="mt-2 text-sm text-text-500">Enviado para <strong className="text-text-800">{email.trim()}</strong></p>
+
           <Link className="secondary-button mt-6 w-full py-3" to="/login"><ArrowLeft size={17} /> Voltar para o login</Link>
         </div>
       ) : (

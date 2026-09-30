@@ -6,6 +6,7 @@ import br.com.salonhub.entity.Appointment;
 import br.com.salonhub.entity.Customer;
 import br.com.salonhub.repository.CustomerRepository;
 import br.com.salonhub.entity.AppointmentStatus;
+import br.com.salonhub.entity.AppointmentSource;
 import br.com.salonhub.repository.AppointmentRepository;
 
 
@@ -146,6 +147,9 @@ class AppointmentFlowIntegrationTests {
                 .andExpect(jsonPath("$.status").value("CONFIRMED"))
                 .andReturn();
         Number appointmentId = JsonPath.read(appointment.getResponse().getContentAsString(), "$.id");
+        Appointment created = appointmentRepository.findById(appointmentId.longValue()).orElseThrow();
+        org.junit.jupiter.api.Assertions.assertEquals(AppointmentSource.CLIENT_ONLINE, created.getSource());
+        org.junit.jupiter.api.Assertions.assertEquals(created.getCustomer().getUser().getId(), created.getCreatedBy().getId());
 
         mockMvc.perform(post("/api/estabelecimentos/{id}/agendamentos", establishmentId.longValue())
                         .header("Authorization", bearer(clientToken))
@@ -290,7 +294,7 @@ class AppointmentFlowIntegrationTests {
                         .header("Authorization", bearer(clientToken)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(3))
-                .andExpect(jsonPath("$[0].serviceName").value("Corte MVP"));
+                .andExpect(jsonPath("$[0].serviceName").value("Corte reajustado"));
 
         String professionalToken = login("professional.appointment@salonhub.test");
 
@@ -298,7 +302,7 @@ class AppointmentFlowIntegrationTests {
                         .header("Authorization", bearer(professionalToken)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].serviceName").value("Corte MVP"))
+                .andExpect(jsonPath("$[0].serviceName").value("Corte reajustado"))
                 .andExpect(jsonPath("$[0].clientName").value("Cliente MVP"));
 
         mockMvc.perform(get("/api/agendamentos/profissional/me")
@@ -314,6 +318,9 @@ class AppointmentFlowIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(appointmentId))
                 .andExpect(jsonPath("$.status").value("CANCELLED"));
+        Appointment cancelled = appointmentRepository.findById(appointmentId.longValue()).orElseThrow();
+        org.junit.jupiter.api.Assertions.assertNotNull(cancelled.getCancelledAt());
+        org.junit.jupiter.api.Assertions.assertEquals(cancelled.getCustomer().getUser().getId(), cancelled.getCancelledBy().getId());
 
         mockMvc.perform(put("/api/agendamentos/{id}", appointmentId.longValue()).header("Authorization", bearer(clientToken)).contentType(MediaType.APPLICATION_JSON).content(appointmentPayload(secondServiceId, secondProfessionalId, appointmentDate.atTime(11, 0))))
                 .andExpect(status().isConflict()).andExpect(jsonPath("$.message").value("Apenas agendamentos futuros e confirmados podem ser editados."));

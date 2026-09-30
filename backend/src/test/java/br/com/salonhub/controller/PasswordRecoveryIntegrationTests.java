@@ -95,8 +95,8 @@ class PasswordRecoveryIntegrationTests {
     @Test
     void shouldInformThatTheEmailIsNotRegistered() throws Exception {
         requestReset("ninguem-" + UUID.randomUUID() + "@recuperacao.test")
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.message").value("Não existe cadastro com o e-mail informado."));
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.message").value("Se existir uma conta associada a este e-mail, enviaremos as instruções necessárias."));
 
         verify(emailNotifier, never()).sendPasswordReset(anyString(), anyString(), anyString(), anyLong());
     }
@@ -114,8 +114,8 @@ class PasswordRecoveryIntegrationTests {
 
         requestReset(administrator.getEmail()).andExpect(status().isAccepted());
         requestReset(administrator.getEmail())
-                .andExpect(status().isTooManyRequests())
-                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("Aguarde")));
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.message").value("Se existir uma conta associada a este e-mail, enviaremos as instruções necessárias."));
 
         verify(emailNotifier, times(1)).sendPasswordReset(anyString(), anyString(), anyString(), anyLong());
     }
@@ -233,8 +233,10 @@ class PasswordRecoveryIntegrationTests {
         User inactive = createUser(UserRole.PROFESSIONAL, false, true);
         User pending = createUser(UserRole.PROFESSIONAL, true, false);
 
-        requestReset(inactive.getEmail()).andExpect(status().isBadRequest());
-        requestReset(pending.getEmail()).andExpect(status().isBadRequest());
+        requestReset(inactive.getEmail()).andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.message").value("Se existir uma conta associada a este e-mail, enviaremos as instruções necessárias."));
+        requestReset(pending.getEmail()).andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.message").value("Se existir uma conta associada a este e-mail, enviaremos as instruções necessárias."));
 
         verify(emailNotifier, never()).sendPasswordReset(anyString(), anyString(), anyString(), anyLong());
     }

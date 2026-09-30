@@ -120,16 +120,28 @@ public class EmployeeService {
                 .build();
 
         User savedEmployee = userRepository.save(employee);
-        TokenService.GeneratedToken token = tokenService.generateFirstAccess(savedEmployee);
-        // US 2.1 / RNF.03.02: o e-mail de primeiro acesso sai automaticamente depois do cadastro
-        // (e só se ele for confirmado). O link continua na resposta para o admin copiar, se preferir.
-        emailNotifier.sendFirstAccessInvitation(
-                savedEmployee.getEmail(),
-                savedEmployee.getName(),
-                administrator.getEstablishment().getName(),
-                frontendLinks.firstAccess(token.value()),
-                token.expiresAt());
-        return EmployeeCreationResponse.fromEntity(savedEmployee, token.value(), token.expiresAt());
+        return invite(administrator, savedEmployee);
+    }
+
+    @Transactional
+    public EmployeeCreationResponse resendInvitation(Long administratorId, Long employeeId) {
+        User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
+        User employee = userRepository.findByIdForUpdate(employeeId)
+                .filter(candidate -> candidate.getRole() == UserRole.PROFESSIONAL)
+                .filter(candidate -> candidate.getEstablishment() != null)
+                .filter(candidate -> candidate.getEstablishment().getId().equals(administrator.getEstablishment().getId()))
+                .orElseThrow(() -> new ResourceNotFoundException("Funcionário não encontrado."));
+        if (!employee.isActive()) throw new ConflictException("O funcionário está desativado.");
+        if (employee.isPasswordInitialized()) throw new ConflictException("O primeiro acesso já foi concluído.");
+        employee.renewFirstAccess();
+        return invite(administrator, employee);
+    }
+
+    private EmployeeCreationResponse invite(User administrator, User employee) {
+        TokenService.GeneratedToken token = tokenService.generateFirstAccess(employee);
+        emailNotifier.sendFirstAccessInvitation(employee.getEmail(), employee.getName(),
+                administrator.getEstablishment().getName(), frontendLinks.firstAccess(token.value()), token.expiresAt());
+        return EmployeeCreationResponse.fromEntity(employee, token.value(), token.expiresAt());
     }
 
     @Transactional(readOnly = true)

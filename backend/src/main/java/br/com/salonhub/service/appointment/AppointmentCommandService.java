@@ -5,6 +5,7 @@ import br.com.salonhub.dto.appointment.AppointmentRescheduleRequest;
 import br.com.salonhub.dto.appointment.AppointmentResponse;
 import br.com.salonhub.entity.Appointment;
 import br.com.salonhub.entity.AppointmentStatus;
+import br.com.salonhub.entity.AppointmentSource;
 import br.com.salonhub.entity.Customer;
 import br.com.salonhub.entity.Establishment;
 import br.com.salonhub.entity.EstablishmentService;
@@ -58,6 +59,7 @@ public class AppointmentCommandService {
         validateSchedule(establishment, professional, customer, startsAt, endsAt, null, true);
 
         Appointment appointment = Appointment.schedule(establishment, customer, professional, service, startsAt);
+        appointment.recordCreation(AppointmentSource.CLIENT_ONLINE, client);
         return AppointmentResponse.fromEntity(appointmentRepository.save(appointment));
     }
 
@@ -81,8 +83,10 @@ public class AppointmentCommandService {
         LocalDateTime startsAt = request.startsAt();
         validateSchedule(establishment, professional, customer, startsAt,
                 startsAt.plusMinutes(service.getDurationMinutes()), null, false);
-        return AppointmentResponse.fromEntity(appointmentRepository.save(
-                Appointment.schedule(establishment, customer, professional, service, startsAt)));
+        Appointment appointment = Appointment.schedule(establishment, customer, professional, service, startsAt);
+        appointment.recordCreation(administrator.getRole() == UserRole.ADMIN
+                ? AppointmentSource.ADMIN : AppointmentSource.PROFESSIONAL, administrator);
+        return AppointmentResponse.fromEntity(appointmentRepository.save(appointment));
     }
 
     @Transactional
@@ -173,7 +177,7 @@ public class AppointmentCommandService {
                 || !appointment.getStartsAt().isAfter(LocalDateTime.now(clock))) {
             throw new ConflictException("O agendamento não pode ser cancelado.");
         }
-        appointment.cancel();
+        appointment.cancel(client, LocalDateTime.now(clock));
         return AppointmentResponse.fromEntity(appointment);
     }
 
@@ -201,7 +205,7 @@ public class AppointmentCommandService {
         if (appointment.getStartsAt().isAfter(now)) {
             throw new ConflictException("O agendamento só pode ser concluído a partir do horário previsto de início.");
         }
-        appointment.complete(now);
+        appointment.complete(now, userRepository.getReferenceById(userId));
         return AppointmentResponse.fromEntity(appointment);
     }
 
@@ -223,7 +227,7 @@ public class AppointmentCommandService {
             throw new ConflictException("A falta só pode ser registrada "
                     + NO_SHOW_TOLERANCE.toMinutes() + " minutos após o horário de início.");
         }
-        appointment.markNoShow();
+        appointment.markNoShow(userRepository.getReferenceById(userId), LocalDateTime.now(clock));
         return AppointmentResponse.fromEntity(appointment);
     }
 
@@ -236,7 +240,7 @@ public class AppointmentCommandService {
         if (appointment.getStatus() != AppointmentStatus.COMPLETED) {
             throw new ConflictException("Apenas agendamentos concluídos podem ser invalidados.");
         }
-        appointment.invalidate(reason);
+        appointment.invalidate(reason, administrator, LocalDateTime.now(clock));
         return AppointmentResponse.fromEntity(appointment);
     }
 

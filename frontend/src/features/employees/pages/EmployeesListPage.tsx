@@ -9,6 +9,7 @@ import {
   fetchEmployees,
   removeEmployee,
   reactivateEmployee,
+  resendEmployeeInvitation,
   updateEmployee,
   type Employee,
   type EmployeeCreateInput,
@@ -65,6 +66,19 @@ export function EmployeesListPage() {
       closeFormModal()
     },
     onError: (err) => setFormError(getApiErrorMessage(err, 'Não foi possível criar o funcionário.')),
+  })
+
+  const resendMutation = useMutation({
+    mutationFn: resendEmployeeInvitation,
+    onSuccess: (result) => {
+      setFirstAccessInvitation({ employeeName: result.name,
+        link: `${window.location.origin}/primeiro-acesso?token=${encodeURIComponent(result.firstAccessToken)}`,
+        expiresAt: result.firstAccessExpiresAt })
+      setInviteCopied(false)
+      setDeleteError(null)
+      setRemovalMessage(`Convite reenviado para ${result.name}.`)
+    },
+    onError: (err) => setDeleteError(getApiErrorMessage(err, 'Não foi possível reenviar o convite.')),
   })
 
   const updateMutation = useMutation({
@@ -249,6 +263,7 @@ export function EmployeesListPage() {
                     <div className="flex justify-end gap-1">
                       <ActionButton label="Detalhes" onClick={() => setDetailsEmployee(employee)}><Eye size={16} /></ActionButton>
                       <ActionButton label="Serviços" onClick={() => setServicesEmployee(employee)}><Scissors size={16} /></ActionButton>
+                      {!employee.passwordInitialized && <ActionButton label="Reenviar convite" disabled={resendMutation.isPending} onClick={() => resendMutation.mutate(employee.id)}><Copy size={16} /></ActionButton>}
                       <ActionButton label="Editar" onClick={() => { setRemovalMessage(null); setModalState({ mode: 'edit', employee }) }}><Pencil size={16} /></ActionButton>
                       {employee.active ? (
                         <ActionButton label="Desativar" danger disabled={isChangingLifecycle} onClick={() => { setDeleteError(null); setRemovalMessage(null); setEmployeeToDeactivate(employee) }}><Power size={16} /></ActionButton>

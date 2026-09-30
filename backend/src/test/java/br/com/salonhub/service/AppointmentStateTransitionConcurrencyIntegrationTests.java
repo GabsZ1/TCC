@@ -149,8 +149,8 @@ class AppointmentStateTransitionConcurrencyIntegrationTests {
             assertThat(current.getCancelledBy()).isNotNull();
         } else {
             assertThat(current.getCancellationReason()).isNull();
-            assertThat(current.getCancelledAt()).isNull();
-            assertThat(current.getCancelledBy()).isNull();
+            assertThat(current.getCancelledAt()).isNotNull();
+            assertThat(current.getCancelledBy()).isNotNull();
         }
     }
 

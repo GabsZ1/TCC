@@ -69,6 +69,12 @@ public class User {
     @Column(name = "deleted_at")
     private OffsetDateTime deletedAt;
 
+    @Column(name = "first_access_version", nullable = false)
+    @Builder.Default
+    private int firstAccessVersion = 0;
+
+    public void renewFirstAccess() { this.firstAccessVersion++; }
+
     @Column(name = "password_initialized", nullable = false)
     @Builder.Default
     private boolean passwordInitialized = true;

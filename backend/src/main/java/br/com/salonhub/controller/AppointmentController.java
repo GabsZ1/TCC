@@ -57,8 +57,9 @@ public class AppointmentController {
     @GetMapping("/agendamentos/estabelecimento/me/clientes/{customerId}/disponibilidade")
     public AvailabilityResponse findInternalAvailability(@AuthenticationPrincipal Jwt jwt,
             @PathVariable Long customerId, @RequestParam Long serviceId, @RequestParam Long professionalId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        return queryService.findInternalAvailability(currentUserId(jwt), customerId, serviceId, professionalId, date);
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam(required = false) Long appointmentId) {
+        return queryService.findInternalAvailability(currentUserId(jwt), customerId, serviceId, professionalId, date, appointmentId);
     }
 
     @GetMapping("/agendamentos/me")

@@ -6,8 +6,6 @@ import br.com.salonhub.dto.auth.PasswordResetRequest;
 import br.com.salonhub.entity.PasswordResetToken;
 import br.com.salonhub.entity.User;
 import br.com.salonhub.exception.InvalidRequestException;
-import br.com.salonhub.exception.ResourceNotFoundException;
-import br.com.salonhub.exception.TooManyRequestsException;
 import br.com.salonhub.notification.EmailNotifier;
 import br.com.salonhub.notification.FrontendLinks;
 import br.com.salonhub.repository.PasswordResetTokenRepository;
@@ -18,7 +16,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
-import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.Locale;
 import java.util.Optional;
@@ -69,23 +66,19 @@ public class PasswordRecoveryService {
     @Transactional
     public PasswordRecoveryResponse requestReset(PasswordRecoveryRequest request) {
         String email = request.email().trim().toLowerCase(Locale.ROOT);
-        Long userId = userRepository.findByEmailIgnoreCase(email)
-                .map(User::getId)
-                .orElseThrow(() -> new ResourceNotFoundException("Não existe cadastro com o e-mail informado."));
+        var publicResponse = new PasswordRecoveryResponse(
+                "Se existir uma conta associada a este e-mail, enviaremos as instruções necessárias.", expirationMinutes);
+        Long userId = userRepository.findByEmailIgnoreCase(email).map(User::getId).orElse(null);
+        if (userId == null) return publicResponse;
         // Trava o usuário para que dois pedidos simultâneos não furem o intervalo mínimo.
-        User user = userRepository.findByIdForUpdate(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Não existe cadastro com o e-mail informado."));
+        User user = userRepository.findByIdForUpdate(userId).orElse(null);
+        if (user == null) return publicResponse;
 
-        if (!user.isActive()) {
-            throw new InvalidRequestException("Esta conta está desativada. Procure o administrador do estabelecimento.");
-        }
-        if (!user.isPasswordInitialized()) {
-            throw new InvalidRequestException(
-                    "Esta conta ainda não concluiu o primeiro acesso. Use o link de primeiro acesso enviado por e-mail.");
-        }
+        if (!user.isActive() || !user.isPasswordInitialized()) return publicResponse;
 
         OffsetDateTime now = OffsetDateTime.now(clock);
-        requireCooldownElapsed(user.getId(), now);
+        // Preserve the cooldown internally without exposing it through the public response.
+        if (!cooldownElapsed(user.getId(), now)) return publicResponse;
 
         invalidatePendingTokens(user.getId(), now);
         String rawToken = SecureTokens.generate();
@@ -95,10 +88,7 @@ public class PasswordRecoveryService {
         emailNotifier.sendPasswordReset(
                 user.getEmail(), user.getName(), frontendLinks.passwordReset(rawToken), expirationMinutes);
 
-        return new PasswordRecoveryResponse(
-                "Enviamos um link de recuperação para o seu e-mail. Ele é válido por "
-                        + expirationMinutes + " minutos.",
-                expirationMinutes);
+        return publicResponse;
     }
 
     /** Usado pela tela de redefinição ao abrir, para avisar logo se o link já não serve. */
@@ -153,15 +143,9 @@ public class PasswordRecoveryService {
         return token;
     }
 
-    private void requireCooldownElapsed(Long userId, OffsetDateTime now) {
-        tokenRepository.findTopByUserIdOrderByCreatedAtDesc(userId).ifPresent(last -> {
-            OffsetDateTime allowedAt = last.getCreatedAt().plusSeconds(cooldownSeconds);
-            if (now.isBefore(allowedAt)) {
-                long waitSeconds = Math.max(1, Duration.between(now, allowedAt).toSeconds());
-                throw new TooManyRequestsException(
-                        "Um link de recuperação já foi enviado. Aguarde " + waitSeconds
-                                + " segundos para solicitar outro.");
-            }
-        });
+    private boolean cooldownElapsed(Long userId, OffsetDateTime now) {
+        return tokenRepository.findTopByUserIdOrderByCreatedAtDesc(userId)
+                .map(last -> !now.isBefore(last.getCreatedAt().plusSeconds(cooldownSeconds)))
+                .orElse(true);
     }
 }
