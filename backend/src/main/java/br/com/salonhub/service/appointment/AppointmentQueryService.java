@@ -23,8 +23,12 @@ import br.com.salonhub.service.TenantAuthorizationService;
 import br.com.salonhub.service.professionalagenda.ProfessionalAvailabilityService;
 import br.com.salonhub.entity.ProfessionalCalendarEvent;
 import br.com.salonhub.entity.EstablishmentCalendarBlock;
+import br.com.salonhub.entity.EstablishmentBusinessHour;
+import br.com.salonhub.entity.ProfessionalBusinessHour;
 import br.com.salonhub.repository.ProfessionalCalendarEventRepository;
 import br.com.salonhub.repository.EstablishmentCalendarBlockRepository;
+import br.com.salonhub.repository.EstablishmentBusinessHourRepository;
+import br.com.salonhub.repository.ProfessionalBusinessHourRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Page;
@@ -38,6 +42,9 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -53,6 +60,8 @@ public class AppointmentQueryService {
     private final ProfessionalAvailabilityService professionalAvailabilityService;
     private final ProfessionalCalendarEventRepository calendarEventRepository;
     private final EstablishmentCalendarBlockRepository establishmentBlockRepository;
+    private final ProfessionalBusinessHourRepository professionalHourRepository;
+    private final EstablishmentBusinessHourRepository establishmentHourRepository;
 
     @Transactional(readOnly = true)
     public Page<AppointmentResponse> findMine(Long clientId, int page, int size) {
@@ -147,18 +156,32 @@ public class AppointmentQueryService {
         if (professionalId != null && professionals.isEmpty()) {
             throw new ResourceNotFoundException("Funcionário não encontrado.");
         }
+        if (professionals.isEmpty()) {
+            return List.of();
+        }
 
         LocalDateTime dayStart = date.atStartOfDay();
         LocalDateTime dayEnd = date.plusDays(1).atStartOfDay();
+        List<Long> professionalIds = professionals.stream().map(User::getId).toList();
+        Map<Long, List<ProfessionalCalendarEvent>> blocksByProfessional = calendarEventRepository
+                .findByProfessionalIdInAndStartsAtLessThanAndEndsAtGreaterThanOrderByStartsAt(
+                        professionalIds, dayEnd, dayStart)
+                .stream().collect(Collectors.groupingBy(event -> event.getProfessional().getId()));
+        Map<Long, ProfessionalBusinessHour> hoursByProfessional = professionalHourRepository
+                .findByProfessionalIdInAndDayOfWeek(professionalIds, date.getDayOfWeek())
+                .stream().collect(Collectors.toMap(hour -> hour.getProfessional().getId(), Function.identity()));
+        EstablishmentBusinessHour establishmentHour = establishmentHourRepository
+                .findByEstablishmentIdAndDayOfWeek(establishmentId, date.getDayOfWeek())
+                .orElse(null);
         return professionals.stream().map(professional -> {
-            List<AdministrativeCalendarBlockResponse> blocks = calendarEventRepository
-                    .findByProfessionalIdAndStartsAtLessThanAndEndsAtGreaterThanOrderByStartsAt(
-                            professional.getId(), dayEnd, dayStart).stream()
+            List<AdministrativeCalendarBlockResponse> blocks = blocksByProfessional
+                    .getOrDefault(professional.getId(), List.of()).stream()
                     .map(AdministrativeCalendarBlockResponse::fromEntity)
                     .toList();
             try {
                 ProfessionalAvailabilityService.WorkingHours hours =
-                        professionalAvailabilityService.requireWorkingHours(professional, date);
+                        professionalAvailabilityService.requireWorkingHours(
+                                establishmentHour, hoursByProfessional.get(professional.getId()));
                 return new AdministrativeProfessionalAvailabilityResponse(
                         professional.getId(), professional.getName(), true,
                         hours.openingTime(), hours.closingTime(), blocks);

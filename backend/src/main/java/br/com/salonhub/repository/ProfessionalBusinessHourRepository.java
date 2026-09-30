@@ -10,4 +10,5 @@ import java.util.Optional;
 public interface ProfessionalBusinessHourRepository extends JpaRepository<ProfessionalBusinessHour, Long> {
     List<ProfessionalBusinessHour> findByProfessionalIdOrderByDayOfWeek(Long professionalId);
     Optional<ProfessionalBusinessHour> findByProfessionalIdAndDayOfWeek(Long professionalId, DayOfWeek dayOfWeek);
+    List<ProfessionalBusinessHour> findByProfessionalIdInAndDayOfWeek(Iterable<Long> professionalIds, DayOfWeek dayOfWeek);
 }
