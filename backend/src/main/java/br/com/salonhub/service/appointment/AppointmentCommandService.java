@@ -13,7 +13,6 @@ import br.com.salonhub.entity.User;
 import br.com.salonhub.entity.UserRole;
 import br.com.salonhub.exception.ConflictException;
 import br.com.salonhub.exception.ResourceNotFoundException;
-import br.com.salonhub.exception.UnauthorizedException;
 import org.springframework.security.access.AccessDeniedException;
 import br.com.salonhub.repository.AppointmentRepository;
 import br.com.salonhub.repository.CustomerRepository;
@@ -195,9 +194,10 @@ public class AppointmentCommandService {
     }
     @Transactional
     public AppointmentResponse complete(Long userId, Long appointmentId) {
+        User user = tenantAuthorizationService.requireEstablishmentStaff(userId);
         Appointment appointment = appointmentRepository.findByIdForUpdate(appointmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Agendamento não encontrado."));
-        requireOwningProfessionalOrAdministrator(userId, appointment);
+        requireOwningProfessionalOrAdministrator(user, appointment);
         if (appointment.getStatus() != AppointmentStatus.CONFIRMED) {
             throw new ConflictException("Apenas agendamentos confirmados podem ser concluídos.");
         }
@@ -217,9 +217,10 @@ public class AppointmentCommandService {
 
     @Transactional
     public AppointmentResponse markNoShow(Long userId, Long appointmentId) {
+        User user = tenantAuthorizationService.requireEstablishmentStaff(userId);
         Appointment appointment = appointmentRepository.findByIdForUpdate(appointmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Agendamento não encontrado."));
-        requireOwningProfessionalOrAdministrator(userId, appointment);
+        requireOwningProfessionalOrAdministrator(user, appointment);
         if (appointment.getStatus() != AppointmentStatus.CONFIRMED) {
             throw new ConflictException("Apenas agendamentos confirmados podem ser marcados como falta.");
         }
@@ -244,11 +245,7 @@ public class AppointmentCommandService {
         return AppointmentResponse.fromEntity(appointment);
     }
 
-    private void requireOwningProfessionalOrAdministrator(Long userId, Appointment appointment) {
-        User user = userRepository.findById(userId)
-                .filter(User::isActive)
-                .orElseThrow(() -> new UnauthorizedException("Usuário inválido ou inativo"));
-
+    private void requireOwningProfessionalOrAdministrator(User user, Appointment appointment) {
         boolean isOwningProfessional = user.getRole() == UserRole.PROFESSIONAL
                 && user.getId().equals(appointment.getProfessional().getId());
         boolean isEstablishmentAdministrator = user.getRole() == UserRole.ADMIN

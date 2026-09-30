@@ -18,12 +18,27 @@ export interface SalonServiceInput {
   durationMinutes: number
 }
 
-export function fetchServices() {
-  return fetchAdministrativeServices().then((services) => services.filter((service) => service.active))
+export interface Page<T> {
+  content: T[]
+  number: number
+  totalPages: number
+  totalElements: number
 }
 
-export function fetchAdministrativeServices() {
-  return api.get<SalonService[]>('/servicos').then((response) => response.data)
+export function fetchServices() {
+  return fetchAllAdministrativeServices().then((services) => services.filter((service) => service.active))
+}
+
+export function fetchAdministrativeServices(page = 0, size = 20) {
+  return api.get<Page<SalonService>>('/servicos', { params: { page, size } }).then((response) => response.data)
+}
+
+export async function fetchAllAdministrativeServices() {
+  const firstPage = await fetchAdministrativeServices()
+  const pages = await Promise.all(
+    Array.from({ length: Math.max(0, firstPage.totalPages - 1) }, (_, index) => fetchAdministrativeServices(index + 1)),
+  )
+  return [firstPage, ...pages].flatMap((page) => page.content)
 }
 
 export function createService(input: SalonServiceInput) {

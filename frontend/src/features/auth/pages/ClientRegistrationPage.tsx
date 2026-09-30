@@ -53,8 +53,8 @@ export function ClientRegistrationPage() {
     >
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
         <p className="text-xs text-text-500">Campos marcados com <span className="font-bold text-danger-600">*</span> são obrigatórios.</p>
-        <ClientField label="Nome completo" value={name} onChange={setName} autoComplete="name" placeholder="Seu nome" icon={<UserRound size={17} />} />
-        <ClientField label="E-mail" type="email" value={email} onChange={setEmail} autoComplete="email" placeholder="voce@exemplo.com" icon={<Mail size={17} />} />
+        <ClientField label="Nome completo" value={name} maxLength={150} onChange={setName} autoComplete="name" placeholder="Seu nome" icon={<UserRound size={17} />} />
+        <ClientField label="E-mail" type="email" value={email} maxLength={150} onChange={setEmail} autoComplete="email" placeholder="voce@exemplo.com" icon={<Mail size={17} />} />
 
         <label className="block text-sm font-semibold text-text-800">
           Telefone <Required />

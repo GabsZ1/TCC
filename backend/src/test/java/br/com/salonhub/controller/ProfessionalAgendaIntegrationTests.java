@@ -36,7 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
-class ProfessionalAgendaIntegrationTests {
+class ProfessionalAgendaIntegrationTests extends FirstAccessIntegrationSupport {
 
     @Autowired
     private MockMvc mockMvc;
@@ -493,7 +493,7 @@ class ProfessionalAgendaIntegrationTests {
                                 """.formatted(suffix, TestDocuments.cpf())))
                 .andExpect(status().isCreated()).andReturn();
         Number professionalId = JsonPath.read(professional.getResponse().getContentAsString(), "$.id");
-        String firstAccessToken = JsonPath.read(professional.getResponse().getContentAsString(), "$.firstAccessToken");
+        String firstAccessToken = firstAccessToken(professional.getResponse().getContentAsString());
         completeFirstAccess(firstAccessToken);
         String professionalToken = login("professional." + suffix + "@agenda.test");
 

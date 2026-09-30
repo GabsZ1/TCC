@@ -27,7 +27,6 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -253,16 +252,25 @@ class PasswordRecoveryIntegrationTests {
                                 {"name":"Funcionária Convite","email":"%s","occupation":"Cabeleireiro(a)","cpf":"%s","hireDate":"2025-01-02"}
                                 """.formatted(employeeEmail, TestDocuments.cpf())))
                 .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.firstAccessToken").doesNotExist())
                 .andReturn().getResponse().getContentAsString();
 
-        String firstAccessToken = JsonPath.read(body, "$.firstAccessToken");
+        assertThat(body).doesNotContain("firstAccessToken");
+        ArgumentCaptor<String> invitationLink = ArgumentCaptor.forClass(String.class);
         verify(emailNotifier).sendFirstAccessInvitation(
                 eq(employeeEmail),
                 eq("Funcionária Convite"),
                 eq(administrator.getEstablishment().getName()),
-                eq("http://localhost:5173/primeiro-acesso?token="
-                        + URLEncoder.encode(firstAccessToken, StandardCharsets.UTF_8)),
+                invitationLink.capture(),
                 any(Instant.class));
+        String firstAccessToken = tokenFrom(invitationLink.getValue());
+        assertThat(firstAccessToken).isNotBlank();
+        mockMvc.perform(post("/api/auth/primeiro-acesso")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"token":"%s","password":"senha-funcionario"}
+                                """.formatted(firstAccessToken)))
+                .andExpect(status().isNoContent());
     }
 
     private User createUser(UserRole role, boolean active, boolean passwordInitialized) {

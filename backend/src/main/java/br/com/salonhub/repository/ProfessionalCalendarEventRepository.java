@@ -14,5 +14,7 @@ public interface ProfessionalCalendarEventRepository extends JpaRepository<Profe
             Long professionalId, Long eventId, LocalDateTime periodEnd, LocalDateTime periodStart);
     List<ProfessionalCalendarEvent> findByProfessionalIdAndStartsAtLessThanAndEndsAtGreaterThanOrderByStartsAt(
             Long professionalId, LocalDateTime periodEnd, LocalDateTime periodStart);
+    List<ProfessionalCalendarEvent> findByProfessionalIdInAndStartsAtLessThanAndEndsAtGreaterThanOrderByStartsAt(
+            Iterable<Long> professionalIds, LocalDateTime periodEnd, LocalDateTime periodStart);
     Optional<ProfessionalCalendarEvent> findByIdAndProfessionalId(Long id, Long professionalId);
 }

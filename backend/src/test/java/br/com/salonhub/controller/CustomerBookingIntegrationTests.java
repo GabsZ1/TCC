@@ -26,7 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
-class CustomerBookingIntegrationTests {
+class CustomerBookingIntegrationTests extends FirstAccessIntegrationSupport {
     @Autowired MockMvc mvc;
     @Autowired CustomerRepository customers;
     @Autowired UserRepository users;
@@ -162,7 +162,7 @@ class CustomerBookingIntegrationTests {
         long professionalId = ((Number) JsonPath.read(employee, "$.id")).longValue();
         mvc.perform(post("/api/auth/primeiro-acesso").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"token\":\"%s\",\"password\":\"senha123\",\"passwordConfirmation\":\"senha123\"}"
-                        .formatted((String) JsonPath.read(employee, "$.firstAccessToken")))).andExpect(status().isNoContent());
+                        .formatted(firstAccessToken(employee)))).andExpect(status().isNoContent());
         long serviceId = ((Number) JsonPath.read(mvc.perform(post("/api/servicos").header("Authorization", admin)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"Corte vínculo\",\"price\":50,\"durationMinutes\":60}"))
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString(), "$.id")).longValue();
@@ -314,7 +314,7 @@ class CustomerBookingIntegrationTests {
                         .formatted(TestDocuments.cpf())))
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
         Number professionalId = JsonPath.read(employeeBody, "$.id");
-        String firstAccessToken = JsonPath.read(employeeBody, "$.firstAccessToken");
+        String firstAccessToken = firstAccessToken(employeeBody);
         mvc.perform(post("/api/auth/primeiro-acesso").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"token\":\"%s\",\"password\":\"senha123\",\"passwordConfirmation\":\"senha123\"}"
                         .formatted(firstAccessToken))).andExpect(status().isNoContent());

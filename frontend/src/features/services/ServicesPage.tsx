@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Clock3, Pencil, Plus, Power, RotateCcw, Scissors, WalletCards } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
@@ -14,9 +14,14 @@ export function ServicesPage() {
   const [deleting, setDeleting] = useState<SalonService | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [statusError, setStatusError] = useState<string | null>(null)
-  const servicesQuery = useQuery({ queryKey: QUERY_KEY, queryFn: fetchAdministrativeServices })
-  const services = useMemo(() => [...(servicesQuery.data ?? [])].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')), [servicesQuery.data])
+  const [page, setPage] = useState(0)
+  const servicesQuery = useQuery({ queryKey: [...QUERY_KEY, page], queryFn: () => fetchAdministrativeServices(page) })
+  const services = servicesQuery.data?.content ?? []
   const activeCount = services.filter((service) => service.active).length
+
+  useEffect(() => {
+    if (servicesQuery.data && services.length === 0 && page > 0) setPage(page - 1)
+  }, [page, services.length, servicesQuery.data])
 
   const saveMutation = useMutation({
     mutationFn: (input: SalonServiceInput) => editing === 'new' ? createService(input) : updateService((editing as SalonService).id, input),
@@ -62,9 +67,9 @@ export function ServicesPage() {
       </header>
 
       <div className="mt-7 flex flex-wrap gap-2">
-        <span className="rounded-full border border-background-300 bg-background-50 px-3 py-1.5 text-xs font-semibold text-text-600">{services.length} no catálogo</span>
-        <span className="rounded-full border border-success-500/20 bg-success-50 px-3 py-1.5 text-xs font-semibold text-success-700">{activeCount} ativos</span>
-        <span className="rounded-full border border-background-300 bg-background-200 px-3 py-1.5 text-xs font-semibold text-text-600">{services.length - activeCount} inativos</span>
+        <span className="rounded-full border border-background-300 bg-background-50 px-3 py-1.5 text-xs font-semibold text-text-600">{servicesQuery.data?.totalElements ?? 0} no catálogo</span>
+        <span className="rounded-full border border-success-500/20 bg-success-50 px-3 py-1.5 text-xs font-semibold text-success-700">{activeCount} ativos nesta página</span>
+        <span className="rounded-full border border-background-300 bg-background-200 px-3 py-1.5 text-xs font-semibold text-text-600">{services.length - activeCount} inativos nesta página</span>
       </div>
 
       {statusError && <p role="alert" className="mt-5 rounded-xl border border-danger-500/20 bg-danger-50 px-4 py-3 text-sm text-danger-600">{statusError}</p>}
@@ -108,6 +113,14 @@ export function ServicesPage() {
           </article>
         ))}
       </div>
+
+      {servicesQuery.data && servicesQuery.data.totalPages > 1 && (
+        <div className="mt-6 flex items-center justify-between text-sm text-text-600">
+          <button type="button" disabled={page === 0} onClick={() => setPage(page - 1)} className="secondary-button px-3 py-2 disabled:opacity-50">Anterior</button>
+          <span>Página {page + 1} de {servicesQuery.data.totalPages}</span>
+          <button type="button" disabled={page + 1 >= servicesQuery.data.totalPages} onClick={() => setPage(page + 1)} className="secondary-button px-3 py-2 disabled:opacity-50">Próxima</button>
+        </div>
+      )}
 
       {editing && <ServiceFormModal service={editing === 'new' ? null : editing} isSubmitting={saveMutation.isPending} errorMessage={error} onSubmit={(values) => saveMutation.mutate(values)} onClose={() => { setEditing(null); setError(null) }} />}
       {deleting && <ConfirmDialog title="Desativar serviço" message={`O serviço “${deleting.name}” deixará de aparecer para novos agendamentos.`} confirmLabel="Desativar" isLoading={deleteMutation.isPending} onConfirm={() => deleteMutation.mutate(deleting.id)} onCancel={() => setDeleting(null)} />}

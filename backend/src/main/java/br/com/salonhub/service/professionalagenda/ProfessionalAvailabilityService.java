@@ -34,12 +34,19 @@ public class ProfessionalAvailabilityService {
         EstablishmentBusinessHour establishmentHour = establishmentHourRepository
                 .findByEstablishmentIdAndDayOfWeek(
                         professional.getEstablishment().getId(), date.getDayOfWeek())
-                .filter(hour -> !hour.isClosed())
-                .orElseThrow(() -> new ConflictException("O estabelecimento está fechado nesta data."));
+                .orElse(null);
 
         ProfessionalBusinessHour ownHour = professionalHourRepository
                 .findByProfessionalIdAndDayOfWeek(professional.getId(), date.getDayOfWeek())
                 .orElse(null);
+        return requireWorkingHours(establishmentHour, ownHour);
+    }
+
+    public WorkingHours requireWorkingHours(
+            EstablishmentBusinessHour establishmentHour, ProfessionalBusinessHour ownHour) {
+        if (establishmentHour == null || establishmentHour.isClosed()) {
+            throw new ConflictException("O estabelecimento está fechado nesta data.");
+        }
         if (ownHour == null) {
             return new WorkingHours(establishmentHour.getOpeningTime(), establishmentHour.getClosingTime());
         }

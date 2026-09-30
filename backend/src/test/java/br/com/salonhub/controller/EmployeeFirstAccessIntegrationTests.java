@@ -28,7 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
-class EmployeeFirstAccessIntegrationTests {
+class EmployeeFirstAccessIntegrationTests extends FirstAccessIntegrationSupport {
 
     @Autowired private MockMvc mockMvc;
     @Autowired private EstablishmentRepository establishmentRepository;
@@ -54,11 +54,10 @@ class EmployeeFirstAccessIntegrationTests {
                                 {"name":"Funcionário","email":"%s","occupation":"Cabeleireiro(a)","cpf":"%s","hireDate":"2025-01-02"}
                                 """.formatted(employeeEmail, TestDocuments.cpf())))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.firstAccessToken").isNotEmpty())
-                .andExpect(jsonPath("$.firstAccessExpiresAt").isNotEmpty())
+                .andExpect(jsonPath("$.firstAccessToken").doesNotExist())
                 .andReturn().getResponse().getContentAsString();
 
-        String firstAccessToken = JsonPath.read(creationBody, "$.firstAccessToken");
+        String firstAccessToken = firstAccessToken(creationBody);
         User employee = userRepository.findByEmailIgnoreCase(employeeEmail).orElseThrow();
         assertThat(employee.isPasswordInitialized()).isFalse();
         assertThat(passwordEncoder.matches("senha-funcionario", employee.getPassword())).isFalse();
@@ -113,7 +112,7 @@ class EmployeeFirstAccessIntegrationTests {
                         """.formatted(unique, TestDocuments.cpf())))
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
         long id = ((Number) JsonPath.read(creation, "$.id")).longValue();
-        String oldToken = JsonPath.read(creation, "$.firstAccessToken");
+        String oldToken = firstAccessToken(creation);
 
         mockMvc.perform(post("/api/funcionarios/{id}/reenviar-convite", id)
                 .with(jwt().jwt(token -> token.subject(outsider.getId().toString()))))
@@ -121,12 +120,12 @@ class EmployeeFirstAccessIntegrationTests {
         String resent = mockMvc.perform(post("/api/funcionarios/{id}/reenviar-convite", id)
                 .with(jwt().jwt(token -> token.subject(admin.getId().toString()))))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-        String newToken = JsonPath.read(resent, "$.firstAccessToken");
+        String newToken = firstAccessToken(resent);
         assertThat(newToken).isNotEqualTo(oldToken);
         String secondResend = mockMvc.perform(post("/api/funcionarios/{id}/reenviar-convite", id)
                 .with(jwt().jwt(token -> token.subject(admin.getId().toString()))))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-        String latestToken = JsonPath.read(secondResend, "$.firstAccessToken");
+        String latestToken = firstAccessToken(secondResend);
         assertThat(latestToken).isNotEqualTo(newToken);
 
         mockMvc.perform(post("/api/auth/recuperar-senha").contentType(MediaType.APPLICATION_JSON)

@@ -62,7 +62,8 @@ public class ApiExceptionHandler {
                 }
             }
         }
-        throw exception;
+        log.error("Violação de integridade não mapeada", exception);
+        return friendly(HttpStatus.CONFLICT, "Não foi possível concluir a operação. Verifique os dados informados.");
     }
 
     @ExceptionHandler(TooManyRequestsException.class)

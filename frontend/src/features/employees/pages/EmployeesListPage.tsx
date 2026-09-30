@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, Copy, Eye, Pencil, Plus, Power, RotateCcw, Scissors, Trash2, UserCheck, UsersRound, UserX } from 'lucide-react'
+import { Copy, Eye, Pencil, Plus, Power, RotateCcw, Scissors, Trash2, UserCheck, UsersRound, UserX } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { getApiErrorMessage } from '@/lib/apiError'
 import {
@@ -36,12 +36,6 @@ export function EmployeesListPage() {
   const [removalMessage, setRemovalMessage] = useState<string | null>(null)
   const [servicesEmployee, setServicesEmployee] = useState<Employee | null>(null)
   const [detailsEmployee, setDetailsEmployee] = useState<Employee | null>(null)
-  const [inviteCopied, setInviteCopied] = useState(false)
-  const [firstAccessInvitation, setFirstAccessInvitation] = useState<{
-    employeeName: string
-    link: string
-    expiresAt: string
-  } | null>(null)
 
   const { data: employees, isLoading, isError, error } = useQuery({
     queryKey: EMPLOYEES_QUERY_KEY,
@@ -59,12 +53,7 @@ export function EmployeesListPage() {
     mutationFn: createEmployee,
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: EMPLOYEES_QUERY_KEY })
-      setFirstAccessInvitation({
-        employeeName: result.name,
-        link: `${window.location.origin}/primeiro-acesso?token=${encodeURIComponent(result.firstAccessToken)}`,
-        expiresAt: result.firstAccessExpiresAt,
-      })
-      setInviteCopied(false)
+      setRemovalMessage('O convite de primeiro acesso foi enviado para o e-mail de ' + result.name + '.')
       closeFormModal()
     },
     onError: (err) => setFormError(getApiErrorMessage(err, 'Não foi possível criar o funcionário.')),
@@ -73,12 +62,8 @@ export function EmployeesListPage() {
   const resendMutation = useMutation({
     mutationFn: resendEmployeeInvitation,
     onSuccess: (result) => {
-      setFirstAccessInvitation({ employeeName: result.name,
-        link: `${window.location.origin}/primeiro-acesso?token=${encodeURIComponent(result.firstAccessToken)}`,
-        expiresAt: result.firstAccessExpiresAt })
-      setInviteCopied(false)
       setDeleteError(null)
-      setRemovalMessage(`Convite reenviado para ${result.name}.`)
+      setRemovalMessage('O convite de primeiro acesso foi reenviado para o e-mail de ' + result.name + '.')
     },
     onError: (err) => setDeleteError(getApiErrorMessage(err, 'Não foi possível reenviar o convite.')),
   })
@@ -164,17 +149,6 @@ export function EmployeesListPage() {
     setEmployeeToPermanentlyConfirm(null)
   }
 
-  async function copyInvite() {
-    if (!firstAccessInvitation) return
-    try {
-      await navigator.clipboard.writeText(firstAccessInvitation.link)
-      setInviteCopied(true)
-      window.setTimeout(() => setInviteCopied(false), 1800)
-    } catch {
-      // O link continua disponível para cópia manual.
-    }
-  }
-
   const isChangingLifecycle = removeMutation.isPending || deactivateMutation.isPending || reactivateMutation.isPending
   const isSavingForm = createMutation.isPending || updateMutation.isPending
 
@@ -201,22 +175,6 @@ export function EmployeesListPage() {
         <p role="status" className="mt-5 rounded-xl border border-success-500/20 bg-success-50 px-4 py-3 text-sm font-medium text-success-700">
           {removalMessage}
         </p>
-      )}
-
-      {firstAccessInvitation && (
-        <section className="mt-5 rounded-[1.15rem] border border-primary-200 bg-primary-50 p-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div className="max-w-2xl">
-              <p className="text-sm font-semibold text-text-900">Convite de primeiro acesso criado para {firstAccessInvitation.employeeName}</p>
-              <p className="mt-1 text-sm leading-6 text-text-600">Enviamos este link para o e-mail do funcionário. Se preferir, copie e envie por outro canal — ele aparece apenas agora e expira em {new Date(firstAccessInvitation.expiresAt).toLocaleString('pt-BR')}.</p>
-            </div>
-            <button type="button" onClick={copyInvite} className="secondary-button shrink-0">
-              {inviteCopied ? <Check size={16} /> : <Copy size={16} />}
-              {inviteCopied ? 'Copiado' : 'Copiar link'}
-            </button>
-          </div>
-          <input aria-label="Link de primeiro acesso" readOnly value={firstAccessInvitation.link} className="field-control mt-4 font-mono text-xs" />
-        </section>
       )}
 
       <section className="surface-card mt-6 overflow-hidden">

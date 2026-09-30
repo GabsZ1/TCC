@@ -47,7 +47,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
-class DashboardIntegrationTests {
+class DashboardIntegrationTests extends FirstAccessIntegrationSupport {
 
     @TestConfiguration
     static class FixedTimeConfig {
@@ -236,8 +236,7 @@ class DashboardIntegrationTests {
                                 """.formatted(suffix, suffix, TestDocuments.cpf())))
                 .andExpect(status().isCreated())
                 .andReturn();
-        String firstAccessToken = JsonPath.read(
-                professional.getResponse().getContentAsString(), "$.firstAccessToken");
+        String firstAccessToken = firstAccessToken(professional.getResponse().getContentAsString());
         completeFirstAccess(firstAccessToken, "senha123");
         String professionalToken = login("professional.%s@salonhub.test".formatted(suffix));
 

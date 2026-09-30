@@ -2,6 +2,7 @@ package br.com.salonhub.controller;
 
 import br.com.salonhub.entity.*;
 import br.com.salonhub.repository.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -17,6 +18,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -36,9 +39,12 @@ class AdministrativeAgendaIntegrationTests {
     @Autowired AppointmentRepository appointments;
     @Autowired EstablishmentBusinessHourRepository establishmentHours;
     @Autowired ProfessionalCalendarEventRepository calendarEvents;
+    @Autowired ProfessionalBusinessHourRepository professionalHours;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     private User admin;
     private User professional;
+    private User secondProfessional;
     private User otherProfessional;
     private final Map<String, Long> ids = new LinkedHashMap<>();
 
@@ -48,7 +54,7 @@ class AdministrativeAgendaIntegrationTests {
                 .name("Agenda").cnpj("93939393000193").build());
         admin = user("admin", UserRole.ADMIN, establishment);
         professional = user("professional", UserRole.PROFESSIONAL, establishment);
-        User secondProfessional = user("second", UserRole.PROFESSIONAL, establishment);
+        secondProfessional = user("second", UserRole.PROFESSIONAL, establishment);
         User client = user("client", UserRole.CLIENT, null);
         EstablishmentService service = service(establishment);
         add("before", client, professional, service, DATE.minusDays(1).atTime(23, 30), false);
@@ -130,6 +136,44 @@ class AdministrativeAgendaIntegrationTests {
                 .andExpect(jsonPath("$[0].blocks[0].startsAt").value("2026-09-16T11:00:00"))
                 .andExpect(jsonPath("$[0].blocks[0].title").doesNotExist())
                 .andExpect(jsonPath("$[0].blocks[0].description").doesNotExist());
+    }
+
+    @Test
+    void shouldKeepEachProfessionalsWorkingHoursAndBlocksWhenLoadingTeamAvailability() throws Exception {
+        establishmentHours.saveAndFlush(EstablishmentBusinessHour.builder()
+                .establishment(admin.getEstablishment()).dayOfWeek(DATE.getDayOfWeek())
+                .closed(false).openingTime(java.time.LocalTime.of(8, 0))
+                .closingTime(java.time.LocalTime.of(18, 0)).build());
+        professionalHours.saveAllAndFlush(java.util.List.of(
+                ProfessionalBusinessHour.create(professional, DATE.getDayOfWeek(), false,
+                        java.time.LocalTime.of(9, 0), java.time.LocalTime.of(16, 0)),
+                ProfessionalBusinessHour.create(secondProfessional, DATE.getDayOfWeek(), true, null, null)));
+        calendarEvents.saveAndFlush(ProfessionalCalendarEvent.create(
+                admin.getEstablishment(), professional, "Bloqueio", "Privado",
+                DATE.atTime(10, 0), DATE.atTime(11, 0), false));
+        calendarEvents.saveAndFlush(ProfessionalCalendarEvent.create(
+                admin.getEstablishment(), secondProfessional, "Bloqueio", "Privado",
+                DATE.atTime(13, 0), DATE.atTime(14, 0), false));
+
+        String body = mvc.perform(get(ENDPOINT + "/disponibilidade-equipe")
+                        .with(jwt().jwt(token -> token.subject(admin.getId().toString())))
+                        .param("date", DATE.toString()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Map<Long, com.fasterxml.jackson.databind.JsonNode> availabilityByProfessional = new LinkedHashMap<>();
+        for (var availability : objectMapper.readTree(body)) {
+            availabilityByProfessional.put(availability.get("professionalId").asLong(), availability);
+        }
+        assertThat(availabilityByProfessional).hasSize(2);
+        var firstProfessional = availabilityByProfessional.get(professional.getId());
+        assertThat(firstProfessional.get("working").asBoolean()).isTrue();
+        assertThat(firstProfessional.get("openingTime").asText()).isEqualTo("09:00:00");
+        assertThat(firstProfessional.get("closingTime").asText()).isEqualTo("16:00:00");
+        assertThat(firstProfessional.get("blocks")).hasSize(1);
+        var closedProfessional = availabilityByProfessional.get(secondProfessional.getId());
+        assertThat(closedProfessional.get("working").asBoolean()).isFalse();
+        assertThat(closedProfessional.get("blocks")).hasSize(1);
     }
 
     @Test

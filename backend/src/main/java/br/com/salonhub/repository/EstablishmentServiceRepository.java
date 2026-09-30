@@ -2,6 +2,8 @@ package br.com.salonhub.repository;
 
 import br.com.salonhub.entity.EstablishmentService;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -13,6 +15,8 @@ import java.util.Set;
 public interface EstablishmentServiceRepository extends JpaRepository<EstablishmentService, Long> {
 
     List<EstablishmentService> findByEstablishmentId(Long establishmentId);
+
+    Page<EstablishmentService> findByEstablishmentId(Long establishmentId, Pageable pageable);
 
     @Query("""
             select count(s) > 0 from EstablishmentService s

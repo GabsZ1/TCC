@@ -53,9 +53,9 @@ export function FirstAccessPage() {
             Use pelo menos 8 caracteres e evite senhas já utilizadas em outros serviços.
           </div>
           <label className="block text-sm font-semibold text-text-800" htmlFor="first-password">Nova senha</label>
-          <input id="first-password" type="password" minLength={8} autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} className="auth-input" />
+          <input id="first-password" type="password" minLength={8} maxLength={72} autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} className="auth-input" />
           <label className="mt-5 block text-sm font-semibold text-text-800" htmlFor="first-password-confirmation">Confirmar senha</label>
-          <input id="first-password-confirmation" type="password" minLength={8} autoComplete="new-password" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} className="auth-input" />
+          <input id="first-password-confirmation" type="password" minLength={8} maxLength={72} autoComplete="new-password" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} className="auth-input" />
           {error && <p role="alert" className="mt-4 rounded-xl border border-danger-500/20 bg-danger-50 px-4 py-3 text-sm text-danger-600">{error}</p>}
           <button disabled={submitting} className="primary-button mt-6 w-full py-3">{submitting ? 'Salvando...' : 'Definir senha'} {!submitting && <ArrowRight size={17} />}</button>
         </form>

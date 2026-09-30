@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { BadgeDollarSign, CalendarCheck, CalendarRange, Receipt, TrendingUp, Wallet } from 'lucide-react'
 import { ExportCsvButton } from '@/components/ui/ExportCsvButton'
 import { fetchEmployees } from '@/features/employees/services/employeesApi'
-import { fetchAdministrativeServices } from '@/features/services/servicesApi'
+import { fetchAllAdministrativeServices } from '@/features/services/servicesApi'
 import { FINANCIAL_REPORT_CSV_PATH, fetchFinancialReport, type FinancialReportFilters, type FinancialReportLine } from '@/features/reports/financialReportApi'
 import { getApiErrorMessage } from '@/lib/apiError'
 import { formatMoney } from '@/lib/format'
@@ -21,7 +21,7 @@ export function FinancialReportPage() {
   const [filterError, setFilterError] = useState<string | null>(null)
 
   const employees = useQuery({ queryKey: ['employees'], queryFn: fetchEmployees })
-  const services = useQuery({ queryKey: ['administrative-services'], queryFn: fetchAdministrativeServices })
+  const services = useQuery({ queryKey: ['administrative-services'], queryFn: fetchAllAdministrativeServices })
   const report = useQuery({
     queryKey: ['financial-report', filters.startDate, filters.endDate, filters.professionalId, filters.serviceId],
     queryFn: () => fetchFinancialReport(filters),
