@@ -75,7 +75,7 @@ class EmployeeDetailsIntegrationTests {
 
         create(admin, body("Zélia Souza", uniqueEmail(), "Manicure", formattedCpf, "2025-05-12"))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.firstAccessToken").isNotEmpty());
+                .andExpect(jsonPath("$.firstAccessToken").doesNotExist());
         create(admin, body("Ana Lima", uniqueEmail(), "Barbeiro(a)", TestDocuments.cpf(), "2024-02-01"))
                 .andExpect(status().isCreated());
 

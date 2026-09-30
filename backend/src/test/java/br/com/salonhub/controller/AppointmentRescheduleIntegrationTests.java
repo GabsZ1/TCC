@@ -24,7 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
-class AppointmentRescheduleIntegrationTests {
+class AppointmentRescheduleIntegrationTests extends FirstAccessIntegrationSupport {
     @Autowired MockMvc mvc;
 
     @Test
@@ -39,7 +39,7 @@ class AppointmentRescheduleIntegrationTests {
         long ana = ((Number) JsonPath.read(anaBody, "$.id")).longValue();
         mvc.perform(post("/api/auth/primeiro-acesso").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"token\":\"%s\",\"password\":\"senha123\",\"passwordConfirmation\":\"senha123\"}"
-                        .formatted((String) JsonPath.read(anaBody, "$.firstAccessToken"))))
+                        .formatted(firstAccessToken(anaBody))))
                 .andExpect(status().isNoContent());
         long bruno = ((Number) JsonPath.read(createEmployee(admin, "Bruno remarca", "bruno.remarca@salonhub.test"), "$.id")).longValue();
         long service = ((Number) JsonPath.read(mvc.perform(post("/api/servicos").header("Authorization", admin)

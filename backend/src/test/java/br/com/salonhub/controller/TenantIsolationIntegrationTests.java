@@ -22,7 +22,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
-class TenantIsolationIntegrationTests {
+class TenantIsolationIntegrationTests extends FirstAccessIntegrationSupport {
 
     @Autowired
     private MockMvc mockMvc;
@@ -99,11 +99,10 @@ class TenantIsolationIntegrationTests {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(employeePayload("Profissional Bloqueado", "professional.blocked@salonhub.test")))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.firstAccessToken").isNotEmpty())
+                .andExpect(jsonPath("$.firstAccessToken").doesNotExist())
                 .andReturn();
 
-        String firstAccessToken = JsonPath.read(
-                createdProfessional.getResponse().getContentAsString(), "$.firstAccessToken");
+        String firstAccessToken = firstAccessToken(createdProfessional.getResponse().getContentAsString());
         completeFirstAccess(firstAccessToken, "senha123");
 
         String professionalToken = login("professional.blocked@salonhub.test");

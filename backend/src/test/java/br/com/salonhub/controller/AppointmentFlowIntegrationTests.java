@@ -33,7 +33,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
-class AppointmentFlowIntegrationTests {
+class AppointmentFlowIntegrationTests extends FirstAccessIntegrationSupport {
 
     @Autowired
     private MockMvc mockMvc;
@@ -77,8 +77,7 @@ class AppointmentFlowIntegrationTests {
                 .andReturn();
         Number professionalId = JsonPath.read(professional.getResponse().getContentAsString(), "$.id");
 
-        String firstAccessToken = JsonPath.read(
-                professional.getResponse().getContentAsString(), "$.firstAccessToken");
+        String firstAccessToken = firstAccessToken(professional.getResponse().getContentAsString());
         completeFirstAccess(firstAccessToken, "senha123");
         MvcResult service = mockMvc.perform(post("/api/servicos")
                         .header("Authorization", bearer(administratorToken))

@@ -41,7 +41,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
-class AppointmentCompletionIntegrationTests {
+class AppointmentCompletionIntegrationTests extends FirstAccessIntegrationSupport {
 
     @Autowired
     private Clock clock;
@@ -185,8 +185,7 @@ class AppointmentCompletionIntegrationTests {
                                 """.formatted(TestDocuments.cpf())))
                 .andExpect(status().isCreated())
                 .andReturn();
-        String otherFirstAccessToken = JsonPath.read(
-                otherProfessional.getResponse().getContentAsString(), "$.firstAccessToken");
+        String otherFirstAccessToken = firstAccessToken(otherProfessional.getResponse().getContentAsString());
         completeFirstAccess(otherFirstAccessToken, "senha123");
         String otherProfessionalToken = login("other.professional.complete-other-professional@salonhub.test");
 
@@ -438,8 +437,7 @@ class AppointmentCompletionIntegrationTests {
                                 """.formatted(suffix, suffix, TestDocuments.cpf())))
                 .andExpect(status().isCreated())
                 .andReturn();
-        String firstAccessToken = JsonPath.read(
-                professional.getResponse().getContentAsString(), "$.firstAccessToken");
+        String firstAccessToken = firstAccessToken(professional.getResponse().getContentAsString());
         completeFirstAccess(firstAccessToken, "senha123");
         String professionalToken = login("professional.%s@salonhub.test".formatted(suffix));
 

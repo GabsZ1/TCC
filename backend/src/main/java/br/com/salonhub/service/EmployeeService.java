@@ -141,7 +141,7 @@ public class EmployeeService {
         TokenService.GeneratedToken token = tokenService.generateFirstAccess(employee);
         emailNotifier.sendFirstAccessInvitation(employee.getEmail(), employee.getName(),
                 administrator.getEstablishment().getName(), frontendLinks.firstAccess(token.value()), token.expiresAt());
-        return EmployeeCreationResponse.fromEntity(employee, token.value(), token.expiresAt());
+        return EmployeeCreationResponse.fromEntity(employee);
     }
 
     @Transactional(readOnly = true)

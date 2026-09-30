@@ -3,8 +3,6 @@ package br.com.salonhub.dto.employee;
 import br.com.salonhub.entity.User;
 import br.com.salonhub.entity.UserRole;
 
-import java.time.Instant;
-
 public record EmployeeCreationResponse(
         Long id,
         String name,
@@ -12,12 +10,9 @@ public record EmployeeCreationResponse(
         UserRole role,
         Long establishmentId,
         String establishmentName,
-        boolean active,
-        String firstAccessToken,
-        Instant firstAccessExpiresAt
+        boolean active
 ) {
-    public static EmployeeCreationResponse fromEntity(
-            User user, String firstAccessToken, Instant firstAccessExpiresAt) {
+    public static EmployeeCreationResponse fromEntity(User user) {
         return new EmployeeCreationResponse(
                 user.getId(),
                 user.getName(),
@@ -25,8 +20,6 @@ public record EmployeeCreationResponse(
                 user.getRole(),
                 user.getEstablishment().getId(),
                 user.getEstablishment().getName(),
-                user.isActive(),
-                firstAccessToken,
-                firstAccessExpiresAt);
+                user.isActive());
     }
 }

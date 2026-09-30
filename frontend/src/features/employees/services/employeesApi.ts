@@ -51,8 +51,6 @@ export interface EmployeeCreationResult {
   name: string
   email: string
   active: boolean
-  firstAccessToken: string
-  firstAccessExpiresAt: string
 }
 
 export interface EmployeeRemovalResult {
