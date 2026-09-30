@@ -1,5 +1,6 @@
 import { api } from '@/lib/api'
 import type { Appointment } from '@/features/appointments/appointmentsApi'
+import { phoneDigits } from '@/lib/phone'
 
 export interface Customer {
   id: number
@@ -16,11 +17,11 @@ export interface CustomerInput { name: string; phone: string; email: string; act
 export const fetchCustomers = (search = '') =>
   api.get<Customer[]>('/clientes/estabelecimento/me', { params: { search } }).then((response) => response.data)
 export const fetchCustomerSuggestions = (phone: string, email: string) =>
-  api.get<Customer[]>('/clientes/estabelecimento/me/sugestoes', { params: { phone, email } }).then((response) => response.data)
+  api.get<Customer[]>('/clientes/estabelecimento/me/sugestoes', { params: { phone: phoneDigits(phone), email } }).then((response) => response.data)
 export const createCustomer = (input: CustomerInput) =>
-  api.post<Customer>('/clientes/estabelecimento/me', input).then((response) => response.data)
+  api.post<Customer>('/clientes/estabelecimento/me', { ...input, phone: phoneDigits(input.phone) }).then((response) => response.data)
 export const updateCustomer = (id: number, input: CustomerInput) =>
-  api.put<Customer>(`/clientes/estabelecimento/me/${id}`, input).then((response) => response.data)
+  api.put<Customer>(`/clientes/estabelecimento/me/${id}`, { ...input, phone: phoneDigits(input.phone) }).then((response) => response.data)
 export interface CustomerDuplicateCandidate { id: number; name: string; phone: string | null; email: string | null; linked: boolean; appointmentCount: number }
 export const fetchCustomerDuplicates = (id: number) =>
   api.get<CustomerDuplicateCandidate[]>(`/clientes/estabelecimento/me/${id}/possiveis-duplicados`).then((response) => response.data)

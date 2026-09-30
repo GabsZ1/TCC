@@ -1,11 +1,13 @@
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { IMaskInput } from 'react-imask'
 import { useAuth } from '@/hooks/useAuth'
 import { formatDateTime } from '@/lib/format'
 import { APPOINTMENT_STATUS_LABELS, APPOINTMENT_STATUS_STYLES } from '@/features/appointments/appointmentStatus'
 import type { Appointment } from '@/features/appointments/appointmentsApi'
 import { getApiErrorMessage } from '@/lib/apiError'
+import { formatPhone, isValidPhone, PHONE_MASK } from '@/lib/phone'
 import { createCustomer, createCustomerAppointment, fetchBookingOptions, fetchCustomerAppointments, fetchCustomerDuplicates, fetchCustomerSuggestions, fetchCustomers, keepCustomersSeparate, mergeCustomers, updateCustomer, type Customer } from './customersApi'
 
 export function CustomersPage() {
@@ -58,7 +60,7 @@ export function CustomersPage() {
     setPhone(customer === 'new' ? '' : customer.phone)
     setEmail(customer === 'new' ? '' : customer.email ?? '')
   }
-  function submitCustomer(event: FormEvent) { event.preventDefault(); save.mutate() }
+  function submitCustomer(event: FormEvent) { event.preventDefault(); if (isValidPhone(phone)) save.mutate() }
   function submitBooking(event: FormEvent) { event.preventDefault(); booking.mutate() }
 
   return <div className="page-shell">
@@ -72,36 +74,37 @@ export function CustomersPage() {
         <input className="filter-input mt-4 w-full" aria-label="Buscar cliente" placeholder="Buscar por nome ou telefone" value={search} onChange={(event) => setSearch(event.target.value)} />
         {customers.isError && <p role="alert" className="mt-3 text-danger-600">{getApiErrorMessage(customers.error, 'Não foi possível carregar os clientes.')}</p>}
         <div className="mt-4 space-y-2">{customers.data?.map((customer) => <button key={customer.id} type="button" onClick={() => { setSelected(customer); merge.reset(); separate.reset() }} className="w-full rounded-xl border border-background-300 p-3 text-left hover:bg-background-50">
-          <strong className="block">{customer.name}</strong><span className="text-sm text-text-600">{customer.phone}{customer.active ? '' : ' · Inativo'}</span>
+          <strong className="block">{customer.name}</strong><span className="text-sm text-text-600">{formatPhone(customer.phone)}{customer.active ? '' : ' · Inativo'}</span>
         </button>)}</div>
       </section>
       <section className="space-y-6">
         {editing && <form onSubmit={submitCustomer} className="surface-card space-y-3 p-5">
           <h2 className="font-semibold">{editing === 'new' ? 'Novo cliente' : 'Editar cliente'}</h2>
           <label className="block text-sm">Nome<input className="filter-input mt-1 w-full" required maxLength={150} value={name} onChange={(event) => setName(event.target.value)} /></label>
-          <label className="block text-sm">Telefone<input className="filter-input mt-1 w-full" required minLength={10} maxLength={20} value={phone} onChange={(event) => setPhone(event.target.value)} /></label>
+          <label className="block text-sm">Telefone<IMaskInput mask={PHONE_MASK} className="filter-input mt-1 w-full" required inputMode="tel" placeholder="(00) 00000-0000" value={formatPhone(phone)} onAccept={(value: string) => setPhone(value)} /></label>
+          {phone && !isValidPhone(phone) && <p className="text-sm text-danger-600">Informe um telefone com DDD e 10 ou 11 dígitos.</p>}
           <label className="block text-sm">Email (opcional)<input className="filter-input mt-1 w-full" type="email" value={email} onChange={(event) => setEmail(event.target.value)} /></label>
           {editing === 'new' && suggestions.data && suggestions.data.length > 0 && <div className="rounded-xl border border-background-300 p-3 text-sm">
             <p className="font-semibold">Possíveis clientes já cadastrados</p>
             <p className="mt-1 text-text-600">Selecione um cadastro existente para agendar, ou salve este formulário para criar outro cliente.</p>
             {suggestions.data.map((customer) => <div key={customer.id} className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-background-300 pt-2">
-              <span>{customer.name} · {customer.phone}{customer.email ? ` · ${customer.email}` : ''}</span>
+              <span>{customer.name} · {formatPhone(customer.phone)}{customer.email ? ` · ${customer.email}` : ''}</span>
               <button type="button" className="font-semibold" onClick={() => { setSelected(customer); setEditing(null) }}>Usar cadastro existente</button>
             </div>)}
           </div>}
           {editing === 'new' && suggestions.isError && <p role="alert" className="text-danger-600">{getApiErrorMessage(suggestions.error, 'Não foi possível consultar cadastros semelhantes.')}</p>}
           {save.isError && <p role="alert" className="text-danger-600">{getApiErrorMessage(save.error, 'Não foi possível salvar o cliente.')}</p>}
-          <div className="flex gap-3"><button className="btn-primary" disabled={save.isPending}>Salvar</button><button type="button" onClick={() => setEditing(null)}>Cancelar</button></div>
+          <div className="flex gap-3"><button className="btn-primary" disabled={save.isPending || !isValidPhone(phone)}>Salvar</button><button type="button" onClick={() => setEditing(null)}>Cancelar</button></div>
         </form>}
         {selected ? <>
-          <section className="surface-card p-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-semibold">{selected.name}</h2><p className="text-sm text-text-600">{selected.phone}{selected.email ? ` · ${selected.email}` : ''}</p><p className="mt-1 text-xs text-text-600">{selected.userId != null ? 'Conta vinculada' : 'Conta não vinculada'}</p></div><div className="flex gap-3"><button onClick={() => openForm(selected)}>Editar</button><button onClick={() => status.mutate()} disabled={status.isPending}>{selected.active ? 'Desativar' : 'Reativar'}</button></div></div>
+          <section className="surface-card p-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-semibold">{selected.name}</h2><p className="text-sm text-text-600">{formatPhone(selected.phone)}{selected.email ? ` · ${selected.email}` : ''}</p><p className="mt-1 text-xs text-text-600">{selected.userId != null ? 'Conta vinculada' : 'Conta não vinculada'}</p></div><div className="flex gap-3"><button onClick={() => openForm(selected)}>Editar</button><button onClick={() => status.mutate()} disabled={status.isPending}>{selected.active ? 'Desativar' : 'Reativar'}</button></div></div>
           </section>
           {user?.role === 'ADMIN' && (duplicates.data?.length || duplicates.isError) && <section className="surface-card p-5">
             <h2 className="font-semibold">Possíveis cadastros duplicados</h2>
             <p className="mt-1 text-sm text-text-600">Compare os dados e históricos antes de decidir.</p>
             {duplicates.isError && <p role="alert" className="mt-3 text-sm text-danger-600">{getApiErrorMessage(duplicates.error, 'Não foi possível consultar possíveis duplicidades.')}</p>}
             {duplicates.data?.map((candidate) => <div key={candidate.id} className="mt-3 border-t border-background-300 pt-3 text-sm">
-              <strong>{candidate.name}</strong><p className="text-text-600">{candidate.phone || 'Sem telefone'}{candidate.email ? ` · ${candidate.email}` : ''}</p>
+              <strong>{candidate.name}</strong><p className="text-text-600">{candidate.phone ? formatPhone(candidate.phone) : 'Sem telefone'}{candidate.email ? ` · ${candidate.email}` : ''}</p>
               <p className="text-text-600">{candidate.linked ? 'Conta vinculada' : 'Conta não vinculada'} · {candidate.appointmentCount} atendimento(s)</p>
               <div className="mt-2 flex gap-3"><button type="button" className="btn-primary" disabled={merge.isPending || separate.isPending} onClick={() => { if (window.confirm('Mesclar os históricos destes cadastros? Esta ação não pode ser desfeita.')) merge.mutate(candidate.id) }}>Mesclar cadastros</button>
                 <button type="button" disabled={merge.isPending || separate.isPending} onClick={() => separate.mutate(candidate.id)}>Manter separados</button></div>

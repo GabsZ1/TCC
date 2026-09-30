@@ -12,6 +12,7 @@ import br.com.salonhub.repository.UserRepository;
 import br.com.salonhub.entity.UserRole;
 import br.com.salonhub.service.TenantAuthorizationService;
 import br.com.salonhub.service.CustomerDuplicateService;
+import br.com.salonhub.validation.PhoneNumbers;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -61,11 +62,16 @@ public class CustomerController {
     public List<CustomerResponse> list(@AuthenticationPrincipal Jwt jwt,
                                        @RequestParam(required = false) String search) {
         Long establishmentId = establishmentId(jwt);
-        List<Customer> result = search == null || search.isBlank()
+        String term = search == null ? null : search.trim();
+        boolean phoneSearch = term != null && term.matches("[0-9+()\\s-]+")
+                && !term.replaceAll("\\D", "").isEmpty();
+        String normalizedPhone = phoneSearch ? PhoneNumbers.normalize(term) : null;
+        List<Customer> result = term == null || term.isBlank()
                 ? customers.findByEstablishmentIdOrderByNameAsc(establishmentId)
-                : search.matches("[0-9]+")
-                    ? customers.findByEstablishmentIdAndPhoneContainingOrderByNameAsc(establishmentId, search)
-                    : customers.findByEstablishmentIdAndNameContainingIgnoreCaseOrderByNameAsc(establishmentId, search);
+                : phoneSearch
+                    ? customers.findByEstablishmentIdAndPhoneContainingOrderByNameAsc(establishmentId,
+                            normalizedPhone != null ? normalizedPhone : term.replaceAll("\\D", ""))
+                    : customers.findByEstablishmentIdAndNameContainingIgnoreCaseOrderByNameAsc(establishmentId, term);
         return result.stream().map(CustomerResponse::fromEntity).toList();
     }
 

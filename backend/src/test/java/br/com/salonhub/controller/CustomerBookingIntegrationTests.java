@@ -57,6 +57,13 @@ class CustomerBookingIntegrationTests {
         long establishmentId = registerEstablishment("admin.suggest@salonhub.test", "66777888000181");
         String admin = login("admin.suggest@salonhub.test");
         long existing = createCustomer(admin, "Maria da Silva", "44999990000", "MARIA@EXAMPLE.COM");
+        mvc.perform(get("/api/clientes/estabelecimento/me").header("Authorization", admin)
+                .param("search", "(44) 99999-0000"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(existing));
+        mvc.perform(get("/api/clientes/estabelecimento/me").header("Authorization", admin)
+                .param("search", "44999990000"))
+                .andExpect(jsonPath("$[0].id").value(existing));
         registerEstablishment("other.suggest@salonhub.test", "11444777000161");
         createCustomer(login("other.suggest@salonhub.test"), "Outro salão", "44999990000", "maria@example.com");
         mvc.perform(get("/api/clientes/estabelecimento/me/sugestoes").header("Authorization", admin)
