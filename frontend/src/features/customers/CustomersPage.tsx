@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { IMaskInput } from 'react-imask'
@@ -26,15 +26,18 @@ export function CustomersPage() {
   const [professionalId, setProfessionalId] = useState('')
   const [date, setDate] = useState('')
   const [time, setTime] = useState('')
+  const debouncedSearch = useDebouncedValue(search)
+  const debouncedPhone = useDebouncedValue(phone)
+  const debouncedEmail = useDebouncedValue(email)
   const [minBookingDate] = useState(() => {
     const now = new Date()
     return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
   })
-  const customers = useQuery({ queryKey: ['customers', search, customerPage, activeFilter], queryFn: () => fetchCustomers(search, customerPage, activeFilter === 'all' ? undefined : activeFilter === 'active') })
+  const customers = useQuery({ queryKey: ['customers', debouncedSearch, customerPage, activeFilter], queryFn: () => fetchCustomers(debouncedSearch, customerPage, activeFilter === 'all' ? undefined : activeFilter === 'active') })
   const suggestions = useQuery({
-    queryKey: ['customer-suggestions', phone, email],
-    queryFn: () => fetchCustomerSuggestions(phone, email),
-    enabled: editing === 'new' && (phone.replace(/\D/g, '').length >= 10 || email.includes('@')),
+    queryKey: ['customer-suggestions', debouncedPhone, debouncedEmail],
+    queryFn: () => fetchCustomerSuggestions(debouncedPhone, debouncedEmail),
+    enabled: editing === 'new' && (debouncedPhone.replace(/\D/g, '').length >= 10 || debouncedEmail.includes('@')),
   })
   const duplicates = useQuery({ queryKey: ['customer-duplicates', selected?.id], queryFn: () => fetchCustomerDuplicates(selected!.id), enabled: !!selected && user?.role === 'ADMIN' })
   const options = useQuery({ queryKey: ['customer-booking-options', serviceId], queryFn: () => fetchBookingOptions(serviceId ? Number(serviceId) : undefined) })
@@ -147,6 +150,17 @@ export function CustomersPage() {
       </section>
     </div>
   </div>
+}
+
+function useDebouncedValue<T>(value: T, delay = 300) {
+  const [debouncedValue, setDebouncedValue] = useState(value)
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => setDebouncedValue(value), delay)
+    return () => window.clearTimeout(timeoutId)
+  }, [value, delay])
+
+  return debouncedValue
 }
 
 /** O `key` do cliente reinicia a página ao trocar de cliente. */

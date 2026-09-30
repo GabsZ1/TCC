@@ -11,7 +11,6 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.sql.SQLException;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -36,10 +35,18 @@ class ApiIntegrityExceptionHandlerTests {
     }
 
     @Test
-    void shouldNotTurnUnrelatedIntegrityFailuresIntoBusinessConflicts() {
+    void shouldReturnFriendlyConflictForUnmappedIntegrityViolation() throws Exception {
         var exception = new DataIntegrityViolationException("unexpected not-null violation",
                 new SQLException("unexpected not-null violation", "23502"));
-        assertThatThrownBy(() -> new ApiExceptionHandler().handleDataIntegrity(exception)).isSameAs(exception);
+        MockMvcBuilders.standaloneSetup(new FailingController(exception))
+                .setControllerAdvice(new ApiExceptionHandler()).build()
+                .perform(get("/integrity-test"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.message").value("Não foi possível concluir a operação. Verifique os dados informados."))
+                .andExpect(jsonPath("$.fields").isEmpty())
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("23502"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("unexpected not-null violation"))));
     }
 
     private void assertConflict(DataIntegrityViolationException exception, String message) throws Exception {
