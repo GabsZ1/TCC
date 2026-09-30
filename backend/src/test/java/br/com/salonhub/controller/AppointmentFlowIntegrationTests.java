@@ -375,6 +375,79 @@ class AppointmentFlowIntegrationTests extends FirstAccessIntegrationSupport {
                 .andExpect(status().isForbidden());
     }
 
+    @Test
+    void shouldUseHistoricalDurationWhenClientChecksAvailabilityForRescheduling() throws Exception {
+        MvcResult registration = mockMvc.perform(post("/api/auth/cadastro")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"ownerName":"Admin histórico","ownerEmail":"admin.historico@salonhub.test",
+                                 "password":"senha123","establishmentName":"Salão Histórico","cnpj":"99888777000100"}
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn();
+        Number establishmentId = JsonPath.read(registration.getResponse().getContentAsString(), "$.establishmentId");
+        String administratorToken = login("admin.historico@salonhub.test");
+
+        MvcResult professional = mockMvc.perform(post("/api/funcionarios")
+                        .header("Authorization", bearer(administratorToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Profissional histórico","email":"professional.historico@salonhub.test",
+                                 "occupation":"Cabeleireiro(a)","cpf":"%s","hireDate":"2025-01-02"}
+                                """.formatted(TestDocuments.cpf())))
+                .andExpect(status().isCreated())
+                .andReturn();
+        Number professionalId = JsonPath.read(professional.getResponse().getContentAsString(), "$.id");
+        completeFirstAccess(firstAccessToken(professional.getResponse().getContentAsString()), "senha123");
+
+        Number serviceId = JsonPath.read(mockMvc.perform(post("/api/servicos")
+                        .header("Authorization", bearer(administratorToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Serviço histórico","price":50,"durationMinutes":60}
+                                """))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString(), "$.id");
+
+        mockMvc.perform(post("/api/auth/clientes").contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Cliente histórico","email":"client.historico@salonhub.test","phone":"44999990000",
+                                 "password":"senha123","passwordConfirmation":"senha123"}
+                                """))
+                .andExpect(status().isCreated());
+        String clientToken = login("client.historico@salonhub.test");
+        LocalDate day = LocalDate.now().plusDays(2);
+        Number appointmentId = JsonPath.read(mockMvc.perform(post("/api/estabelecimentos/{id}/agendamentos", establishmentId.longValue())
+                        .header("Authorization", bearer(clientToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(appointmentPayload(serviceId, professionalId, day.atTime(10, 0))))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString(), "$.id");
+
+        mockMvc.perform(put("/api/servicos/{id}", serviceId.longValue())
+                        .header("Authorization", bearer(administratorToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Serviço histórico","price":50,"commissionPercentage":0,"durationMinutes":30}
+                                """))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/estabelecimentos/{id}/agendamentos/disponibilidade", establishmentId.longValue())
+                        .header("Authorization", bearer(clientToken))
+                        .param("serviceId", serviceId.toString())
+                        .param("professionalId", professionalId.toString())
+                        .param("date", day.toString())
+                        .param("appointmentId", appointmentId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.durationMinutes").value(60))
+                .andExpect(jsonPath("$.availableTimes[?(@ == '11:00:00')]").isNotEmpty());
+        mockMvc.perform(put("/api/agendamentos/{id}", appointmentId.longValue())
+                        .header("Authorization", bearer(clientToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(appointmentPayload(serviceId, professionalId, day.atTime(11, 0))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.durationMinutes").value(60))
+                .andExpect(jsonPath("$.endsAt").value(day + "T12:00:00"));
+
+    }
+
     private String login(String email) throws Exception {
         MvcResult result = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)

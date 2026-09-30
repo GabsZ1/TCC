@@ -192,6 +192,58 @@ class AppointmentCompletionIntegrationTests extends FirstAccessIntegrationSuppor
         mockMvc.perform(patch("/api/agendamentos/{id}/conclusao", appointmentId)
                         .header("Authorization", bearer(otherProfessionalToken)))
                 .andExpect(status().isForbidden());
+        mockMvc.perform(patch("/api/agendamentos/{id}/falta", appointmentId)
+                        .header("Authorization", bearer(otherProfessionalToken)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void shouldHideCompletionAndNoShowFromAnotherEstablishment() throws Exception {
+        Fixture fixture = setUp("closure-tenant", "66777888000181");
+        Long appointmentId = createPastAppointment(fixture);
+        Fixture other = setUp("closure-other-tenant", "99888777000100");
+
+        mockMvc.perform(patch("/api/agendamentos/{id}/conclusao", appointmentId)
+                        .header("Authorization", bearer(other.administratorToken())))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(patch("/api/agendamentos/{id}/falta", appointmentId)
+                        .header("Authorization", bearer(other.administratorToken())))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void shouldBlockPausedProfessionalFromCompletingOrMarkingNoShow() throws Exception {
+        Fixture fixture = setUp("closure-paused", "33456789000149");
+        Long appointmentId = createPastAppointment(fixture);
+        fixture.establishment().pause(false);
+        establishmentRepository.saveAndFlush(fixture.establishment());
+
+        mockMvc.perform(patch("/api/agendamentos/{id}/conclusao", appointmentId)
+                        .header("Authorization", bearer(fixture.professionalToken())))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(patch("/api/agendamentos/{id}/falta", appointmentId)
+                        .header("Authorization", bearer(fixture.professionalToken())))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void shouldBlockInactiveProfessionalAndInactiveEstablishmentFromClosureActions() throws Exception {
+        Fixture fixture = setUp("closure-inactive", "66777888000181");
+        Long appointmentId = createPastAppointment(fixture);
+        fixture.professional().deactivate();
+        userRepository.saveAndFlush(fixture.professional());
+
+        mockMvc.perform(patch("/api/agendamentos/{id}/conclusao", appointmentId)
+                        .header("Authorization", bearer(fixture.professionalToken())))
+                .andExpect(status().isUnauthorized());
+
+        fixture.professional().reactivate();
+        userRepository.saveAndFlush(fixture.professional());
+        fixture.establishment().deactivate();
+        establishmentRepository.saveAndFlush(fixture.establishment());
+        mockMvc.perform(patch("/api/agendamentos/{id}/falta", appointmentId)
+                        .header("Authorization", bearer(fixture.professionalToken())))
+                .andExpect(status().isForbidden());
     }
 
     @Test

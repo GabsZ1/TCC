@@ -289,9 +289,8 @@ public class EmployeeService {
         // Use the same professional lock as appointment creation.
         userRepository.findByIdForUpdate(employee.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Funcionário não encontrado."));
-        if (appointmentRepository.existsByProfessionalId(employee.getId())
-                || !employee.getOfferedServices().isEmpty()) {
-            throw new ConflictException("O funcionário possui agendamentos ou serviços vinculados e não pode ser excluído. Utilize a desativação.");
+        if (appointmentRepository.existsByProfessionalId(employee.getId())) {
+            throw new ConflictException("O funcionário possui agendamentos vinculados e não pode ser excluído. Utilize a desativação.");
         }
         br.com.salonhub.entity.Media photo = employee.getPhoto();
         try {

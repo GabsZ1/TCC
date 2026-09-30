@@ -178,7 +178,7 @@ public class AppointmentQueryService {
             LocalDate date,
             Long appointmentId) {
         User client = tenantAuthorizationService.requireClient(clientId);
-        validateAppointmentOwnership(appointmentId, client);
+        Appointment current = validateAppointmentOwnership(appointmentId, client);
         if (date.isBefore(LocalDate.now(clock))) {
             throw new InvalidRequestException("A data da consulta não pode estar no passado.");
         }
@@ -201,6 +201,8 @@ public class AppointmentQueryService {
                 .orElseThrow(() -> new ResourceNotFoundException("Funcionário não encontrado."));
         requireProfessionalOffersService(professional, service);
 
+        int durationMinutes = current != null && current.getService().getId().equals(serviceId)
+                ? current.getDurationMinutes() : service.getDurationMinutes();
         LocalDateTime dayStart = date.atStartOfDay();
         LocalDateTime dayEnd = date.plusDays(1).atStartOfDay();
         List<Appointment> professionalAppointments = appointmentRepository
@@ -219,9 +221,9 @@ public class AppointmentQueryService {
         ProfessionalAvailabilityService.WorkingHours workingHours =
                 professionalAvailabilityService.requireWorkingHours(professional, date);
         List<LocalTime> availableTimes = calculateAvailableTimes(
-                date, service.getDurationMinutes(), workingHours, professionalAppointments, clientAppointments, calendarEvents, establishmentBlocks,
+                date, durationMinutes, workingHours, professionalAppointments, clientAppointments, calendarEvents, establishmentBlocks,
                 earliestStart, latestStart, appointmentId, AppointmentSlotPolicy.SLOT_INTERVAL_MINUTES);
-        return new AvailabilityResponse(date, service.getDurationMinutes(), availableTimes);
+        return new AvailabilityResponse(date, durationMinutes, availableTimes);
     }
 
     @Transactional(readOnly = true)
@@ -333,11 +335,10 @@ public class AppointmentQueryService {
                         && appointment.getEndsAt().isAfter(startsAt));
     }
 
-    private void validateAppointmentOwnership(Long appointmentId, User client) {
-        if (appointmentId != null) {
-            appointmentRepository.findByIdAndCustomerUserId(appointmentId, client.getId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Agendamento não encontrado."));
-        }
+    private Appointment validateAppointmentOwnership(Long appointmentId, User client) {
+        if (appointmentId == null) return null;
+        return appointmentRepository.findByIdAndCustomerUserId(appointmentId, client.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Agendamento não encontrado."));
     }
 
     private void requireProfessionalOffersService(User professional, EstablishmentService service) {

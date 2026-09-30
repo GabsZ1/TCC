@@ -301,7 +301,7 @@ class EmployeeRemovalIntegrationTests {
     }
 
     @Test
-    void shouldPreserveServiceLinksAndRejectDeletionEvenForInactiveServices() throws Exception {
+    void shouldDeleteEmployeeWithOnlyOperationalServiceLinks() throws Exception {
         String token = registerAndLogin("links@employee.test", "61616161000107", "Links");
         User admin = userRepository.findByEmailIgnoreCase("links@employee.test").orElseThrow();
         User employee = employee(admin, "linked");
@@ -311,20 +311,11 @@ class EmployeeRemovalIntegrationTests {
         employee.updateOfferedServices(false, List.of(service));
         entityManager.flush();
         mockMvc.perform(delete("/api/funcionarios/{id}", employee.getId())
-                        .header("Authorization", bearer(token))).andExpect(status().isConflict());
-        assertThat(employee.isActive()).isTrue();
-        mockMvc.perform(patch("/api/funcionarios/{id}/desativacao", employee.getId())
-                        .header("Authorization", bearer(token))).andExpect(status().isOk());
+                        .header("Authorization", bearer(token))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.removedPermanently").value(true));
         entityManager.flush();
         entityManager.clear();
-        assertLinks(employee.getId(), service.getId(), false);
-        mockMvc.perform(delete("/api/funcionarios/{id}", employee.getId())
-                        .header("Authorization", bearer(token))).andExpect(status().isConflict());
-        mockMvc.perform(patch("/api/funcionarios/{id}/ativacao", employee.getId())
-                        .header("Authorization", bearer(token))).andExpect(status().isOk());
-        entityManager.flush();
-        entityManager.clear();
-        assertLinks(employee.getId(), service.getId(), true);
+        assertThat(userRepository.findById(employee.getId())).isEmpty();
     }
 
     @Test
@@ -413,13 +404,6 @@ class EmployeeRemovalIntegrationTests {
     private User employee(User admin, String name) {
         return userRepository.saveAndFlush(User.builder().name(name).email(name + "@fixture.test")
                 .password("test").role(UserRole.PROFESSIONAL).establishment(admin.getEstablishment()).build());
-    }
-
-    private void assertLinks(Long employeeId, Long serviceId, boolean active) {
-        User employee = userRepository.findById(employeeId).orElseThrow();
-        assertThat(employee.isActive()).isEqualTo(active);
-        assertThat(employee.isOffersAllServices()).isFalse();
-        assertThat(employee.getOfferedServices()).extracting(EstablishmentService::getId).containsExactly(serviceId);
     }
 
     private String registerAndLogin(String email, String cnpj, String establishmentName) throws Exception {
