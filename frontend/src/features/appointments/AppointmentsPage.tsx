@@ -5,8 +5,9 @@ import { useNavigate } from 'react-router-dom'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { AppointmentEditModal } from '@/features/appointments/AppointmentEditModal'
 import { EstablishmentDetailsModal } from '@/features/appointments/EstablishmentDetailsModal'
-import { cancelAppointment, fetchActiveEstablishments, fetchNearbyEstablishments, fetchMyAppointments, type ActiveEstablishment, type Appointment } from '@/features/appointments/appointmentsApi'
+import { cancelAppointment, fetchActiveEstablishments, fetchNearbyEstablishments, fetchMyAppointmentPage, type ActiveEstablishment, type Appointment } from '@/features/appointments/appointmentsApi'
 import { getApiErrorMessage } from '@/lib/apiError'
+import { EstablishmentImage } from '@/features/establishment/EstablishmentImage'
 
 const QUERY_KEY = ['my-appointments']
 const ESTABLISHMENTS_PER_PAGE = 6
@@ -16,6 +17,7 @@ export function AppointmentsPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [section, setSection] = useState<AppointmentSection>('upcoming')
+  const [appointmentPage, setAppointmentPage] = useState(0)
   const [details, setDetails] = useState<ActiveEstablishment | null>(null)
   const [cancelling, setCancelling] = useState<Appointment | null>(null)
   const [editing, setEditing] = useState<Appointment | null>(null)
@@ -25,13 +27,12 @@ export function AppointmentsPage() {
   const [proximityActive, setProximityActive] = useState(false)
   const [locationLoading, setLocationLoading] = useState(false)
   const [locationMessage, setLocationMessage] = useState<string | null>(null)
-  const appointments = useQuery({ queryKey: QUERY_KEY, queryFn: fetchMyAppointments })
+  const appointments = useQuery({ queryKey: [...QUERY_KEY, section, appointmentPage], queryFn: () => fetchMyAppointmentPage(section === 'history', appointmentPage) })
+  const upcoming = useQuery({ queryKey: [...QUERY_KEY, 'upcoming', 0], queryFn: () => fetchMyAppointmentPage(false, 0) })
   const establishments = useQuery({ queryKey: ['active-establishments'], queryFn: fetchActiveEstablishments })
   const nearby = useMutation({ mutationFn: ({ latitude, longitude }: { latitude: number; longitude: number }) => fetchNearbyEstablishments(latitude, longitude), onSuccess: () => { setProximityActive(true); setLocationLoading(false); setEstablishmentPage(0) }, onError: () => { setLocationLoading(false); setLocationMessage('Não foi possível ordenar por proximidade. A lista continuará disponível normalmente.') } })
   const establishmentData = proximityActive && nearby.data ? nearby.data : establishments.data
-  const upcomingAppointments = (appointments.data ?? []).filter(isUpcoming)
-  const historyAppointments = (appointments.data ?? []).filter((appointment) => !isUpcoming(appointment))
-  const displayedAppointments = section === 'upcoming' ? upcomingAppointments : historyAppointments
+  const displayedAppointments = appointments.data?.content ?? []
 
   // Lista de estabelecimentos: busca por nome (US 2.23, CT04) e paginação de 6 em 6.
   const searchTerm = normalizeText(establishmentSearch)
@@ -72,7 +73,7 @@ export function AppointmentsPage() {
           <p className="page-subtitle">Acompanhe seus próximos horários e consulte o histórico quando precisar.</p>
 
           {cancellationError && <p className="mt-5 rounded-xl border border-danger-500/20 bg-danger-50 px-4 py-3 text-sm text-danger-600">{cancellationError}</p>}
-          <Tabs section={section} onChange={setSection} upcomingCount={upcomingAppointments.length} />
+          <Tabs section={section} onChange={(value) => { setSection(value); setAppointmentPage(0) }} upcomingCount={upcoming.data?.totalElements ?? 0} />
 
           <div className="mt-6 space-y-3">
             {appointments.isLoading && <EmptyState>Carregando agendamentos...</EmptyState>}
@@ -116,6 +117,7 @@ export function AppointmentsPage() {
                 </div>
               </article>
             ))}
+            {appointments.data && appointments.data.totalPages > 1 && <nav className="flex items-center justify-between text-sm" aria-label="Páginas de agendamentos"><button type="button" disabled={appointmentPage === 0} onClick={() => setAppointmentPage(appointmentPage - 1)}>Anterior</button><span>Página {appointmentPage + 1} de {appointments.data.totalPages}</span><button type="button" disabled={appointmentPage + 1 >= appointments.data.totalPages} onClick={() => setAppointmentPage(appointmentPage + 1)}>Próxima</button></nav>}
           </div>
         </section>
 
@@ -149,7 +151,7 @@ export function AppointmentsPage() {
               )}
               {visibleEstablishments.map((establishment) => (
                 <article key={establishment.id} className="rounded-[0.75rem] border border-white/12 bg-white/[0.055] p-3.5">
-                  <p className="font-semibold text-white">{establishment.name}</p>
+                  <div className="flex items-center gap-3"><EstablishmentImage establishmentId={establishment.id} kind="logo" hasImage={establishment.hasLogo} className="size-10 shrink-0 rounded-lg object-cover" /><p className="font-semibold text-white">{establishment.name}</p></div>
                   {proximityActive && <p className="mt-1 text-xs text-primary-200">{establishment.distanceKm == null ? 'Distância indisponível' : establishment.distanceKm < 1 ? `${Math.round(establishment.distanceKm * 1000)} m de você` : `${establishment.distanceKm.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} km de você`}</p>}                  <div className="mt-3 grid grid-cols-2 gap-2">
                     <button type="button" onClick={() => setDetails(establishment)} className="inline-flex items-center justify-center gap-1.5 rounded-[0.6rem] border border-white/20 px-3 py-2 text-xs font-semibold text-white hover:bg-white/10"><Eye size={14} /> Detalhes</button>
                     <button type="button" onClick={() => navigate(`/estabelecimentos/${establishment.id}/agendar`)} className="inline-flex items-center justify-center gap-1.5 rounded-[0.6rem] bg-white px-3 py-2 text-xs font-semibold text-primary-900 hover:bg-primary-50">Agendar <ArrowRight size={14} /></button>
@@ -201,7 +203,6 @@ function StatusBadge({ status }: { status: Appointment['status'] }) {
   return <span className={`status-pill ${styles[status]}`}>{labels[status]}</span>
 }
 function isFuture(value: string) { return new Date(value).getTime() > Date.now() }
-function isUpcoming(appointment: Appointment) { return appointment.status === 'CONFIRMED' && isFuture(appointment.startsAt) }
 function EmptyState({ children, error = false }: { children: React.ReactNode; error?: boolean }) { return <div className={`surface-card p-10 text-center text-sm ${error ? 'text-danger-600' : 'text-text-500'}`}>{children}</div> }
 function formatDate(value: string) { return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' }).format(new Date(value)) }
 function formatTime(value: string) { return value.slice(11, 16) }

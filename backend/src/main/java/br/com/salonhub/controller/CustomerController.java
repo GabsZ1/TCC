@@ -1,6 +1,7 @@
 package br.com.salonhub.controller;
 
 import br.com.salonhub.dto.customer.CustomerRequest;
+import br.com.salonhub.dto.PagedResponse;
 import br.com.salonhub.dto.customer.CustomerResponse;
 import br.com.salonhub.dto.appointment.AppointmentResponse;
 import br.com.salonhub.service.CustomerDuplicateService;
@@ -43,8 +44,10 @@ public class CustomerController {
     }
 
     @GetMapping
-    public List<CustomerResponse> list(@AuthenticationPrincipal Jwt jwt, @RequestParam(required = false) String search) {
-        return customers.list(userId(jwt), search);
+    public PagedResponse<CustomerResponse> list(@AuthenticationPrincipal Jwt jwt, @RequestParam(required = false) String search,
+            @RequestParam(required = false) Boolean active, @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return PagedResponse.from(customers.list(userId(jwt), search, active, Math.max(0, page), Math.max(1, Math.min(size, 100))));
     }
 
     @GetMapping("/opcoes-agendamento")
@@ -64,8 +67,9 @@ public class CustomerController {
     }
 
     @GetMapping("/{id}/agendamentos")
-    public List<AppointmentResponse> history(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
-        return customers.history(userId(jwt), id);
+    public PagedResponse<AppointmentResponse> history(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id,
+            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
+        return PagedResponse.from(customers.history(userId(jwt), id, Math.max(0, page), Math.max(1, Math.min(size, 100))));
     }
 
     private Long userId(Jwt jwt) { return Long.valueOf(jwt.getSubject()); }

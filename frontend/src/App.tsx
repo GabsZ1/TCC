@@ -17,6 +17,7 @@ const ProfessionalAgendaPage = lazy(() => import('@/features/appointments/Profes
 const MyCompletedServicesPage = lazy(() => import('@/features/appointments/MyCompletedServicesPage').then((module) => ({ default: module.MyCompletedServicesPage })))
 const MyServicesPage = lazy(() => import('@/features/services/MyServicesPage').then((module) => ({ default: module.MyServicesPage })))
 const EstablishmentPage = lazy(() => import('@/features/establishment/EstablishmentPage').then((module) => ({ default: module.EstablishmentPage })))
+const EstablishmentBlocksPage = lazy(() => import('@/features/establishment/EstablishmentBlocksPage').then((module) => ({ default: module.EstablishmentBlocksPage })))
 const EstablishmentProfilePage = lazy(() => import('@/features/establishment/EstablishmentProfilePage').then((module) => ({ default: module.EstablishmentProfilePage })))
 const AdminAgendaPage = lazy(() => import('@/features/appointments/AdminAgendaPage').then((module) => ({ default: module.AdminAgendaPage })))
 const CommissionReportPage = lazy(() => import('@/features/commissions/CommissionReportPage').then((module) => ({ default: module.CommissionReportPage })))
@@ -52,8 +53,10 @@ function App() {
 
             <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
               <Route path="/funcionarios" element={<EmployeesListPage />} />
+              <Route path="/funcionarios/:professionalId/agenda" element={<ProfessionalAgendaPage />} />
               <Route path="/servicos" element={<ServicesPage />} />
               <Route path="/estabelecimento" element={<EstablishmentPage />} />
+              <Route path="/estabelecimento/bloqueios" element={<EstablishmentBlocksPage />} />
               <Route path="/perfil-estabelecimento" element={<EstablishmentProfilePage />} />
               <Route path="/agenda" element={<AdminAgendaPage />} />
               <Route path="/relatorio-comissoes" element={<CommissionReportPage />} />
@@ -93,7 +96,7 @@ function RouteLoading() {
     <div className="grid min-h-screen place-items-center bg-background-100">
       <div className="flex items-center gap-3 text-sm font-bold text-text-600">
         <span className="size-2 animate-pulse rounded-full bg-primary-600" />
-        Carregando SalonHub
+        Carregando Meu Espaço
       </div>
     </div>
   )

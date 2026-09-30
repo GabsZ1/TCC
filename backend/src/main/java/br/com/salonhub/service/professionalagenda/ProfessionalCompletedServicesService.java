@@ -7,10 +7,12 @@ import br.com.salonhub.dto.professionalearnings.ServiceOption;
 import br.com.salonhub.entity.User;
 import br.com.salonhub.exception.InvalidRequestException;
 import br.com.salonhub.repository.AppointmentRepository;
+import br.com.salonhub.repository.CompletedAppointmentsTotalsRow;
 import br.com.salonhub.repository.EstablishmentServiceRepository;
 import br.com.salonhub.service.TenantAuthorizationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -42,7 +44,7 @@ public class ProfessionalCompletedServicesService {
 
     @Transactional(readOnly = true)
     public ProfessionalCompletedServicesResponse findMine(
-            Long userId, LocalDate startDate, LocalDate endDate, Long serviceId) {
+            Long userId, LocalDate startDate, LocalDate endDate, Long serviceId, int page, int size) {
         User professional = tenantAuthorizationService.requireProfessional(userId);
 
         if ((startDate == null) != (endDate == null)) {
@@ -64,31 +66,31 @@ public class ProfessionalCompletedServicesService {
             periodEnd = currentMonth.atEndOfMonth();
         }
 
-        List<CompletedServiceEntry> entries = appointmentRepository.findCompletedByProfessional(
+        var result = appointmentRepository.findCompletedByProfessional(
                         professional.getId(),
                         periodStart.atStartOfDay(),
                         periodEnd.plusDays(1).atStartOfDay(),
-                        serviceId)
+                        serviceId, PageRequest.of(page, size));
+        List<CompletedServiceEntry> entries = result
                 .stream()
                 .map(CompletedServiceEntry::fromEntity)
                 .toList();
+        CompletedAppointmentsTotalsRow totals = appointmentRepository.sumCompletedByProfessional(
+                professional.getId(), periodStart.atStartOfDay(), periodEnd.plusDays(1).atStartOfDay(), serviceId);
 
         List<ServiceOption> availableServices =
                 appointmentRepository.findCompletedServiceOptionsByProfessional(professional.getId());
 
         return new ProfessionalCompletedServicesResponse(
-                periodStart, periodEnd, serviceId, entries, summarize(entries), availableServices);
+                periodStart, periodEnd, serviceId, entries, summarize(totals), availableServices,
+                result.getNumber(), result.getTotalPages(), result.getTotalElements());
     }
 
-    private CompletedServicesSummary summarize(List<CompletedServiceEntry> entries) {
-        BigDecimal totalValue = entries.stream()
-                .map(CompletedServiceEntry::servicePrice)
-                .reduce(ZERO, BigDecimal::add)
+    private CompletedServicesSummary summarize(CompletedAppointmentsTotalsRow totals) {
+        BigDecimal totalValue = (totals.getTotalServiceValue() == null ? ZERO : totals.getTotalServiceValue())
                 .setScale(2, RoundingMode.HALF_UP);
-        BigDecimal totalCommission = entries.stream()
-                .map(CompletedServiceEntry::commissionAmount)
-                .reduce(ZERO, BigDecimal::add)
+        BigDecimal totalCommission = (totals.getTotalCommission() == null ? ZERO : totals.getTotalCommission())
                 .setScale(2, RoundingMode.HALF_UP);
-        return new CompletedServicesSummary(entries.size(), totalValue, totalCommission);
+        return new CompletedServicesSummary(totals.getTotalAppointments(), totalValue, totalCommission);
     }
 }

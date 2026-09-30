@@ -50,7 +50,7 @@ public class SmtpEmailNotifier implements EmailNotifier {
         String body = """
                 Olá, %s!
 
-                Você foi cadastrado(a) como profissional em %s no SalonHub.
+                Você foi cadastrado(a) como profissional em %s no Meu Espaço.
                 Para ativar seu acesso, defina sua senha pelo link abaixo:
 
                 %s
@@ -58,9 +58,9 @@ public class SmtpEmailNotifier implements EmailNotifier {
                 O link é de uso único e expira em %s.
                 Se você não esperava este convite, ignore este e-mail.
 
-                Equipe SalonHub
+                Equipe Meu Espaço
                 """.formatted(recipientName, establishmentName, link, expiration);
-        dispatch(recipientEmail, "Seu acesso ao SalonHub", body);
+        dispatch(recipientEmail, "Seu acesso ao Meu Espaço", body);
     }
 
     @Override
@@ -68,7 +68,7 @@ public class SmtpEmailNotifier implements EmailNotifier {
         String body = """
                 Olá, %s!
 
-                Recebemos um pedido para redefinir a senha da sua conta no SalonHub.
+                Recebemos um pedido para redefinir a senha da sua conta no Meu Espaço.
                 Para criar uma nova senha, acesse o link abaixo:
 
                 %s
@@ -76,9 +76,9 @@ public class SmtpEmailNotifier implements EmailNotifier {
                 O link é válido por %d minutos e só pode ser usado uma vez.
                 Se você não fez esse pedido, ignore este e-mail: sua senha atual continua valendo.
 
-                Equipe SalonHub
+                Equipe Meu Espaço
                 """.formatted(recipientName, link, validityMinutes);
-        dispatch(recipientEmail, "Recuperação de senha — SalonHub", body);
+        dispatch(recipientEmail, "Recuperação de senha — Meu Espaço", body);
     }
 
     private void dispatch(String to, String subject, String body) {

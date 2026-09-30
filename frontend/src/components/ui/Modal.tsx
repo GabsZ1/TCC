@@ -74,7 +74,7 @@ export function Modal({ title, onClose, children, size = 'md' }: ModalProps) {
       >
         <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-background-300 bg-background-50/95 px-5 py-4 backdrop-blur-xl sm:px-6">
           <div>
-            <p className="text-[0.6rem] font-extrabold uppercase tracking-[0.16em] text-primary-700">SalonHub</p>
+            <p className="text-[0.6rem] font-extrabold uppercase tracking-[0.16em] text-primary-700">Meu Espaço</p>
             <h2 id={titleId} className="mt-1 text-xl font-extrabold tracking-[-0.035em] text-text-950">
               {title}
             </h2>

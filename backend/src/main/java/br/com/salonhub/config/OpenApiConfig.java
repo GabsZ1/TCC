@@ -15,7 +15,7 @@ public class OpenApiConfig {
     OpenAPI salonHubOpenApi() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("SalonHub API")
+                        .title("Meu Espaço API")
                         .version("v1")
                         .description("API da plataforma SaaS para gerenciamento de salões e barbearias."))
                 .components(new Components()

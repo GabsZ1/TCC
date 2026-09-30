@@ -13,9 +13,10 @@ export interface Customer {
 }
 
 export interface CustomerInput { name: string; phone: string; email: string; active?: boolean }
+export interface Page<T> { content: T[]; number: number; totalPages: number; totalElements: number }
 
-export const fetchCustomers = (search = '') =>
-  api.get<Customer[]>('/clientes/estabelecimento/me', { params: { search } }).then((response) => response.data)
+export const fetchCustomers = (search = '', page = 0, active?: boolean) =>
+  api.get<Page<Customer>>('/clientes/estabelecimento/me', { params: { search, page, size: 20, active } }).then((response) => response.data)
 export const fetchCustomerSuggestions = (phone: string, email: string) =>
   api.get<Customer[]>('/clientes/estabelecimento/me/sugestoes', { params: { phone: phoneDigits(phone), email } }).then((response) => response.data)
 export const createCustomer = (input: CustomerInput) =>
@@ -29,8 +30,8 @@ export const mergeCustomers = (id: number, otherId: number) =>
   api.patch<Customer>(`/clientes/estabelecimento/me/${id}/mesclar/${otherId}`).then((response) => response.data)
 export const keepCustomersSeparate = (id: number, otherId: number) =>
   api.patch(`/clientes/estabelecimento/me/${id}/manter-separados/${otherId}`)
-export const fetchCustomerAppointments = (id: number) =>
-  api.get<Appointment[]>(`/clientes/estabelecimento/me/${id}/agendamentos`).then((response) => response.data)
+export const fetchCustomerAppointments = (id: number, page = 0) =>
+  api.get<Page<Appointment>>(`/clientes/estabelecimento/me/${id}/agendamentos`, { params: { page, size: 10 } }).then((response) => response.data)
 export const fetchBookingOptions = (serviceId?: number) =>
   api.get<{ services: Array<{ id: number; name: string }>; professionals: Array<{ id: number; name: string }> }>('/clientes/estabelecimento/me/opcoes-agendamento', { params: { serviceId } }).then((response) => response.data)
 export const fetchInternalAvailability = (customerId: number, serviceId: number, professionalId: number, date: string, appointmentId?: number) =>

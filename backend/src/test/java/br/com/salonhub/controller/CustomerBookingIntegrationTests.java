@@ -33,6 +33,31 @@ class CustomerBookingIntegrationTests {
     @Autowired JdbcTemplate jdbc;
 
     @Test
+    void customerListUsesTenantScopedPagesAndSearchesEmail() throws Exception {
+        registerEstablishment("admin.pages@salonhub.test", "66777888000181");
+        String admin = login("admin.pages@salonhub.test");
+        long first = createCustomer(admin, "Ana", "44999990001", "ana@pages.test");
+        createCustomer(admin, "Bea", "44999990002", "bea@pages.test");
+        long last = createCustomer(admin, "Cris", "44999990003", "cris@pages.test");
+        registerEstablishment("foreign.pages@salonhub.test", "11444777000161");
+        createCustomer(login("foreign.pages@salonhub.test"), "Aaa", "44999990004", "foreign@pages.test");
+
+        mvc.perform(get("/api/clientes/estabelecimento/me").header("Authorization", admin)
+                .param("page", "0").param("size", "2"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(3))
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[0].id").value(first));
+        mvc.perform(get("/api/clientes/estabelecimento/me").header("Authorization", admin)
+                .param("page", "1").param("size", "2"))
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].id").value(last));
+        mvc.perform(get("/api/clientes/estabelecimento/me").header("Authorization", admin)
+                .param("search", "cris@pages.test"))
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].id").value(last));
+    }
+
+    @Test
     void ignoredPairsCascadeWhenMergeDeletesTheirCustomer() throws Exception {
         long establishmentId = registerEstablishment("admin.cascade@salonhub.test", "66777888000181");
         String admin = login("admin.cascade@salonhub.test");
@@ -60,11 +85,11 @@ class CustomerBookingIntegrationTests {
         long existing = createCustomer(admin, "Maria da Silva", "44999990000", "MARIA@EXAMPLE.COM");
         mvc.perform(get("/api/clientes/estabelecimento/me").header("Authorization", admin)
                 .param("search", "(44) 99999-0000"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].id").value(existing));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].id").value(existing));
         mvc.perform(get("/api/clientes/estabelecimento/me").header("Authorization", admin)
                 .param("search", "44999990000"))
-                .andExpect(jsonPath("$[0].id").value(existing));
+                .andExpect(jsonPath("$.content[0].id").value(existing));
         registerEstablishment("other.suggest@salonhub.test", "11444777000161");
         createCustomer(login("other.suggest@salonhub.test"), "Outro salão", "44999990000", "maria@example.com");
         mvc.perform(get("/api/clientes/estabelecimento/me/sugestoes").header("Authorization", admin)
@@ -160,7 +185,7 @@ class CustomerBookingIntegrationTests {
         org.junit.jupiter.api.Assertions.assertEquals(2, customers.findByEstablishmentIdOrderByNameAsc(establishmentId).size());
         org.junit.jupiter.api.Assertions.assertNull(customers.findById(customerId).orElseThrow().getUser());
         mvc.perform(get("/api/clientes/estabelecimento/me/{id}/agendamentos", customerId)
-                .header("Authorization", admin)).andExpect(jsonPath("$.length()").value(1));
+                .header("Authorization", admin)).andExpect(jsonPath("$.totalElements").value(1));
 
         String professional = login("prof.link@salonhub.test");
         mvc.perform(get("/api/clientes/estabelecimento/me/{id}/possiveis-duplicados", onlineId)
@@ -177,7 +202,7 @@ class CustomerBookingIntegrationTests {
         mvc.perform(patch("/api/clientes/estabelecimento/me/{id}/mesclar/{otherId}", onlineId, customerId)
                 .header("Authorization", otherAdmin)).andExpect(status().isNotFound());
         mvc.perform(get("/api/agendamentos/me").header("Authorization", client))
-                .andExpect(jsonPath("$.length()").value(1)).andExpect(jsonPath("$[0].customerId").value(onlineId));
+                .andExpect(jsonPath("$.totalElements").value(1)).andExpect(jsonPath("$.content[0].customerId").value(onlineId));
         mvc.perform(post("/api/estabelecimentos/{id}/agendamentos", establishmentId)
                 .header("Authorization", client).contentType(MediaType.APPLICATION_JSON)
                 .content(booking.replace("T10:00:00", "T16:00:00")))
@@ -188,7 +213,7 @@ class CustomerBookingIntegrationTests {
         org.junit.jupiter.api.Assertions.assertEquals(1, customers.findByEstablishmentIdOrderByNameAsc(establishmentId).size());
         org.junit.jupiter.api.Assertions.assertFalse(customers.existsById(customerId));
         mvc.perform(get("/api/agendamentos/me").header("Authorization", client))
-                .andExpect(jsonPath("$.length()").value(3));
+                .andExpect(jsonPath("$.totalElements").value(3));
     }
 
     @Test
@@ -314,7 +339,7 @@ class CustomerBookingIntegrationTests {
                 .andExpect(jsonPath("$.customerId").value(customerId));
         mvc.perform(get("/api/clientes/estabelecimento/me/{id}/agendamentos", customerId.longValue())
                 .header("Authorization", auth))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1));
 
         // Profissional: agenda só na própria agenda.
         Number colleagueId = JsonPath.read(mvc.perform(post("/api/funcionarios").header("Authorization", auth)

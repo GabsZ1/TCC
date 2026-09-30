@@ -22,9 +22,13 @@ import br.com.salonhub.repository.UserRepository;
 import br.com.salonhub.service.TenantAuthorizationService;
 import br.com.salonhub.service.professionalagenda.ProfessionalAvailabilityService;
 import br.com.salonhub.entity.ProfessionalCalendarEvent;
+import br.com.salonhub.entity.EstablishmentCalendarBlock;
 import br.com.salonhub.repository.ProfessionalCalendarEventRepository;
+import br.com.salonhub.repository.EstablishmentCalendarBlockRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.access.AccessDeniedException;
 
@@ -48,21 +52,56 @@ public class AppointmentQueryService {
     private final Clock clock;
     private final ProfessionalAvailabilityService professionalAvailabilityService;
     private final ProfessionalCalendarEventRepository calendarEventRepository;
+    private final EstablishmentCalendarBlockRepository establishmentBlockRepository;
 
     @Transactional(readOnly = true)
-    public List<AppointmentResponse> findMine(Long clientId) {
+    public Page<AppointmentResponse> findMine(Long clientId, int page, int size) {
         User client = tenantAuthorizationService.requireClient(clientId);
-        return appointmentRepository.findByCustomerUserIdOrderByStartsAtDesc(client.getId()).stream()
-                .map(AppointmentResponse::fromEntity)
-                .toList();
+        return appointmentRepository.findByCustomerUserIdOrderByStartsAtDescIdDesc(
+                client.getId(), PageRequest.of(page, size)).map(AppointmentResponse::fromEntity);
     }
 
     @Transactional(readOnly = true)
-    public List<AppointmentResponse> findMineAsProfessional(Long professionalId) {
+    public AppointmentResponse findNextForClient(Long clientId) {
+        User client = tenantAuthorizationService.requireClient(clientId);
+        return appointmentRepository.findFirstByCustomerUserIdAndStatusAndStartsAtGreaterThanEqualOrderByStartsAtAscIdAsc(
+                client.getId(), AppointmentStatus.CONFIRMED, LocalDateTime.now(clock))
+                .map(AppointmentResponse::fromEntity).orElse(null);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<AppointmentResponse> findMinePage(Long clientId, boolean history, int page, int size) {
+        User client = tenantAuthorizationService.requireClient(clientId);
+        LocalDateTime now = LocalDateTime.now(clock);
+        Page<Appointment> result = history
+                ? appointmentRepository.findClientHistory(client.getId(), now, PageRequest.of(page, size))
+                : appointmentRepository.findByCustomerUserIdAndStatusAndStartsAtGreaterThanEqualOrderByStartsAtAscIdAsc(
+                        client.getId(), AppointmentStatus.CONFIRMED, now, PageRequest.of(page, size));
+        return result.map(AppointmentResponse::fromEntity);
+    }
+
+    public record ProfessionalToday(long confirmedCount, AppointmentResponse next) {}
+
+    @Transactional(readOnly = true)
+    public ProfessionalToday findTodayForProfessional(Long professionalId) {
         User professional = tenantAuthorizationService.requireProfessional(professionalId);
-        return appointmentRepository.findByProfessionalIdOrderByStartsAtDesc(professional.getId()).stream()
-                .map(AppointmentResponse::fromEntity)
-                .toList();
+        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime start = now.toLocalDate().atStartOfDay();
+        LocalDateTime end = start.plusDays(1);
+        long count = appointmentRepository.countByProfessionalIdAndStatusAndStartsAtGreaterThanEqualAndStartsAtLessThan(
+                professional.getId(), AppointmentStatus.CONFIRMED, start, end);
+        AppointmentResponse next = appointmentRepository
+                .findFirstByProfessionalIdAndStatusAndEndsAtGreaterThanAndStartsAtLessThanOrderByStartsAtAscIdAsc(
+                        professional.getId(), AppointmentStatus.CONFIRMED, now, end)
+                .map(AppointmentResponse::fromEntity).orElse(null);
+        return new ProfessionalToday(count, next);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<AppointmentResponse> findMineAsProfessional(Long professionalId, int page, int size) {
+        User professional = tenantAuthorizationService.requireProfessional(professionalId);
+        return appointmentRepository.findByProfessionalIdOrderByStartsAtDescIdDesc(
+                professional.getId(), PageRequest.of(page, size)).map(AppointmentResponse::fromEntity);
     }
 
     /**
@@ -70,20 +109,20 @@ public class AppointmentQueryService {
      * estabelecimento; o profissional, só os dele.
      */
     @Transactional(readOnly = true)
-    public List<AppointmentResponse> findPendingClosure(Long userId) {
+    public Page<AppointmentResponse> findPendingClosure(Long userId, int page, int size) {
         User staff = tenantAuthorizationService.requireEstablishmentStaff(userId);
         LocalDateTime now = LocalDateTime.now(clock);
-        List<br.com.salonhub.entity.Appointment> pending = staff.getRole() == UserRole.ADMIN
-                ? appointmentRepository.findByEstablishmentIdAndStatusAndEndsAtLessThanEqualOrderByStartsAt(
-                        staff.getEstablishment().getId(), AppointmentStatus.CONFIRMED, now)
-                : appointmentRepository.findByProfessionalIdAndStatusAndEndsAtLessThanEqualOrderByStartsAt(
-                        staff.getId(), AppointmentStatus.CONFIRMED, now);
-        return pending.stream().map(AppointmentResponse::fromEntity).toList();
+        Page<Appointment> pending = staff.getRole() == UserRole.ADMIN
+                ? appointmentRepository.findByEstablishmentIdAndStatusAndEndsAtLessThanEqualOrderByStartsAtAscIdAsc(
+                        staff.getEstablishment().getId(), AppointmentStatus.CONFIRMED, now, PageRequest.of(page, size))
+                : appointmentRepository.findByProfessionalIdAndStatusAndEndsAtLessThanEqualOrderByStartsAtAscIdAsc(
+                        staff.getId(), AppointmentStatus.CONFIRMED, now, PageRequest.of(page, size));
+        return pending.map(AppointmentResponse::fromEntity);
     }
 
     @Transactional(readOnly = true)
-    public List<AppointmentResponse> findEstablishmentAgenda(
-            Long administratorId, LocalDate date, Long professionalId, AppointmentStatus status) {
+    public Page<AppointmentResponse> findEstablishmentAgenda(
+            Long administratorId, LocalDate date, Long professionalId, AppointmentStatus status, int page, int size) {
         User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
         LocalDateTime dayStart = date == null ? null : date.atStartOfDay();
         LocalDateTime dayEnd = date == null ? null : date.plusDays(1).atStartOfDay();
@@ -93,9 +132,7 @@ public class AppointmentQueryService {
                         dayStart,
                         dayEnd,
                         professionalId,
-                        status).stream()
-                .map(AppointmentResponse::fromEntity)
-                .toList();
+                        status, PageRequest.of(page, size)).map(AppointmentResponse::fromEntity);
     }
 
     @Transactional(readOnly = true)
@@ -175,11 +212,14 @@ public class AppointmentQueryService {
         List<ProfessionalCalendarEvent> calendarEvents = calendarEventRepository
                 .findByProfessionalIdAndStartsAtLessThanAndEndsAtGreaterThanOrderByStartsAt(
                         professionalId, dayEnd, dayStart);
+        List<EstablishmentCalendarBlock> establishmentBlocks = establishmentBlockRepository
+                .findByEstablishmentIdAndStartsAtLessThanAndEndsAtGreaterThanOrderByStartsAt(
+                        establishmentId, dayEnd, dayStart);
 
         ProfessionalAvailabilityService.WorkingHours workingHours =
                 professionalAvailabilityService.requireWorkingHours(professional, date);
         List<LocalTime> availableTimes = calculateAvailableTimes(
-                date, service.getDurationMinutes(), workingHours, professionalAppointments, clientAppointments, calendarEvents,
+                date, service.getDurationMinutes(), workingHours, professionalAppointments, clientAppointments, calendarEvents, establishmentBlocks,
                 earliestStart, latestStart, appointmentId, AppointmentSlotPolicy.SLOT_INTERVAL_MINUTES);
         return new AvailabilityResponse(date, service.getDurationMinutes(), availableTimes);
     }
@@ -228,11 +268,14 @@ public class AppointmentQueryService {
         List<ProfessionalCalendarEvent> blocks = calendarEventRepository
                 .findByProfessionalIdAndStartsAtLessThanAndEndsAtGreaterThanOrderByStartsAt(
                         professionalId, dayEnd, dayStart);
+        List<EstablishmentCalendarBlock> establishmentBlocks = establishmentBlockRepository
+                .findByEstablishmentIdAndStartsAtLessThanAndEndsAtGreaterThanOrderByStartsAt(
+                        establishmentId, dayEnd, dayStart);
         var hours = professionalAvailabilityService.requireWorkingHours(professional, date);
         int duration = current != null && current.getService().getId().equals(serviceId)
                 ? current.getDurationMinutes() : service.getDurationMinutes();
         return new AvailabilityResponse(date, duration, calculateAvailableTimes(
-                date, duration, hours, professionalAppointments, customerAppointments, blocks,
+                date, duration, hours, professionalAppointments, customerAppointments, blocks, establishmentBlocks,
                 LocalDateTime.now(clock), null, appointmentId, AppointmentSlotPolicy.INTERNAL_SLOT_INTERVAL_MINUTES));
     }
 
@@ -243,6 +286,7 @@ public class AppointmentQueryService {
             List<Appointment> professionalAppointments,
             List<Appointment> clientAppointments,
             List<ProfessionalCalendarEvent> calendarEvents,
+            List<EstablishmentCalendarBlock> establishmentBlocks,
             LocalDateTime earliestStart,
             LocalDateTime latestStart,
             Long ignoredAppointmentId,
@@ -259,7 +303,9 @@ public class AppointmentQueryService {
             boolean clientOverlaps = overlaps(clientAppointments, slotStart, slotEnd, ignoredAppointmentId);
             boolean calendarEventOverlaps = calendarEvents.stream().anyMatch(event ->
                     event.getStartsAt().isBefore(slotEnd) && event.getEndsAt().isAfter(slotStart));
-            if (withinAdvanceWindow && !professionalOverlaps && !clientOverlaps && !calendarEventOverlaps) {
+            boolean establishmentBlockOverlaps = establishmentBlocks.stream().anyMatch(block ->
+                    block.getStartsAt().isBefore(slotEnd) && block.getEndsAt().isAfter(slotStart));
+            if (withinAdvanceWindow && !professionalOverlaps && !clientOverlaps && !calendarEventOverlaps && !establishmentBlockOverlaps) {
                 availableTimes.add(slotStart.toLocalTime());
             }
             candidate = candidate.plusMinutes(slotIntervalMinutes);

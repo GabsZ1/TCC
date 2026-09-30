@@ -38,8 +38,8 @@ public class CustomerDuplicateService {
         String normalizedPhone = PhoneNumbers.normalize(phone);
         String normalizedEmail = email(email);
         if (normalizedPhone == null && normalizedEmail == null) return List.of();
-        return customers.findByEstablishmentIdOrderByNameAsc(establishmentId).stream()
-                .filter(Customer::isActive)
+        return customers.findDuplicateMatches(establishmentId, normalizedPhone == null ? "" : normalizedPhone,
+                normalizedEmail == null ? "" : normalizedEmail).stream()
                 .filter(candidate -> matches(candidate, normalizedPhone, normalizedEmail))
                 .map(CustomerResponse::fromEntity)
                 .toList();
@@ -56,8 +56,11 @@ public class CustomerDuplicateService {
                 where establishment_id = ? and (customer_id_a = ? or customer_id_b = ?)
                 """, Long.class, customerId, establishmentId, customerId, customerId)
                 .stream().collect(Collectors.toSet());
-        return customers.findByEstablishmentIdOrderByNameAsc(establishmentId).stream()
-                .filter(candidate -> candidate.isActive() && !candidate.getId().equals(customerId))
+        String phone = PhoneNumbers.normalize(selected.getPhone());
+        String normalizedEmail = email(selected.getEmail());
+        return customers.findDuplicateMatches(establishmentId, phone == null ? "" : phone,
+                normalizedEmail == null ? "" : normalizedEmail).stream()
+                .filter(candidate -> !candidate.getId().equals(customerId))
                 .filter(candidate -> !ignored.contains(candidate.getId()))
                 .filter(candidate -> similar(selected, candidate))
                 .map(candidate -> new Candidate(candidate.getId(), candidate.getName(), candidate.getPhone(),

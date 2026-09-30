@@ -5,7 +5,6 @@ import { IMaskInput } from 'react-imask'
 import { useAuth } from '@/hooks/useAuth'
 import { formatDateTime } from '@/lib/format'
 import { APPOINTMENT_STATUS_LABELS, APPOINTMENT_STATUS_STYLES } from '@/features/appointments/appointmentStatus'
-import type { Appointment } from '@/features/appointments/appointmentsApi'
 import { getApiErrorMessage } from '@/lib/apiError'
 import { formatPhone, isValidPhone, PHONE_MASK } from '@/lib/phone'
 import { createCustomer, createCustomerAppointment, fetchBookingOptions, fetchCustomerAppointments, fetchCustomerDuplicates, fetchCustomerSuggestions, fetchCustomers, fetchInternalAvailability, keepCustomersSeparate, mergeCustomers, updateCustomer, type Customer } from './customersApi'
@@ -16,6 +15,8 @@ export function CustomersPage() {
   // O profissional só agenda na própria agenda (o backend também garante isso).
   const isProfessional = user?.role === 'PROFESSIONAL'
   const [search, setSearch] = useState('')
+  const [customerPage, setCustomerPage] = useState(0)
+  const [activeFilter, setActiveFilter] = useState('all')
   const [selected, setSelected] = useState<Customer | null>(null)
   const [editing, setEditing] = useState<Customer | 'new' | null>(null)
   const [name, setName] = useState('')
@@ -29,13 +30,12 @@ export function CustomersPage() {
     const now = new Date()
     return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
   })
-  const customers = useQuery({ queryKey: ['customers', search], queryFn: () => fetchCustomers(search) })
+  const customers = useQuery({ queryKey: ['customers', search, customerPage, activeFilter], queryFn: () => fetchCustomers(search, customerPage, activeFilter === 'all' ? undefined : activeFilter === 'active') })
   const suggestions = useQuery({
     queryKey: ['customer-suggestions', phone, email],
     queryFn: () => fetchCustomerSuggestions(phone, email),
     enabled: editing === 'new' && (phone.replace(/\D/g, '').length >= 10 || email.includes('@')),
   })
-  const history = useQuery({ queryKey: ['customer-appointments', selected?.id], queryFn: () => fetchCustomerAppointments(selected!.id), enabled: !!selected })
   const duplicates = useQuery({ queryKey: ['customer-duplicates', selected?.id], queryFn: () => fetchCustomerDuplicates(selected!.id), enabled: !!selected && user?.role === 'ADMIN' })
   const options = useQuery({ queryKey: ['customer-booking-options', serviceId], queryFn: () => fetchBookingOptions(serviceId ? Number(serviceId) : undefined) })
   const bookingProfessionalId = isProfessional ? Number(user?.id) : Number(professionalId)
@@ -83,11 +83,13 @@ export function CustomersPage() {
     <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(260px,1fr)_minmax(360px,2fr)]">
       <section className="surface-card p-5">
         <div className="flex items-center justify-between gap-3"><h2 className="font-semibold">Clientes</h2><button className="btn-primary" onClick={() => openForm('new')}>Novo cliente</button></div>
-        <input className="filter-input mt-4 w-full" aria-label="Buscar cliente" placeholder="Buscar por nome ou telefone" value={search} onChange={(event) => setSearch(event.target.value)} />
+        <input className="filter-input mt-4 w-full" aria-label="Buscar cliente" placeholder="Buscar por nome, telefone ou e-mail" value={search} onChange={(event) => { setSearch(event.target.value); setCustomerPage(0) }} />
+        <select className="filter-input mt-2 w-full" aria-label="Filtrar clientes por status" value={activeFilter} onChange={(event) => { setActiveFilter(event.target.value); setCustomerPage(0) }}><option value="all">Todos</option><option value="active">Ativos</option><option value="inactive">Inativos</option></select>
         {customers.isError && <p role="alert" className="mt-3 text-danger-600">{getApiErrorMessage(customers.error, 'Não foi possível carregar os clientes.')}</p>}
-        <div className="mt-4 space-y-2">{customers.data?.map((customer) => <button key={customer.id} type="button" onClick={() => { setSelected(customer); setTime(''); merge.reset(); separate.reset() }} className="w-full rounded-xl border border-background-300 p-3 text-left hover:bg-background-50">
+        <div className="mt-4 space-y-2">{customers.data?.content.map((customer) => <button key={customer.id} type="button" onClick={() => { setSelected(customer); setTime(''); merge.reset(); separate.reset() }} className="w-full rounded-xl border border-background-300 p-3 text-left hover:bg-background-50">
           <strong className="block">{customer.name}</strong><span className="text-sm text-text-600">{formatPhone(customer.phone)}{customer.active ? '' : ' · Inativo'}</span>
         </button>)}</div>
+        {customers.data && customers.data.totalPages > 1 && <div className="mt-4 flex items-center justify-between text-sm"><button type="button" disabled={customerPage === 0} onClick={() => setCustomerPage(customerPage - 1)}>Anterior</button><span>Página {customerPage + 1} de {customers.data.totalPages}</span><button type="button" disabled={customerPage + 1 >= customers.data.totalPages} onClick={() => setCustomerPage(customerPage + 1)}>Próxima</button></div>}
       </section>
       <section className="space-y-6">
         {editing && <form onSubmit={submitCustomer} className="surface-card space-y-3 p-5">
@@ -140,31 +142,29 @@ export function CustomersPage() {
             {booking.isSuccess && <p role="status" className="text-success-700">Agendamento criado.</p>}
             <button className="btn-primary" disabled={booking.isPending || !time || !availability.data?.availableTimes.includes(time)}>Agendar</button>
           </form>}
-          <CustomerHistory key={selected.id} appointments={history.data} isLoading={history.isLoading} isError={history.isError} />
+          <CustomerHistory key={selected.id} customerId={selected.id} />
         </> : <div className="surface-card p-5 text-text-600">Selecione um cliente para ver o histórico e agendar.</div>}
       </section>
     </div>
   </div>
 }
 
-const HISTORY_PAGE_SIZE = 10
-
-/** Histórico do cliente, 10 por página. O `key` do cliente reinicia a página ao trocar de cliente. */
-function CustomerHistory({ appointments, isLoading, isError }: { appointments?: Appointment[]; isLoading: boolean; isError: boolean }) {
+/** O `key` do cliente reinicia a página ao trocar de cliente. */
+function CustomerHistory({ customerId }: { customerId: number }) {
   const [page, setPage] = useState(0)
-  const items = appointments ?? []
-  const totalPages = Math.max(1, Math.ceil(items.length / HISTORY_PAGE_SIZE))
-  const current = Math.min(page, totalPages - 1)
-  const visible = items.slice(current * HISTORY_PAGE_SIZE, (current + 1) * HISTORY_PAGE_SIZE)
+  const history = useQuery({ queryKey: ['customer-appointments', customerId, page], queryFn: () => fetchCustomerAppointments(customerId, page) })
+  const visible = history.data?.content ?? []
+  const totalPages = history.data?.totalPages ?? 1
+  const current = page
 
   return <section className="surface-card p-5">
     <div className="flex items-center justify-between gap-3">
       <h2 className="font-semibold">Histórico</h2>
-      {items.length > 0 && <span className="text-xs text-text-500">{items.length} atendimento(s)</span>}
+      {!!history.data?.totalElements && <span className="text-xs text-text-500">{history.data.totalElements} atendimento(s)</span>}
     </div>
-    {isLoading && <p className="mt-3 text-sm text-text-600">Carregando histórico...</p>}
-    {isError && <p role="alert" className="mt-3 text-sm text-danger-600">Não foi possível carregar o histórico.</p>}
-    {!isLoading && !isError && items.length === 0 && <p className="mt-3 text-sm text-text-600">Nenhum atendimento ainda.</p>}
+    {history.isLoading && <p className="mt-3 text-sm text-text-600">Carregando histórico...</p>}
+    {history.isError && <p role="alert" className="mt-3 text-sm text-danger-600">Não foi possível carregar o histórico.</p>}
+    {!history.isLoading && !history.isError && history.data?.totalElements === 0 && <p className="mt-3 text-sm text-text-600">Nenhum atendimento ainda.</p>}
     <ul className="mt-2">
       {visible.map((appointment) => (
         <li key={appointment.id} className="flex flex-wrap items-start justify-between gap-2 border-t border-background-300 py-3 text-sm first:border-t-0">

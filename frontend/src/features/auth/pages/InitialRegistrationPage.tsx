@@ -43,7 +43,7 @@ export function InitialRegistrationPage() {
       maxWidth="lg"
     >
       <form onSubmit={handleSubmit}>
-        <FormSection icon={<UserRound size={18} />} title="Sua conta" description="Dados usados para acessar e administrar o SalonHub.">
+        <FormSection icon={<UserRound size={18} />} title="Sua conta" description="Dados usados para acessar e administrar o Meu Espaço.">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field name="ownerName" label="Seu nome" autoComplete="name" placeholder="Nome completo" />
             <Field name="ownerEmail" label="Seu e-mail" type="email" autoComplete="email" placeholder="voce@exemplo.com" />

@@ -4,5 +4,6 @@ public record ActiveEstablishmentResponse(
         Long id,
         String name,
         Integer minimumAdvanceHours,
-        Integer maximumAdvanceDays) {
+        Integer maximumAdvanceDays,
+        boolean hasLogo) {
 }

@@ -36,7 +36,10 @@ public class ProfessionalCompletedServicesController {
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-            @RequestParam(required = false) Long serviceId) {
-        return completedServicesService.findMine(Long.valueOf(jwt.getSubject()), startDate, endDate, serviceId);
+            @RequestParam(required = false) Long serviceId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return completedServicesService.findMine(Long.valueOf(jwt.getSubject()), startDate, endDate, serviceId,
+                Math.max(0, page), Math.max(1, Math.min(size, 100)));
     }
 }

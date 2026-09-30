@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { Modal } from '@/components/ui/Modal'
 import { fetchEstablishmentProfile } from '@/features/appointments/appointmentsApi'
 import { EmployeeAvatar } from '@/features/employees/components/EmployeeAvatar'
+import { EstablishmentImage } from '@/features/establishment/EstablishmentImage'
 import { getApiErrorMessage } from '@/lib/apiError'
 
 interface Props {
@@ -27,6 +28,7 @@ export function EstablishmentDetailsModal({ establishmentId, establishmentName, 
       {profileQuery.isError && <div className="rounded-xl border border-danger-500/20 bg-danger-50 p-4 text-sm text-danger-600">{getApiErrorMessage(profileQuery.error, 'Não foi possível carregar os detalhes do estabelecimento.')}</div>}
       {profile && (
         <div className="space-y-7">
+          <div className="relative"><EstablishmentImage establishmentId={establishmentId} kind="capa" hasImage={profile.hasCover} className="h-40 w-full rounded-2xl object-cover" /><EstablishmentImage establishmentId={establishmentId} kind="logo" hasImage={profile.hasLogo} className="absolute -bottom-4 left-4 size-16 rounded-xl border-2 border-white object-cover" /></div>
           <section className="rounded-2xl bg-primary-900 p-5 text-white sm:p-6">
             <p className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-primary-200">Quem somos</p>
             <p className="mt-3 whitespace-pre-line text-sm leading-7 text-primary-50">{profile.aboutUs || 'Este estabelecimento ainda não adicionou uma apresentação.'}</p>

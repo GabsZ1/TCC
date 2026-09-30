@@ -87,7 +87,7 @@ public class DemoDataSeeder {
         LocalDate today = LocalDate.now(clock);
 
         if (!userRepository.existsByEmailIgnoreCase(SYSTEM_ADMIN_EMAIL)) {
-            userRepository.save(User.builder().name("Administração SalonHub").email(SYSTEM_ADMIN_EMAIL)
+            userRepository.save(User.builder().name("Administração Meu Espaço").email(SYSTEM_ADMIN_EMAIL)
                     .password(encodedPassword).role(UserRole.SYSTEM_ADMIN).build());
         }
 
@@ -128,7 +128,7 @@ public class DemoDataSeeder {
 
         // ---------- Barbearia Dom Corte ----------
         SeededEstablishment domCorte = establishment("Barbearia Dom Corte", "domcorte", "Diego Martins",
-                "Barbearia clássica com toalha quente, navalha e cerveja gelada. Agende pelo SalonHub.",
+                "Barbearia clássica com toalha quente, navalha e cerveja gelada. Agende pelo Meu Espaço.",
                 "@domcorte", "44999220002", "87020025", "Avenida Herval", "780", null, "Zona 7", "Maringá", "PR");
         service(domCorte, "Corte masculino", null, "50.00", "45", 45);
         service(domCorte, "Barba", "Barba com toalha quente e navalha.", "40.00", "45", 30);

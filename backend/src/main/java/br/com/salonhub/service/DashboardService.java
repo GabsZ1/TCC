@@ -8,6 +8,7 @@ import br.com.salonhub.repository.AppointmentRepository;
 import br.com.salonhub.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -49,9 +50,23 @@ public class DashboardService {
         long activeEmployees = userRepository
                 .countByEstablishmentIdAndRoleAndActiveTrue(establishmentId, UserRole.PROFESSIONAL);
 
+        LocalDateTime now = LocalDateTime.now(clock);
+        long todaysAppointments = appointmentRepository
+                .countByEstablishmentIdAndStartsAtGreaterThanEqualAndStartsAtLessThan(establishmentId, todayStart, todayEnd);
+        long pendingClosure = appointmentRepository
+                .countByEstablishmentIdAndStatusAndEndsAtLessThanEqual(establishmentId, AppointmentStatus.CONFIRMED, now);
+        BigDecimal todaysRevenue = appointmentRepository.sumRevenueCompletedInPeriod(establishmentId, todayStart, todayEnd);
+        var upcoming = appointmentRepository
+                .findByEstablishmentIdAndStatusAndStartsAtGreaterThanEqualOrderByStartsAtAscIdAsc(
+                        establishmentId, AppointmentStatus.CONFIRMED, now, PageRequest.of(0, 5))
+                .stream().map(item -> new DashboardSummaryResponse.UpcomingAppointment(item.getId(),
+                        item.getStartsAt(), item.getCustomer().getName(), item.getServiceName(),
+                        item.getProfessional().getName())).toList();
+
         return new DashboardSummaryResponse(
                 todaysCompletedServices,
                 monthlyCommissionTotal == null ? BigDecimal.ZERO.setScale(2) : monthlyCommissionTotal,
-                activeEmployees);
+                activeEmployees, todaysAppointments, pendingClosure,
+                todaysRevenue == null ? BigDecimal.ZERO.setScale(2) : todaysRevenue, upcoming);
     }
 }

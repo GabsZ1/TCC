@@ -20,11 +20,12 @@ export function MyCompletedServicesPage() {
   const [endDate, setEndDate] = useState('')
   const [serviceId, setServiceId] = useState('')
   const [filters, setFilters] = useState<CompletedServicesFilters>({})
+  const [page, setPage] = useState(0)
   const [filterError, setFilterError] = useState<string | null>(null)
 
   const query = useQuery({
-    queryKey: ['my-completed-services', filters.startDate, filters.endDate, filters.serviceId],
-    queryFn: () => fetchMyCompletedServices(filters),
+    queryKey: ['my-completed-services', filters.startDate, filters.endDate, filters.serviceId, page],
+    queryFn: () => fetchMyCompletedServices({ ...filters, page }),
     placeholderData: keepPreviousData,
   })
 
@@ -44,6 +45,7 @@ export function MyCompletedServicesPage() {
       return
     }
     setFilterError(null)
+    setPage(0)
     setFilters({
       startDate: startDate || undefined,
       endDate: endDate || undefined,
@@ -56,17 +58,20 @@ export function MyCompletedServicesPage() {
     setEndDate('')
     setServiceId('')
     setFilterError(null)
+    setPage(0)
     setFilters({})
   }
 
   function removePeriod() {
     setStartDate('')
     setEndDate('')
+    setPage(0)
     setFilters((current) => ({ ...current, startDate: undefined, endDate: undefined }))
   }
 
   function removeService() {
     setServiceId('')
+    setPage(0)
     setFilters((current) => ({ ...current, serviceId: undefined }))
   }
 
@@ -168,6 +173,7 @@ export function MyCompletedServicesPage() {
                   </tfoot>
                 </table>
               </div>
+              {data.totalPages > 1 && <nav className="mt-4 flex justify-between text-sm" aria-label="Páginas de atendimentos realizados"><button type="button" disabled={page === 0} onClick={() => setPage(page - 1)}>Anterior</button><span>Página {page + 1} de {data.totalPages}</span><button type="button" disabled={page + 1 >= data.totalPages} onClick={() => setPage(page + 1)}>Próxima</button></nav>}
             </>
           )}
         </>

@@ -55,12 +55,13 @@ export interface ProfessionalAgendaItem {
   invalidationReason: string | null
 }
 
-export function fetchProfessionalAgenda(startsAt: string, endsAt: string) {
-  return api.get<ProfessionalAgendaItem[]>('/profissionais/me/agenda', { params: { startsAt, endsAt } }).then((response) => response.data)
+const agendaPath = (professionalId?: number) => professionalId == null ? '/profissionais/me/agenda' : `/funcionarios/${professionalId}/agenda`
+export function fetchProfessionalAgenda(startsAt: string, endsAt: string, professionalId?: number) {
+  return api.get<ProfessionalAgendaItem[]>(agendaPath(professionalId), { params: { startsAt, endsAt } }).then((response) => response.data)
 }
-export function fetchProfessionalSchedule() { return api.get<ProfessionalHour[]>('/profissionais/me/agenda/horarios').then((response) => response.data) }
-export function fetchProfessionalAgendaConfiguration() { return api.get<ProfessionalAgendaConfiguration>('/profissionais/me/agenda/configuracao').then((response) => response.data) }
-export function updateProfessionalSchedule(businessHours: ProfessionalHourInput[]) { return api.put<ProfessionalHour[]>('/profissionais/me/agenda/horarios', { businessHours }).then((response) => response.data) }
-export function createCalendarEvent(input: CalendarEventInput) { return api.post<CalendarEvent>('/profissionais/me/agenda/eventos', input).then((response) => response.data) }
-export function updateCalendarEvent(eventId: number, input: CalendarEventInput) { return api.put<CalendarEvent>(`/profissionais/me/agenda/eventos/${eventId}`, input).then((response) => response.data) }
-export function deleteCalendarEvent(eventId: number) { return api.delete(`/profissionais/me/agenda/eventos/${eventId}`) }
+export function fetchProfessionalSchedule(professionalId?: number) { return api.get<ProfessionalHour[]>(`${agendaPath(professionalId)}/horarios`).then((response) => response.data) }
+export function fetchProfessionalAgendaConfiguration(professionalId?: number) { return api.get<ProfessionalAgendaConfiguration>(`${agendaPath(professionalId)}/configuracao`).then((response) => response.data) }
+export function updateProfessionalSchedule(businessHours: ProfessionalHourInput[], professionalId?: number) { return api.put<ProfessionalHour[]>(`${agendaPath(professionalId)}/horarios`, { businessHours }).then((response) => response.data) }
+export function createCalendarEvent(input: CalendarEventInput, professionalId?: number) { return api.post<CalendarEvent>(`${agendaPath(professionalId)}/eventos`, input).then((response) => response.data) }
+export function updateCalendarEvent(eventId: number, input: CalendarEventInput, professionalId?: number) { return api.put<CalendarEvent>(`${agendaPath(professionalId)}/eventos/${eventId}`, input).then((response) => response.data) }
+export function deleteCalendarEvent(eventId: number, professionalId?: number) { return api.delete(`${agendaPath(professionalId)}/eventos/${eventId}`) }

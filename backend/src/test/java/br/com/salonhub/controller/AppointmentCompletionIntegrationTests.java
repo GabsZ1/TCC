@@ -106,12 +106,12 @@ class AppointmentCompletionIntegrationTests {
         mockMvc.perform(get("/api/agendamentos/pendentes-fechamento")
                         .header("Authorization", bearer(fixture.administratorToken())))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].id").value(pastId));
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].id").value(pastId));
         mockMvc.perform(get("/api/agendamentos/pendentes-fechamento")
                         .header("Authorization", bearer(fixture.professionalToken())))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1));
+                .andExpect(jsonPath("$.totalElements").value(1));
         mockMvc.perform(get("/api/agendamentos/pendentes-fechamento")
                         .header("Authorization", bearer(fixture.clientToken())))
                 .andExpect(status().isForbidden());
@@ -121,7 +121,7 @@ class AppointmentCompletionIntegrationTests {
                 .andExpect(status().isOk());
         mockMvc.perform(get("/api/agendamentos/pendentes-fechamento")
                         .header("Authorization", bearer(fixture.administratorToken())))
-                .andExpect(jsonPath("$.length()").value(0));
+                .andExpect(jsonPath("$.totalElements").value(0));
     }
 
     @Test

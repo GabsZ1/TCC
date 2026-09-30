@@ -17,6 +17,7 @@ import org.springframework.security.oauth2.jwt.JwtTimestampValidator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.util.Base64;
+import java.time.Clock;
 
 @Configuration
 public class JwtConfig {
@@ -48,20 +49,26 @@ public class JwtConfig {
     }
 
     @Bean("firstAccessJwtDecoder")
-    JwtDecoder firstAccessJwtDecoder(SecretKey secretKey) {
-        return NimbusJwtDecoder.withSecretKey(secretKey)
+    JwtDecoder firstAccessJwtDecoder(SecretKey secretKey, Clock clock) {
+        NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(secretKey)
                 .macAlgorithm(MacAlgorithm.HS256)
                 .build();
+        JwtTimestampValidator timestampValidator = new JwtTimestampValidator();
+        timestampValidator.setClock(clock);
+        decoder.setJwtValidator(timestampValidator);
+        return decoder;
     }
 
     @Bean("authenticationJwtDecoder")
     @Primary
-    JwtDecoder authenticationJwtDecoder(SecretKey secretKey) {
+    JwtDecoder authenticationJwtDecoder(SecretKey secretKey, Clock clock) {
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(secretKey)
                 .macAlgorithm(MacAlgorithm.HS256)
                 .build();
+        JwtTimestampValidator timestampValidator = new JwtTimestampValidator();
+        timestampValidator.setClock(clock);
         decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
-                new JwtTimestampValidator(),
+                timestampValidator,
                 jwt -> jwt.hasClaim("purpose")
                         ? OAuth2TokenValidatorResult.failure(new OAuth2Error(
                                 "invalid_token", "Token não pode autenticar requisições", null))

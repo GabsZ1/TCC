@@ -52,7 +52,7 @@ export function AuthShell({ eyebrow, title, subtitle, children, maxWidth = 'md' 
         </div>
 
         <div className="relative flex items-center justify-between gap-4 border-t border-white/10 pt-5 text-[0.7rem] text-[var(--sidebar-muted)]">
-          <span>SalonHub · gestão de beleza e bem-estar</span>
+          <span>Meu Espaço · gestão de beleza e bem-estar</span>
           <span className="flex items-center gap-1.5"><Clock3 size={13} /> simples de usar</span>
         </div>
       </aside>

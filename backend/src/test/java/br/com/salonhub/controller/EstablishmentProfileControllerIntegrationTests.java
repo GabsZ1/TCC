@@ -13,12 +13,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.test.context.TestPropertySource;
 
 import java.math.BigDecimal;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -26,6 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
+@TestPropertySource(properties = "app.storage.type=memory")
 class EstablishmentProfileControllerIntegrationTests {
 
     @Autowired private MockMvc mockMvc;
@@ -33,6 +38,31 @@ class EstablishmentProfileControllerIntegrationTests {
     @Autowired private EstablishmentServiceRepository serviceRepository;
     @Autowired private UserRepository userRepository;
     @Autowired private TokenService tokenService;
+
+    @Test
+    void onlyOwnAdministratorCanManageLogoAndCover() throws Exception {
+        Establishment establishment = establishmentRepository.saveAndFlush(
+                Establishment.builder().name("Studio Mídia").cnpj("12345678000195").build());
+        User admin = user("Admin Mídia", "admin-media@salonhub.test", UserRole.ADMIN, establishment);
+        User client = user("Cliente Mídia", "client-media@salonhub.test", UserRole.CLIENT, null);
+        byte[] png = new byte[] {(byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a};
+
+        mockMvc.perform(multipart("/api/estabelecimentos/me/perfil/imagens/logo")
+                .file(new MockMultipartFile("file", "logo.png", "image/png", png))
+                .header("Authorization", bearer(admin))).andExpect(status().isNoContent());
+        mockMvc.perform(get("/api/estabelecimentos/{id}/perfil", establishment.getId())
+                .header("Authorization", bearer(client)))
+                .andExpect(jsonPath("$.hasLogo").value(true)).andExpect(jsonPath("$.hasCover").value(false));
+        mockMvc.perform(get("/api/estabelecimentos/{id}/perfil/imagens/logo", establishment.getId())
+                .header("Authorization", bearer(client))).andExpect(status().isOk());
+        mockMvc.perform(multipart("/api/estabelecimentos/me/perfil/imagens/capa")
+                .file(new MockMultipartFile("file", "cover.png", "image/png", png))
+                .header("Authorization", bearer(client))).andExpect(status().isForbidden());
+        mockMvc.perform(delete("/api/estabelecimentos/me/perfil/imagens/logo")
+                .header("Authorization", bearer(admin))).andExpect(status().isNoContent());
+        mockMvc.perform(get("/api/estabelecimentos/{id}/perfil/imagens/logo", establishment.getId())
+                .header("Authorization", bearer(client))).andExpect(status().isNotFound());
+    }
 
     @Test
     void shouldCreateUpdateAndExposePublicProfileWithCurrentCatalog() throws Exception {

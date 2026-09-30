@@ -142,7 +142,7 @@ class ClientAccountIntegrationTests {
 
         perform(fixture.client(), get("/api/agendamentos/me"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1));
+                .andExpect(jsonPath("$.totalElements").value(1));
         login(newEmail, PASSWORD).andExpect(status().isOk());
     }
 

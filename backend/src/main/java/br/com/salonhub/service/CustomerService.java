@@ -13,6 +13,9 @@ import br.com.salonhub.repository.UserRepository;
 import br.com.salonhub.validation.PhoneNumbers;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
@@ -26,20 +29,17 @@ public class CustomerService {
     private final TenantAuthorizationService authorization;
 
     @Transactional(readOnly = true)
-    public List<CustomerResponse> list(Long staffId,
-                                       String search) {
+    public Page<CustomerResponse> list(Long staffId, String search, Boolean active, int page, int size) {
         Long establishmentId = establishmentId(staffId);
         String term = search == null ? null : search.trim();
         boolean phoneSearch = term != null && term.matches("[0-9+()\\s-]+")
                 && !term.replaceAll("\\D", "").isEmpty();
         String normalizedPhone = phoneSearch ? PhoneNumbers.normalize(term) : null;
-        List<Customer> result = term == null || term.isBlank()
-                ? customers.findByEstablishmentIdOrderByNameAsc(establishmentId)
-                : phoneSearch
-                    ? customers.findByEstablishmentIdAndPhoneContainingOrderByNameAsc(establishmentId,
-                            normalizedPhone != null ? normalizedPhone : term.replaceAll("\\D", ""))
-                    : customers.findByEstablishmentIdAndNameContainingIgnoreCaseOrderByNameAsc(establishmentId, term);
-        return result.stream().map(CustomerResponse::fromEntity).toList();
+        String query = term == null || term.isBlank() ? "" : term;
+        return customers.search(establishmentId, query,
+                phoneSearch ? (normalizedPhone != null ? normalizedPhone : term.replaceAll("\\D", "")) : query,
+                active, PageRequest.of(page, size, Sort.by("name").ascending().and(Sort.by("id"))))
+                .map(CustomerResponse::fromEntity);
     }
 
     public record BookingOption(Long id, String name) {}
@@ -90,12 +90,12 @@ public class CustomerService {
     }
 
     @Transactional(readOnly = true)
-    public List<AppointmentResponse> history(Long staffId, Long id) {
+    public Page<AppointmentResponse> history(Long staffId, Long id, int page, int size) {
         Long establishmentId = establishmentId(staffId);
         customers.findByIdAndEstablishmentId(id, establishmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cliente não encontrado."));
-        return appointments.findByCustomerIdAndEstablishmentIdOrderByStartsAtDesc(id, establishmentId)
-                .stream().map(AppointmentResponse::fromEntity).toList();
+        return appointments.findByCustomerIdAndEstablishmentIdOrderByStartsAtDesc(id, establishmentId,
+                PageRequest.of(page, size)).map(AppointmentResponse::fromEntity);
     }
 
     private Long establishmentId(Long staffId) {

@@ -164,8 +164,8 @@ class AppointmentFlowIntegrationTests {
                         .param("professionalId", professionalId.toString())
                         .param("status", "CONFIRMED"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].clientName").value("Cliente MVP"));
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].clientName").value("Cliente MVP"));
 
         mockMvc.perform(get("/api/agendamentos/estabelecimento/me")
                         .header("Authorization", bearer(clientToken)))
@@ -293,17 +293,17 @@ class AppointmentFlowIntegrationTests {
         mockMvc.perform(get("/api/agendamentos/me")
                         .header("Authorization", bearer(clientToken)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(3))
-                .andExpect(jsonPath("$[0].serviceName").value("Corte reajustado"));
+                .andExpect(jsonPath("$.totalElements").value(3))
+                .andExpect(jsonPath("$.content[0].serviceName").value("Corte reajustado"));
 
         String professionalToken = login("professional.appointment@salonhub.test");
 
         mockMvc.perform(get("/api/agendamentos/profissional/me")
                         .header("Authorization", bearer(professionalToken)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].serviceName").value("Corte reajustado"))
-                .andExpect(jsonPath("$[0].clientName").value("Cliente MVP"));
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].serviceName").value("Corte reajustado"))
+                .andExpect(jsonPath("$.content[0].clientName").value("Cliente MVP"));
 
         mockMvc.perform(get("/api/agendamentos/profissional/me")
                         .header("Authorization", bearer(clientToken)))
@@ -328,8 +328,8 @@ class AppointmentFlowIntegrationTests {
         mockMvc.perform(get("/api/agendamentos/me")
                         .header("Authorization", bearer(clientToken)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[1].id").value(appointmentId))
-                .andExpect(jsonPath("$[1].status").value("CANCELLED"));
+                .andExpect(jsonPath("$.content[1].id").value(appointmentId))
+                .andExpect(jsonPath("$.content[1].status").value("CANCELLED"));
 
         mockMvc.perform(patch("/api/agendamentos/{id}/cancelamento", appointmentId.longValue())
                         .header("Authorization", bearer(clientToken)))

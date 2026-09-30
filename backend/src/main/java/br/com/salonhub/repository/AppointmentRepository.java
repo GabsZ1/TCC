@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.repository.query.Param;
 
 import jakarta.persistence.LockModeType;
@@ -32,7 +33,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     Optional<Appointment> findByIdForUpdate(@Param("id") Long id);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("""
+    @Query(value = """
             select appointment
             from Appointment appointment
             where appointment.id = :id
@@ -43,7 +44,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             @Param("clientId") Long clientId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("""
+    @Query(value = """
             select appointment
             from Appointment appointment
             where appointment.id = :id
@@ -113,9 +114,35 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             LocalDateTime after
     );
 
-    List<Appointment> findByCustomerUserIdOrderByStartsAtDesc(Long clientId);
+    List<Appointment> findByCustomerUserIdAndStatusAndStartsAtGreaterThanOrderByStartsAtAsc(
+            Long clientId, AppointmentStatus status, LocalDateTime startsAt);
+    @EntityGraph(attributePaths = {"establishment", "service", "professional", "customer", "customer.user", "cancelledBy"})
+    Page<Appointment> findByCustomerUserIdOrderByStartsAtDescIdDesc(Long clientId, Pageable pageable);
+    @EntityGraph(attributePaths = {"establishment", "service", "professional", "customer", "customer.user", "cancelledBy"})
+    Optional<Appointment> findFirstByCustomerUserIdAndStatusAndStartsAtGreaterThanEqualOrderByStartsAtAscIdAsc(
+            Long clientId, AppointmentStatus status, LocalDateTime startsAt);
+
+    @EntityGraph(attributePaths = {"establishment", "service", "professional", "customer", "customer.user", "cancelledBy"})
+    Page<Appointment> findByCustomerUserIdAndStatusAndStartsAtGreaterThanEqualOrderByStartsAtAscIdAsc(
+            Long clientId, AppointmentStatus status, LocalDateTime startsAt, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"establishment", "service", "professional", "customer", "customer.user", "cancelledBy"})
+    @Query(value = """
+            select appointment from Appointment appointment where appointment.customer.user.id = :clientId
+              and (appointment.status <> br.com.salonhub.entity.AppointmentStatus.CONFIRMED
+                   or appointment.startsAt < :now)
+            order by appointment.startsAt desc, appointment.id desc
+            """, countQuery = """
+            select count(appointment) from Appointment appointment where appointment.customer.user.id = :clientId
+              and (appointment.status <> br.com.salonhub.entity.AppointmentStatus.CONFIRMED
+                   or appointment.startsAt < :now)
+            """)
+    Page<Appointment> findClientHistory(@Param("clientId") Long clientId, @Param("now") LocalDateTime now,
+                                        Pageable pageable);
 
     List<Appointment> findByCustomerIdAndEstablishmentIdOrderByStartsAtDesc(Long customerId, Long establishmentId);
+    @EntityGraph(attributePaths = {"establishment", "service", "professional", "customer", "customer.user", "cancelledBy"})
+    Page<Appointment> findByCustomerIdAndEstablishmentIdOrderByStartsAtDesc(Long customerId, Long establishmentId, Pageable pageable);
     long countByCustomerId(Long customerId);
 
     Optional<Appointment> findByIdAndCustomerUserId(Long id, Long clientId);
@@ -123,11 +150,19 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     Optional<Appointment> findByIdAndEstablishmentId(Long id, Long establishmentId);
 
     List<Appointment> findByProfessionalIdOrderByStartsAtDesc(Long professionalId);
+    @EntityGraph(attributePaths = {"establishment", "service", "professional", "customer", "customer.user", "cancelledBy"})
+    Page<Appointment> findByProfessionalIdOrderByStartsAtDescIdDesc(Long professionalId, Pageable pageable);
+    long countByProfessionalIdAndStatusAndStartsAtGreaterThanEqualAndStartsAtLessThan(
+            Long professionalId, AppointmentStatus status, LocalDateTime start, LocalDateTime end);
+    @EntityGraph(attributePaths = {"establishment", "service", "professional", "customer", "customer.user", "cancelledBy"})
+    Optional<Appointment> findFirstByProfessionalIdAndStatusAndEndsAtGreaterThanAndStartsAtLessThanOrderByStartsAtAscIdAsc(
+            Long professionalId, AppointmentStatus status, LocalDateTime now, LocalDateTime dayEnd);
 
     List<Appointment> findByProfessionalIdAndStartsAtLessThanAndEndsAtGreaterThanOrderByStartsAt(
             Long professionalId, LocalDateTime periodEnd, LocalDateTime periodStart);
 
-    @Query("""
+    @EntityGraph(attributePaths = {"establishment", "service", "professional", "customer", "customer.user", "cancelledBy"})
+    @Query(value = """
             select appointment
             from Appointment appointment
             where appointment.establishment.id = :establishmentId
@@ -137,13 +172,21 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
               and (:professionalId is null or appointment.professional.id = :professionalId)
               and (:status is null or appointment.status = :status)
             order by appointment.startsAt desc
+            """, countQuery = """
+            select count(appointment) from Appointment appointment
+            where appointment.establishment.id = :establishmentId
+              and (cast(:dayStart as LocalDateTime) is null or (
+                    appointment.startsAt >= :dayStart and appointment.startsAt < :dayEnd))
+              and (:professionalId is null or appointment.professional.id = :professionalId)
+              and (:status is null or appointment.status = :status)
             """)
-    List<Appointment> findEstablishmentAgenda(
+    Page<Appointment> findEstablishmentAgenda(
             @Param("establishmentId") Long establishmentId,
             @Param("dayStart") LocalDateTime dayStart,
             @Param("dayEnd") LocalDateTime dayEnd,
             @Param("professionalId") Long professionalId,
-            @Param("status") AppointmentStatus status);
+            @Param("status") AppointmentStatus status,
+            Pageable pageable);
 
     List<Appointment> findByProfessionalIdAndStatusAndStartsAtLessThanAndEndsAtGreaterThanOrderByStartsAt(
             Long professionalId,
@@ -159,6 +202,9 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             LocalDateTime periodStart
     );
 
+    boolean existsByEstablishmentIdAndStatusAndStartsAtLessThanAndEndsAtGreaterThan(
+            Long establishmentId, AppointmentStatus status, LocalDateTime periodEnd, LocalDateTime periodStart);
+
     List<Appointment> findByCustomerIdAndStatusAndStartsAtLessThanAndEndsAtGreaterThanOrderByStartsAt(
             Long customerId,
             AppointmentStatus status,
@@ -167,6 +213,23 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     );
 
     long countByEstablishmentId(Long establishmentId);
+    long countByEstablishmentIdAndStartsAtGreaterThanEqualAndStartsAtLessThan(
+            Long establishmentId, LocalDateTime start, LocalDateTime end);
+    long countByEstablishmentIdAndStatusAndEndsAtLessThanEqual(
+            Long establishmentId, AppointmentStatus status, LocalDateTime now);
+
+    @Query("""
+            select sum(appointment.agreedPrice) from Appointment appointment
+            where appointment.establishment.id = :establishmentId
+              and appointment.status = br.com.salonhub.entity.AppointmentStatus.COMPLETED
+              and appointment.completedAt >= :start and appointment.completedAt < :end
+            """)
+    BigDecimal sumRevenueCompletedInPeriod(@Param("establishmentId") Long establishmentId,
+            @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    @EntityGraph(attributePaths = {"establishment", "service", "professional", "customer", "customer.user", "cancelledBy"})
+    List<Appointment> findByEstablishmentIdAndStatusAndStartsAtGreaterThanEqualOrderByStartsAtAscIdAsc(
+            Long establishmentId, AppointmentStatus status, LocalDateTime startsAt, Pageable pageable);
 
     /** Relatório financeiro: concluídos no período (pela data de conclusão), agrupados por serviço. */
     @Query("""
@@ -215,11 +278,13 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             @Param("serviceId") Long serviceId);
 
     /** Atendimentos que já terminaram e continuam confirmados (ninguém concluiu nem registrou falta). */
-    List<Appointment> findByEstablishmentIdAndStatusAndEndsAtLessThanEqualOrderByStartsAt(
-            Long establishmentId, AppointmentStatus status, LocalDateTime endsAt);
+    @EntityGraph(attributePaths = {"establishment", "service", "professional", "customer", "customer.user", "cancelledBy"})
+    Page<Appointment> findByEstablishmentIdAndStatusAndEndsAtLessThanEqualOrderByStartsAtAscIdAsc(
+            Long establishmentId, AppointmentStatus status, LocalDateTime endsAt, Pageable pageable);
 
-    List<Appointment> findByProfessionalIdAndStatusAndEndsAtLessThanEqualOrderByStartsAt(
-            Long professionalId, AppointmentStatus status, LocalDateTime endsAt);
+    @EntityGraph(attributePaths = {"establishment", "service", "professional", "customer", "customer.user", "cancelledBy"})
+    Page<Appointment> findByProfessionalIdAndStatusAndEndsAtLessThanEqualOrderByStartsAtAscIdAsc(
+            Long professionalId, AppointmentStatus status, LocalDateTime endsAt, Pageable pageable);
 
     long countByEstablishmentIdAndStatusAndStartsAtGreaterThanEqual(
             Long establishmentId, AppointmentStatus status, LocalDateTime from);
@@ -294,7 +359,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             @Param("professionalId") Long professionalId);
 
     /** US 2.15 — atendimentos concluídos do próprio profissional, filtrados pela data de conclusão. */
-    @Query("""
+    @Query(value = """
             select appointment
             from Appointment appointment
             join fetch appointment.customer
@@ -305,8 +370,32 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
               and appointment.completedAt < :periodEnd
               and (:serviceId is null or appointment.service.id = :serviceId)
             order by appointment.completedAt desc, appointment.id desc
+            """, countQuery = """
+            select count(appointment) from Appointment appointment
+            where appointment.professional.id = :professionalId
+              and appointment.status = br.com.salonhub.entity.AppointmentStatus.COMPLETED
+              and appointment.completedAt >= :periodStart
+              and appointment.completedAt < :periodEnd
+              and (:serviceId is null or appointment.service.id = :serviceId)
             """)
-    List<Appointment> findCompletedByProfessional(
+    Page<Appointment> findCompletedByProfessional(
+            @Param("professionalId") Long professionalId,
+            @Param("periodStart") LocalDateTime periodStart,
+            @Param("periodEnd") LocalDateTime periodEnd,
+            @Param("serviceId") Long serviceId, Pageable pageable);
+
+    @Query("""
+            select count(appointment) as totalAppointments,
+                   sum(appointment.agreedPrice) as totalServiceValue,
+                   sum(appointment.commissionAmount) as totalCommission
+            from Appointment appointment
+            where appointment.professional.id = :professionalId
+              and appointment.status = br.com.salonhub.entity.AppointmentStatus.COMPLETED
+              and appointment.completedAt >= :periodStart
+              and appointment.completedAt < :periodEnd
+              and (:serviceId is null or appointment.service.id = :serviceId)
+            """)
+    CompletedAppointmentsTotalsRow sumCompletedByProfessional(
             @Param("professionalId") Long professionalId,
             @Param("periodStart") LocalDateTime periodStart,
             @Param("periodEnd") LocalDateTime periodEnd,

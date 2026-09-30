@@ -6,6 +6,7 @@ import interactionPlugin, { type DateClickArg } from '@fullcalendar/interaction'
 import ptBrLocale from '@fullcalendar/core/locales/pt-br'
 import type { DatesSetArg, EventClickArg, EventInput, DateSelectArg, EventContentArg } from '@fullcalendar/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useParams } from 'react-router-dom'
 import { CalendarDays, Clock3, Mail, Plus, RefreshCw, Settings2, Trash2, User } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
@@ -22,6 +23,8 @@ interface EventEditorState { event: ProfessionalAgendaItem | null; startsAt: str
 type CalendarView = 'day' | 'week' | 'month'
 
 export function ProfessionalAgendaPage() {
+  const { professionalId: professionalIdParam } = useParams()
+  const professionalId = professionalIdParam ? Number(professionalIdParam) : undefined
   const calendarRef = useRef<FullCalendar>(null)
   const queryClient = useQueryClient()
   const isCompact = useCompactCalendar()
@@ -32,9 +35,9 @@ export function ProfessionalAgendaPage() {
   const [selectedAppointment, setSelectedAppointment] = useState<ProfessionalAgendaItem | null>(null)
   const [deletingEvent, setDeletingEvent] = useState<ProfessionalAgendaItem | null>(null)
   const [scheduleOpen, setScheduleOpen] = useState(false)
-  const agenda = useQuery({ queryKey: [...AGENDA_KEY, range?.startsAt, range?.endsAt], queryFn: () => fetchProfessionalAgenda(range!.startsAt, range!.endsAt), enabled: Boolean(range), refetchInterval: 30_000 })
-  const schedule = useQuery({ queryKey: ['professional-schedule'], queryFn: fetchProfessionalSchedule, staleTime: 60_000, refetchInterval: 5 * 60_000 })
-  const configuration = useQuery({ queryKey: ['professional-agenda-configuration'], queryFn: fetchProfessionalAgendaConfiguration, staleTime: Infinity })
+  const agenda = useQuery({ queryKey: [...AGENDA_KEY, professionalId, range?.startsAt, range?.endsAt], queryFn: () => fetchProfessionalAgenda(range!.startsAt, range!.endsAt, professionalId), enabled: Boolean(range), refetchInterval: 30_000 })
+  const schedule = useQuery({ queryKey: ['professional-schedule', professionalId], queryFn: () => fetchProfessionalSchedule(professionalId), staleTime: 60_000, refetchInterval: 5 * 60_000 })
+  const configuration = useQuery({ queryKey: ['professional-agenda-configuration', professionalId], queryFn: () => fetchProfessionalAgendaConfiguration(professionalId), staleTime: Infinity })
   const agendaTimeZone = configuration.data?.timeZone ?? currentTimeZone()
   const filteredItems = useMemo(() => filterAgendaItems(agenda.data ?? [], filter), [agenda.data, filter])
   const events = useMemo(() => filteredItems.map((item) => toCalendarEvent(item, view)), [filteredItems, view])
@@ -53,10 +56,10 @@ export function ProfessionalAgendaPage() {
 
   return <div className="page-shell">
     <header className="mb-6 flex flex-col gap-4 border-b border-background-300 pb-7 sm:flex-row sm:items-end sm:justify-between">
-      <div><p className="eyebrow">Operação</p><h1 className="page-title mt-3">Minha agenda</h1><p className="page-subtitle">Visualize atendimentos, organize sua jornada e bloqueie horários pessoais.</p></div>
+      <div><p className="eyebrow">Operação</p><h1 className="page-title mt-3">{professionalId ? 'Agenda do profissional' : 'Minha agenda'}</h1><p className="page-subtitle">Visualize atendimentos, organize a jornada e bloqueie horários.</p></div>
       <div className="flex flex-wrap gap-2"><button type="button" onClick={() => setScheduleOpen(true)} className="inline-flex items-center gap-2 rounded-xl border border-background-300 bg-background-50 px-4 py-2.5 text-sm font-semibold text-text-700 hover:bg-primary-50"><Settings2 size={17} /> Jornada</button><button type="button" onClick={() => { const start = contextualEventStart(calendarRef.current?.getApi().getDate(), schedule.data ?? [], agendaTimeZone); openNewEvent(start, addHours(start, 1), false) }} className="primary-button"><Plus size={18} /> Novo compromisso</button></div>
     </header>
-    <PendingClosurePanel showProfessional={false} onChanged={() => queryClient.invalidateQueries({ queryKey: AGENDA_KEY })} />
+    {!professionalId && <PendingClosurePanel showProfessional={false} onChanged={() => queryClient.invalidateQueries({ queryKey: AGENDA_KEY })} />}
     <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
       <div className="inline-flex rounded-xl border border-background-300 bg-background-50 p-1" aria-label="Visualização da agenda">{(['day', 'week', 'month'] as CalendarView[]).map((option) => <button key={option} type="button" aria-pressed={view === option} onClick={() => changeView(option)} className={`rounded-lg px-3 py-1.5 text-sm font-medium ${view === option ? 'bg-primary-600 text-on-primary' : 'text-text-700 hover:bg-primary-50'}`}>{VIEW_LABELS[option]}</button>)}</div>
       <label className="flex items-center gap-2 text-sm font-medium text-text-700"><span>Exibir</span><select value={filter} onChange={(event) => setFilter(event.target.value as AgendaFilter)} className="rounded-lg border border-background-300 bg-background-50 px-3 py-2"><option value="active">Ativos</option><option value="finished">Encerrados</option><option value="all">Todos</option></select></label>
@@ -68,14 +71,14 @@ export function ProfessionalAgendaPage() {
     </section>
     <p className="mt-2 text-xs text-text-600">As áreas sombreadas ficam fora da sua jornada. Fuso da agenda: {agendaTimeZone}.</p>
     <div className="mt-4 flex flex-wrap gap-4 text-xs text-text-600"><Legend color="bg-primary-600" label="Atendimento confirmado" /><Legend color="bg-secondary-600" label="Compromisso pessoal" /><Legend color="bg-success-600" label="Atendimento concluído" /><Legend color="bg-danger-600" label="Atendimento cancelado" /><Legend color="bg-warning-700" label="Atendimento invalidado" /></div>
-    {editor && <EventEditor initial={editor} agendaItems={agenda.data ?? []} timeZone={agendaTimeZone} onClose={() => setEditor(null)} onSaved={() => { setEditor(null); queryClient.invalidateQueries({ queryKey: AGENDA_KEY }) }} onDelete={editor.event ? () => { setEditor(null); setDeletingEvent(editor.event) } : undefined} />}
+    {editor && <EventEditor professionalId={professionalId} initial={editor} agendaItems={agenda.data ?? []} timeZone={agendaTimeZone} onClose={() => setEditor(null)} onSaved={() => { setEditor(null); queryClient.invalidateQueries({ queryKey: AGENDA_KEY }) }} onDelete={editor.event ? () => { setEditor(null); setDeletingEvent(editor.event) } : undefined} />}
     {selectedAppointment && <AppointmentDetails item={selectedAppointment} timeZone={agendaTimeZone} onClose={() => setSelectedAppointment(null)} onCompleted={() => { setSelectedAppointment(null); queryClient.invalidateQueries({ queryKey: AGENDA_KEY }); queryClient.invalidateQueries({ queryKey: PENDING_CLOSURE_KEY }) }} />}
-    {scheduleOpen && <ScheduleEditor onClose={() => setScheduleOpen(false)} />}
-    {deletingEvent && <DeleteEventDialog event={deletingEvent} onClose={() => setDeletingEvent(null)} onDeleted={() => { setDeletingEvent(null); queryClient.invalidateQueries({ queryKey: AGENDA_KEY }) }} />}
+    {scheduleOpen && <ScheduleEditor professionalId={professionalId} onClose={() => setScheduleOpen(false)} />}
+    {deletingEvent && <DeleteEventDialog professionalId={professionalId} event={deletingEvent} onClose={() => setDeletingEvent(null)} onDeleted={() => { setDeletingEvent(null); queryClient.invalidateQueries({ queryKey: AGENDA_KEY }) }} />}
   </div>
 }
 
-function EventEditor({ initial, agendaItems, timeZone, onClose, onSaved, onDelete }: { initial: EventEditorState; agendaItems: ProfessionalAgendaItem[]; timeZone: string; onClose: () => void; onSaved: () => void; onDelete?: () => void }) {
+function EventEditor({ professionalId, initial, agendaItems, timeZone, onClose, onSaved, onDelete }: { professionalId?: number; initial: EventEditorState; agendaItems: ProfessionalAgendaItem[]; timeZone: string; onClose: () => void; onSaved: () => void; onDelete?: () => void }) {
   const [title, setTitle] = useState(initial.event?.title ?? '')
   const [description, setDescription] = useState(initial.event?.description ?? '')
   const [startsAt, setStartsAt] = useState(() => initial.allDay ? initial.startsAt : alignLocalInputToFiveMinutes(initial.startsAt))
@@ -84,7 +87,7 @@ function EventEditor({ initial, agendaItems, timeZone, onClose, onSaved, onDelet
   const timedRange = useRef(initial.allDay
     ? { startsAt: `${initial.startsAt.slice(0, 10)}T09:00`, endsAt: `${initial.startsAt.slice(0, 10)}T10:00` }
     : { startsAt: alignLocalInputToFiveMinutes(initial.startsAt), endsAt: alignLocalInputToFiveMinutes(initial.endsAt) })
-  const mutation = useMutation({ mutationFn: (input: CalendarEventInput) => initial.event ? updateCalendarEvent(initial.event.id, input) : createCalendarEvent(input), onSuccess: onSaved })
+  const mutation = useMutation({ mutationFn: (input: CalendarEventInput) => initial.event ? updateCalendarEvent(initial.event.id, input, professionalId) : createCalendarEvent(input, professionalId), onSuccess: onSaved })
   const now = useCurrentLocalTime(timeZone, !initial.event)
   const minimumEnd = minimumEndValue(startsAt, allDay)
   const conflict = findAgendaConflict(agendaItems, startsAt, endsAt, initial.event?.id)
@@ -113,12 +116,12 @@ function EventEditor({ initial, agendaItems, timeZone, onClose, onSaved, onDelet
   return <Modal title={initial.event ? 'Editar compromisso' : 'Novo compromisso'} onClose={onClose} size="lg"><form onSubmit={submit} className="space-y-4"><Field label="Título" value={title} onChange={setTitle} required placeholder="Ex.: Consulta médica" /><label className="flex items-center gap-2 text-sm font-medium text-text-800"><input type="checkbox" checked={allDay} onChange={(event) => changeAllDay(event.target.checked)} /> Ocupar o dia inteiro</label><div className="grid gap-5 lg:grid-cols-2"><DateTimeField label="Início" value={startsAt} onChange={changeStart} allDay={allDay} /><EndDateTimeField value={endsAt} onChange={setEndsAt} startsAt={startsAt} allDay={allDay} min={minimumEnd} /></div><p className="-mt-2 text-xs text-text-600">{allDay ? 'O término é o primeiro dia livre após o compromisso.' : 'Ao alterar o início, a duração original é preservada.'}</p><label className="block"><span className="text-sm font-medium text-text-800">Descrição</span><textarea value={description} maxLength={500} onChange={(event) => setDescription(event.target.value)} rows={3} className="filter-input resize-none" /></label>{conflict && <p role="alert" className="rounded-lg border border-warning-300 bg-warning-50 px-3 py-2 text-sm text-warning-800">Este período conflita com “{conflict.title}”. Escolha outro horário.</p>}{isPastCreation && <p role="alert" className="text-sm text-danger-600">Não é possível criar um compromisso que já terminou.</p>}{mutation.isError && <p role="alert" className="text-sm text-danger-600">{getApiErrorMessage(mutation.error, 'Não foi possível salvar o compromisso.')}</p>}<div className="flex flex-wrap items-center justify-between gap-3 pt-2">{onDelete ? <button type="button" onClick={onDelete} className="inline-flex items-center gap-2 text-sm font-semibold text-danger-600"><Trash2 size={16} /> Excluir</button> : <span />}<div className="ml-auto flex gap-2"><button type="button" onClick={onClose} className="rounded-lg border border-background-300 px-4 py-2 text-sm font-medium text-text-700">Cancelar</button><button type="submit" disabled={mutation.isPending || Boolean(conflict) || isPastCreation} className="primary-button disabled:opacity-60">{mutation.isPending ? 'Salvando...' : 'Salvar'}</button></div></div></form></Modal>
 }
 
-function ScheduleEditor({ onClose }: { onClose: () => void }) {
+function ScheduleEditor({ professionalId, onClose }: { professionalId?: number; onClose: () => void }) {
   const queryClient = useQueryClient()
-  const schedule = useQuery({ queryKey: ['professional-schedule'], queryFn: fetchProfessionalSchedule })
+  const schedule = useQuery({ queryKey: ['professional-schedule', professionalId], queryFn: () => fetchProfessionalSchedule(professionalId) })
   if (schedule.isLoading) return <Modal title="Minha jornada" onClose={onClose}><p className="text-sm text-text-600">Carregando horários...</p></Modal>
   if (schedule.isError || !schedule.data) return <Modal title="Minha jornada" onClose={onClose}><div className="space-y-3"><p className="text-sm text-danger-600">{getApiErrorMessage(schedule.error, 'Não foi possível carregar sua jornada.')}</p><button type="button" onClick={() => schedule.refetch()} className="inline-flex items-center gap-2 rounded-lg border border-background-300 px-3 py-2 text-sm font-semibold text-text-700"><RefreshCw size={15} /> Tentar novamente</button></div></Modal>
-  return <ScheduleForm initial={schedule.data} onClose={onClose} onSaved={() => { queryClient.invalidateQueries({ queryKey: ['professional-schedule'] }); queryClient.invalidateQueries({ queryKey: AGENDA_KEY }); onClose() }} />
+  return <ScheduleForm professionalId={professionalId} initial={schedule.data} onClose={onClose} onSaved={() => { queryClient.invalidateQueries({ queryKey: ['professional-schedule', professionalId] }); queryClient.invalidateQueries({ queryKey: AGENDA_KEY }); onClose() }} />
 }
 
 type ScheduleMode = 'inherit' | 'custom' | 'closed'
@@ -128,7 +131,7 @@ function modeOf(hour: ProfessionalHour): ScheduleMode {
   return hour.closed ? 'closed' : 'custom'
 }
 
-function ScheduleForm({ initial, onClose, onSaved }: { initial: ProfessionalHour[]; onClose: () => void; onSaved: () => void }) {
+function ScheduleForm({ professionalId, initial, onClose, onSaved }: { professionalId?: number; initial: ProfessionalHour[]; onClose: () => void; onSaved: () => void }) {
   const [hours, setHours] = useState(initial)
   const inputs = useMemo<ProfessionalHourInput[]>(() => hours.map((hour) => {
     const mode = modeOf(hour)
@@ -141,7 +144,7 @@ function ScheduleForm({ initial, onClose, onSaved }: { initial: ProfessionalHour
     }
   }), [hours])
   const invalidDay = hours.find((hour) => modeOf(hour) === 'custom' && customHourError(hour))
-  const mutation = useMutation({ mutationFn: () => updateProfessionalSchedule(inputs), onSuccess: onSaved })
+  const mutation = useMutation({ mutationFn: () => updateProfessionalSchedule(inputs, professionalId), onSuccess: onSaved })
 
   function selectMode(index: number, mode: ScheduleMode) {
     setHours((current) => current.map((hour, itemIndex) => {
@@ -242,7 +245,7 @@ function AppointmentDetails({ item, timeZone, onClose, onCompleted }: { item: Pr
   return <Modal title={item.serviceName ?? item.title} onClose={onClose}><div className="space-y-3 text-sm text-text-700"><p className="flex items-center gap-2"><User size={16} /> {item.clientName}</p>{item.clientEmail && <a href={`mailto:${item.clientEmail}`} className="flex items-center gap-2 text-text-700 hover:underline"><Mail size={16} /> {item.clientEmail}</a>}<p className="flex items-center gap-2"><CalendarDays size={16} /> {formatDate(item.startsAt)}</p><p className="flex items-center gap-2"><Clock3 size={16} /> {formatTime(item.startsAt)} às {formatTime(item.endsAt)}{item.durationMinutes ? ` · ${formatDuration(item.durationMinutes)}` : ''}</p><p>Status: <strong>{statusLabel(item.status)}</strong></p>{item.agreedPrice != null && <p>Valor combinado: <strong>{formatMoney(item.agreedPrice)}</strong></p>}{reason && <div className="rounded-lg bg-background-50 px-3 py-2"><span className="font-semibold">Motivo:</span> {reason}</div>}{mutation.isError && <p role="alert" className="text-danger-600">{getApiErrorMessage(mutation.error, 'Não foi possível atualizar o atendimento.')}</p>}<div className="flex flex-wrap gap-2">{canComplete && <button type="button" onClick={() => setConfirming('complete')} className="primary-button">Concluir atendimento</button>}{canNoShow && <button type="button" onClick={() => setConfirming('no-show')} className="secondary-button">Não compareceu</button>}</div></div></Modal>
 }
 
-function DeleteEventDialog({ event, onClose, onDeleted }: { event: ProfessionalAgendaItem; onClose: () => void; onDeleted: () => void }) { const mutation = useMutation({ mutationFn: () => deleteCalendarEvent(event.id), onSuccess: onDeleted }); return <ConfirmDialog title="Excluir compromisso" message={`Deseja excluir “${event.title}”?`} confirmLabel="Excluir compromisso" isLoading={mutation.isPending} errorMessage={mutation.isError ? getApiErrorMessage(mutation.error, 'Não foi possível excluir o compromisso.') : null} onConfirm={() => mutation.mutate()} onCancel={onClose} /> }
+function DeleteEventDialog({ professionalId, event, onClose, onDeleted }: { professionalId?: number; event: ProfessionalAgendaItem; onClose: () => void; onDeleted: () => void }) { const mutation = useMutation({ mutationFn: () => deleteCalendarEvent(event.id, professionalId), onSuccess: onDeleted }); return <ConfirmDialog title="Excluir compromisso" message={`Deseja excluir “${event.title}”?`} confirmLabel="Excluir compromisso" isLoading={mutation.isPending} errorMessage={mutation.isError ? getApiErrorMessage(mutation.error, 'Não foi possível excluir o compromisso.') : null} onConfirm={() => mutation.mutate()} onCancel={onClose} /> }
 function toCalendarEvent(item: ProfessionalAgendaItem, view: CalendarView): EventInput {
   const appointment = item.type === 'APPOINTMENT'
   const fillsDayColumn = view !== 'month' && item.allDay
