@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { BadgeDollarSign, CalendarRange, Scissors, UsersRound } from 'lucide-react'
+import { ExportCsvButton } from '@/components/ui/ExportCsvButton'
 import { fetchEmployees } from '@/features/employees/services/employeesApi'
 import { fetchCommissionReport, type CommissionReportFilters } from '@/features/commissions/commissionReportApi'
 import { getApiErrorMessage } from '@/lib/apiError'
@@ -69,9 +70,10 @@ export function CommissionReportPage() {
         </Filter>
         {employees.isError && <p role="alert" className="text-sm text-danger-600 sm:col-span-2 lg:col-span-3">{getApiErrorMessage(employees.error, 'Não foi possível carregar os profissionais.')}</p>}
         {filterError && <p role="alert" className="text-sm text-danger-600 sm:col-span-2 lg:col-span-3">{filterError}</p>}
-        <div className="flex flex-wrap gap-3 sm:col-span-2 lg:col-span-3">
+        <div className="flex flex-wrap items-center gap-3 sm:col-span-2 lg:col-span-3">
           <button type="submit" className="primary-button">Aplicar filtros</button>
           <button type="button" onClick={clearFilters} className="secondary-button">Limpar filtros</button>
+          <ExportCsvButton path="/estabelecimentos/me/relatorio-comissoes/csv" params={filters} filename="relatorio-comissoes.csv" />
         </div>
       </form>
 

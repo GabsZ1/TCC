@@ -394,6 +394,18 @@ CONFIRMED ────────┼──> CANCELLED
 - **Pausa do estabelecimento:** só é bloqueada por agendamentos confirmados que ainda não terminaram. Um confirmado esquecido no passado não impede a pausa.
 - **Relatórios:** o relatório de atendimentos conta as faltas separadamente. Faltas não geram comissão.
 
+### Relatórios do estabelecimento
+
+Todos são só do administrador, aceitam `startDate` e `endDate` (juntas; sem elas, vale o mês corrente) e têm exportação em CSV no mesmo endereço com `/csv` no final. O CSV é gerado a partir do mesmo objeto que a tela recebe, então os números nunca divergem. O arquivo usa `;` como separador, vírgula decimal e UTF-8 com BOM, para abrir certo no Excel em português.
+
+| Relatório | Endpoint | O que responde |
+|---|---|---|
+| Comissões | `GET /api/estabelecimentos/me/relatorio-comissoes` | Quanto cada profissional gerou de comissão (concluídos, pela data de conclusão). |
+| Financeiro | `GET /api/estabelecimentos/me/relatorio-financeiro` (filtros `professionalId` e `serviceId`) | Faturamento bruto, comissões, valor após comissões, atendimentos concluídos e ticket médio, por serviço e por profissional. "Valor após comissões" não é lucro. |
+| Agenda e comparecimento | `GET /api/estabelecimentos/me/relatorio-atendimentos` | Por profissional (pela data agendada): confirmados, concluídos, cancelados, faltas e invalidados, com as taxas de conclusão, cancelamento, falta e comparecimento. |
+
+As taxas usam só os desfechos da agenda (concluído, cancelado e falta). O comparecimento é concluídos ÷ (concluídos + faltas). Invalidados são correções de registro: aparecem na contagem, mas ficam fora das taxas. A lista "Atendimentos realizados" continua sendo o detalhamento que sustenta esses números.
+
 ### Funcionários (US 2.1, 2.2 e 2.6) e perfil do funcionário
 
 Quem administra cada dado:

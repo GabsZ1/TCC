@@ -20,6 +20,7 @@ const EstablishmentPage = lazy(() => import('@/features/establishment/Establishm
 const EstablishmentProfilePage = lazy(() => import('@/features/establishment/EstablishmentProfilePage').then((module) => ({ default: module.EstablishmentProfilePage })))
 const AdminAgendaPage = lazy(() => import('@/features/appointments/AdminAgendaPage').then((module) => ({ default: module.AdminAgendaPage })))
 const CommissionReportPage = lazy(() => import('@/features/commissions/CommissionReportPage').then((module) => ({ default: module.CommissionReportPage })))
+const FinancialReportPage = lazy(() => import('@/features/reports/FinancialReportPage').then((module) => ({ default: module.FinancialReportPage })))
 const EstablishmentAppointmentsPage = lazy(() => import('@/features/reports/EstablishmentAppointmentsPage').then((module) => ({ default: module.EstablishmentAppointmentsPage })))
 const ForgotPasswordPage = lazy(() => import('@/features/auth/pages/ForgotPasswordPage').then((module) => ({ default: module.ForgotPasswordPage })))
 const ResetPasswordPage = lazy(() => import('@/features/auth/pages/ResetPasswordPage').then((module) => ({ default: module.ResetPasswordPage })))
@@ -57,6 +58,7 @@ function App() {
               <Route path="/agenda" element={<AdminAgendaPage />} />
               <Route path="/relatorio-comissoes" element={<CommissionReportPage />} />
               <Route path="/relatorio-atendimentos" element={<EstablishmentAppointmentsPage />} />
+              <Route path="/relatorio-financeiro" element={<FinancialReportPage />} />
             </Route>
 
             <Route element={<ProtectedRoute allowedRoles={['CLIENT']} />}>

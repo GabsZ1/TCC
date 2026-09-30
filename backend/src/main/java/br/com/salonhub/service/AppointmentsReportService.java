@@ -3,7 +3,6 @@ package br.com.salonhub.service;
 import br.com.salonhub.dto.report.AppointmentsReportEntry;
 import br.com.salonhub.dto.report.AppointmentsReportResponse;
 import br.com.salonhub.entity.User;
-import br.com.salonhub.exception.InvalidRequestException;
 import br.com.salonhub.repository.AppointmentRepository;
 import br.com.salonhub.repository.AppointmentsReportRow;
 import lombok.RequiredArgsConstructor;
@@ -14,8 +13,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.YearMonth;
 import java.util.List;
 
 /**
@@ -41,59 +38,52 @@ public class AppointmentsReportService {
             Long administratorId, LocalDate startDate, LocalDate endDate, Long professionalId) {
         User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
         Long establishmentId = administrator.getEstablishment().getId();
-
-        if ((startDate == null) != (endDate == null)) {
-            throw new InvalidRequestException("Informe a data inicial e a data final para filtrar por período.");
-        }
-        if (startDate != null && startDate.isAfter(endDate)) {
-            throw new InvalidRequestException("A data inicial não pode ser posterior à data final.");
-        }
-
-        LocalDate periodStart = startDate;
-        LocalDate periodEnd = endDate;
-        if (periodStart == null) {
-            YearMonth currentMonth = YearMonth.now(clock);
-            periodStart = currentMonth.atDay(1);
-            periodEnd = currentMonth.atEndOfMonth();
-        }
-
-        LocalDateTime periodStartInclusive = periodStart.atStartOfDay();
-        LocalDateTime periodEndExclusive = periodEnd.plusDays(1).atStartOfDay();
+        ReportPeriod period = ReportPeriod.resolve(startDate, endDate, clock);
 
         List<AppointmentsReportRow> rows = appointmentRepository.findAppointmentsReportRows(
-                establishmentId, periodStartInclusive, periodEndExclusive, professionalId);
-
+                establishmentId, period.startInclusive(), period.endExclusive(), professionalId);
         List<AppointmentsReportEntry> entries = rows.stream().map(this::toEntry).toList();
 
+        long confirmed = entries.stream().mapToLong(AppointmentsReportEntry::confirmedCount).sum();
+        long completed = entries.stream().mapToLong(AppointmentsReportEntry::completedCount).sum();
+        long cancelled = entries.stream().mapToLong(AppointmentsReportEntry::cancelledCount).sum();
+        long invalidated = entries.stream().mapToLong(AppointmentsReportEntry::invalidatedCount).sum();
+        long noShows = entries.stream().mapToLong(AppointmentsReportEntry::noShowCount).sum();
+        long outcomes = completed + cancelled + noShows;
         return new AppointmentsReportResponse(
-                periodStart,
-                periodEnd,
-                entries,
-                entries.stream().mapToLong(AppointmentsReportEntry::confirmedCount).sum(),
-                entries.stream().mapToLong(AppointmentsReportEntry::completedCount).sum(),
-                entries.stream().mapToLong(AppointmentsReportEntry::cancelledCount).sum(),
-                entries.stream().mapToLong(AppointmentsReportEntry::invalidatedCount).sum(),
-                entries.stream().mapToLong(AppointmentsReportEntry::noShowCount).sum());
+                period.start(), period.end(), entries,
+                confirmed, completed, cancelled, invalidated, noShows,
+                percentage(completed, outcomes),
+                percentage(completed, completed + noShows),
+                percentage(cancelled, outcomes),
+                percentage(noShows, outcomes));
     }
 
     private AppointmentsReportEntry toEntry(AppointmentsReportRow row) {
-        long resolvedCount = row.getCompletedCount() + row.getCancelledCount()
-                + row.getInvalidatedCount() + row.getNoShowCount();
-        BigDecimal completionRate = resolvedCount == 0
-                ? BigDecimal.ZERO.setScale(2)
-                : BigDecimal.valueOf(row.getCompletedCount())
-                        .multiply(new BigDecimal("100"))
-                        .divide(BigDecimal.valueOf(resolvedCount), 2, RoundingMode.HALF_UP);
-        long totalCount = row.getConfirmedCount() + resolvedCount;
+        long completed = row.getCompletedCount();
+        long cancelled = row.getCancelledCount();
+        long noShows = row.getNoShowCount();
+        long outcomes = completed + cancelled + noShows;
+        long totalCount = row.getConfirmedCount() + outcomes + row.getInvalidatedCount();
         return new AppointmentsReportEntry(
                 row.getProfessionalId(),
                 row.getProfessionalName(),
                 row.getConfirmedCount(),
-                row.getCompletedCount(),
-                row.getCancelledCount(),
+                completed,
+                cancelled,
                 row.getInvalidatedCount(),
-                row.getNoShowCount(),
+                noShows,
                 totalCount,
-                completionRate);
+                percentage(completed, outcomes),
+                percentage(completed, completed + noShows),
+                percentage(cancelled, outcomes),
+                percentage(noShows, outcomes));
+    }
+
+    private static BigDecimal percentage(long part, long total) {
+        return total == 0
+                ? BigDecimal.ZERO.setScale(2)
+                : BigDecimal.valueOf(part).multiply(new BigDecimal("100"))
+                        .divide(BigDecimal.valueOf(total), 2, RoundingMode.HALF_UP);
     }
 }

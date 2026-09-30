@@ -24,12 +24,16 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.hamcrest.Matchers.containsString;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -218,12 +222,99 @@ class AppointmentsReportIntegrationTests {
                 .andExpect(jsonPath("$.totalCompleted").value(0));
     }
 
-    private enum Status { CONFIRMED, COMPLETED, CANCELLED, NO_SHOW }
+    @Test
+    void shouldComputeAttendanceRatesWithoutCountingInvalidatedRecords() throws Exception {
+        Fixture fixture = setUp("appointments-report-rates", "45001100011146");
+        LocalDateTime start = LocalDate.now().withDayOfMonth(1).atTime(9, 0);
+        createAppointment(fixture, fixture.professional(), start, Status.COMPLETED);
+        createAppointment(fixture, fixture.professional(), start.plusHours(1), Status.CANCELLED);
+        createAppointment(fixture, fixture.professional(), start.plusHours(2), Status.NO_SHOW);
+        createAppointment(fixture, fixture.professional(), start.plusHours(3), Status.INVALIDATED);
+
+        // Desfechos = concluído + cancelado + falta = 3. O invalidado conta no total, mas não nas taxas.
+        mockMvc.perform(get("/api/estabelecimentos/me/relatorio-atendimentos")
+                        .header("Authorization", bearer(fixture.administratorToken())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.entries[0].totalCount").value(4))
+                .andExpect(jsonPath("$.entries[0].completionRate").value(33.33))
+                .andExpect(jsonPath("$.entries[0].attendanceRate").value(50.0))
+                .andExpect(jsonPath("$.entries[0].cancellationRate").value(33.33))
+                .andExpect(jsonPath("$.entries[0].noShowRate").value(33.33))
+                .andExpect(jsonPath("$.completionRate").value(33.33))
+                .andExpect(jsonPath("$.attendanceRate").value(50.0));
+
+        mockMvc.perform(get("/api/estabelecimentos/me/relatorio-atendimentos/csv")
+                        .header("Authorization", bearer(fixture.administratorToken())))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", containsString("text/csv")))
+                .andExpect(header().string("Content-Disposition", containsString("relatorio-comparecimento_")))
+                .andExpect(content().string(containsString("Taxa de comparecimento (%)")))
+                .andExpect(content().string(containsString("33,33")));
+    }
+
+    @Test
+    void shouldBuildTheFinancialReportFromCompletedAppointments() throws Exception {
+        Fixture fixture = setUp("financial-report", "45001200011257");
+        EstablishmentService barba = serviceRepository.saveAndFlush(EstablishmentService.builder()
+                .establishment(fixture.establishment()).name("Barba financeiro").price(new BigDecimal("50.00"))
+                .commissionPercentage(new BigDecimal("10.00")).durationMinutes(30).build());
+        LocalDateTime start = LocalDate.now().withDayOfMonth(1).atTime(9, 0);
+        // Corte: 100,00 com 20% de comissão; barba: 50,00 com 10%.
+        createAppointment(fixture, fixture.professional(), start, Status.COMPLETED);
+        createAppointment(fixture, fixture.professional(), start.plusHours(1), Status.COMPLETED);
+        createAppointment(fixture, fixture.professional(), fixture.service(), start.plusHours(2), Status.CANCELLED);
+        createAppointment(fixture, fixture.professional(), barba, start.plusHours(3), Status.COMPLETED);
+        createAppointment(fixture, fixture.professional(), barba, start.plusHours(4), Status.INVALIDATED);
+
+        mockMvc.perform(get("/api/estabelecimentos/me/relatorio-financeiro")
+                        .header("Authorization", bearer(fixture.administratorToken())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.completedCount").value(3))
+                .andExpect(jsonPath("$.grossRevenue").value(250.0))
+                .andExpect(jsonPath("$.totalCommission").value(45.0))
+                .andExpect(jsonPath("$.revenueAfterCommission").value(205.0))
+                .andExpect(jsonPath("$.averageTicket").value(83.33))
+                .andExpect(jsonPath("$.byService.length()").value(2))
+                .andExpect(jsonPath("$.byService[0].name").value(fixture.service().getName()))
+                .andExpect(jsonPath("$.byService[0].completedCount").value(2))
+                .andExpect(jsonPath("$.byProfessional[0].revenue").value(250.0));
+
+        mockMvc.perform(get("/api/estabelecimentos/me/relatorio-financeiro")
+                        .header("Authorization", bearer(fixture.administratorToken()))
+                        .param("serviceId", String.valueOf(barba.getId())))
+                .andExpect(jsonPath("$.completedCount").value(1))
+                .andExpect(jsonPath("$.grossRevenue").value(50.0));
+
+        mockMvc.perform(get("/api/estabelecimentos/me/relatorio-financeiro/csv")
+                        .header("Authorization", bearer(fixture.administratorToken())))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Faturamento bruto (R$)")))
+                .andExpect(content().string(containsString("250,00")));
+        mockMvc.perform(get("/api/estabelecimentos/me/relatorio-comissoes/csv")
+                        .header("Authorization", bearer(fixture.administratorToken())))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("45,00")));
+
+        mockMvc.perform(get("/api/estabelecimentos/me/relatorio-financeiro")
+                        .header("Authorization", bearer(fixture.professionalToken())))
+                .andExpect(status().isForbidden());
+    }
+
+    private enum Status { CONFIRMED, COMPLETED, CANCELLED, NO_SHOW, INVALIDATED }
 
     private Long createAppointment(Fixture fixture, User professional, LocalDateTime startsAt, Status status) {
+        return createAppointment(fixture, professional, fixture.service(), startsAt, status);
+    }
+
+    private Long createAppointment(Fixture fixture, User professional, EstablishmentService service,
+                                   LocalDateTime startsAt, Status status) {
         Appointment appointment = schedule(
-                fixture.establishment(), fixture.client(), professional, fixture.service(), startsAt);
+                fixture.establishment(), fixture.client(), professional, service, startsAt);
         switch (status) {
+            case INVALIDATED -> {
+                appointment.complete(startsAt.plusMinutes(60));
+                appointment.invalidate("Registro feito por engano");
+            }
             case COMPLETED -> appointment.complete(startsAt.plusMinutes(60));
             case CANCELLED -> appointment.cancel();
             case NO_SHOW -> appointment.markNoShow();

@@ -13,6 +13,7 @@ import {
   Scissors,
   Settings,
   Store,
+  TrendingUp,
   UsersRound,
   X,
 } from 'lucide-react'
@@ -44,6 +45,7 @@ export function AppLayout() {
           { to: '/agenda', label: 'Agenda', icon: CalendarDays, group: 'Operação' },
           { to: '/relatorio-atendimentos', label: 'Atendimentos', icon: ClipboardList, group: 'Operação' },
           { to: '/relatorio-comissoes', label: 'Comissões', icon: BadgeDollarSign, group: 'Operação' },
+          { to: '/relatorio-financeiro', label: 'Financeiro', icon: TrendingUp, group: 'Operação' },
           { to: '/funcionarios', label: 'Equipe', icon: UsersRound, group: 'Gestão' },
           { to: '/clientes', label: 'Clientes', icon: UserRound, group: 'Gestão' },
           { to: '/servicos', label: 'Serviços', icon: Scissors, group: 'Gestão' },
