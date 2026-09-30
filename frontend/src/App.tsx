@@ -20,6 +20,7 @@ const EstablishmentPage = lazy(() => import('@/features/establishment/Establishm
 const EstablishmentProfilePage = lazy(() => import('@/features/establishment/EstablishmentProfilePage').then((module) => ({ default: module.EstablishmentProfilePage })))
 const AdminAgendaPage = lazy(() => import('@/features/appointments/AdminAgendaPage').then((module) => ({ default: module.AdminAgendaPage })))
 const CommissionReportPage = lazy(() => import('@/features/commissions/CommissionReportPage').then((module) => ({ default: module.CommissionReportPage })))
+const FinancialReportPage = lazy(() => import('@/features/reports/FinancialReportPage').then((module) => ({ default: module.FinancialReportPage })))
 const EstablishmentAppointmentsPage = lazy(() => import('@/features/reports/EstablishmentAppointmentsPage').then((module) => ({ default: module.EstablishmentAppointmentsPage })))
 const ForgotPasswordPage = lazy(() => import('@/features/auth/pages/ForgotPasswordPage').then((module) => ({ default: module.ForgotPasswordPage })))
 const ResetPasswordPage = lazy(() => import('@/features/auth/pages/ResetPasswordPage').then((module) => ({ default: module.ResetPasswordPage })))
@@ -55,9 +56,9 @@ function App() {
               <Route path="/estabelecimento" element={<EstablishmentPage />} />
               <Route path="/perfil-estabelecimento" element={<EstablishmentProfilePage />} />
               <Route path="/agenda" element={<AdminAgendaPage />} />
-              <Route path="/clientes" element={<CustomersPage />} />
               <Route path="/relatorio-comissoes" element={<CommissionReportPage />} />
               <Route path="/relatorio-atendimentos" element={<EstablishmentAppointmentsPage />} />
+              <Route path="/relatorio-financeiro" element={<FinancialReportPage />} />
             </Route>
 
             <Route element={<ProtectedRoute allowedRoles={['CLIENT']} />}>
@@ -69,8 +70,13 @@ function App() {
               <Route path="/meu-perfil" element={<MyProfilePage />} />
             </Route>
 
-            <Route element={<ProtectedRoute allowedRoles={['PROFESSIONAL']} />}>
+            {/* Uma rota só para os dois perfis: com duas rotas iguais, o React Router usa a primeira
+                (só ADMIN) e o profissional caía em "sem permissão". */}
+            <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'PROFESSIONAL']} />}>
               <Route path="/clientes" element={<CustomersPage />} />
+            </Route>
+
+            <Route element={<ProtectedRoute allowedRoles={['PROFESSIONAL']} />}>
               <Route path="/minha-agenda" element={<ProfessionalAgendaPage />} />
               <Route path="/meus-servicos" element={<MyServicesPage />} />
               <Route path="/meus-atendimentos" element={<MyCompletedServicesPage />} />

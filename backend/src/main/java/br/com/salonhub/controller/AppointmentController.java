@@ -1,6 +1,7 @@
 package br.com.salonhub.controller;
 
 import br.com.salonhub.dto.appointment.AppointmentCreateRequest;
+import br.com.salonhub.dto.appointment.AppointmentRescheduleRequest;
 import br.com.salonhub.dto.appointment.AppointmentCancellationRequest;
 import br.com.salonhub.dto.appointment.AppointmentInvalidationRequest;
 import br.com.salonhub.dto.appointment.AppointmentResponse;
@@ -80,6 +81,15 @@ public class AppointmentController {
             @Valid @RequestBody AppointmentCancellationRequest request) {
         return commandService.cancelAsAdministrator(currentUserId(jwt), appointmentId, request.reason());
     }
+    /** Administrador remarca e/ou troca o profissional de um agendamento confirmado. */
+    @PutMapping("/agendamentos/{appointmentId}/remarcacao")
+    public AppointmentResponse rescheduleAsAdministrator(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long appointmentId,
+            @Valid @RequestBody AppointmentRescheduleRequest request) {
+        return commandService.rescheduleAsAdministrator(currentUserId(jwt), appointmentId, request);
+    }
+
     @PatchMapping("/agendamentos/{appointmentId}/conclusao")
     public AppointmentResponse complete(
             @AuthenticationPrincipal Jwt jwt,

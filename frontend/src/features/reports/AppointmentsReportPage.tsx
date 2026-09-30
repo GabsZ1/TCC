@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { CalendarCheck, CalendarRange, CalendarX2, ShieldAlert, UsersRound } from 'lucide-react'
+import { CalendarCheck, CalendarRange, CalendarX2, UserCheck, UserX, UsersRound } from 'lucide-react'
+import { ExportCsvButton } from '@/components/ui/ExportCsvButton'
 import { fetchEmployees } from '@/features/employees/services/employeesApi'
 import { fetchAppointmentsReport, type AppointmentsReportFilters } from '@/features/reports/appointmentsReportApi'
 import { getApiErrorMessage } from '@/lib/apiError'
@@ -51,8 +52,8 @@ export function AppointmentsReportPage({ embedded = false }: { embedded?: boolea
       {!embedded && (
         <header className="border-b border-background-300 pb-7">
           <p className="eyebrow">Indicadores</p>
-          <h1 className="page-title mt-3">Relatório de atendimentos</h1>
-          <p className="page-subtitle">Acompanhe o volume de agendamentos por profissional e período, incluindo cancelamentos e invalidações.</p>
+          <h1 className="page-title mt-3">Agenda e comparecimento</h1>
+          <p className="page-subtitle">A agenda de cada profissional está virando atendimento? Veja concluídos, cancelamentos e faltas por período.</p>
         </header>
       )}
 
@@ -71,9 +72,10 @@ export function AppointmentsReportPage({ embedded = false }: { embedded?: boolea
         </Filter>
         {employees.isError && <p role="alert" className="text-sm text-danger-600 sm:col-span-2 lg:col-span-3">{getApiErrorMessage(employees.error, 'Não foi possível carregar os profissionais.')}</p>}
         {filterError && <p role="alert" className="text-sm text-danger-600 sm:col-span-2 lg:col-span-3">{filterError}</p>}
-        <div className="flex flex-wrap gap-3 sm:col-span-2 lg:col-span-3">
+        <div className="flex flex-wrap items-center gap-3 sm:col-span-2 lg:col-span-3">
           <button type="submit" className="primary-button">Aplicar filtros</button>
           <button type="button" onClick={clearFilters} className="secondary-button">Limpar filtros</button>
+          <ExportCsvButton path="/estabelecimentos/me/relatorio-atendimentos/csv" params={filters} filename="relatorio-comparecimento.csv" />
         </div>
       </form>
 
@@ -84,11 +86,15 @@ export function AppointmentsReportPage({ embedded = false }: { embedded?: boolea
         <>
           <section className="surface-card mt-6 grid overflow-hidden sm:grid-cols-2 lg:grid-cols-5">
             <SummaryCard icon={CalendarRange} label="Período consultado" value={`${formatDate(report.data.periodStart)} a ${formatDate(report.data.periodEnd)}`} />
-            <SummaryCard icon={CalendarCheck} label="Concluídos" value={String(report.data.totalCompleted)} bordered />
-            <SummaryCard icon={CalendarX2} label="Cancelados" value={String(report.data.totalCancelled)} bordered />
-            <SummaryCard icon={ShieldAlert} label="Invalidados" value={String(report.data.totalInvalidated)} bordered />
-            <SummaryCard icon={ShieldAlert} label="Faltas" value={String(report.data.totalNoShows)} bordered />
+            <SummaryCard icon={CalendarCheck} label="Concluídos" value={`${report.data.totalCompleted} · ${formatPercentage(report.data.completionRate)}`} bordered />
+            <SummaryCard icon={CalendarX2} label="Cancelados" value={`${report.data.totalCancelled} · ${formatPercentage(report.data.cancellationRate)}`} bordered />
+            <SummaryCard icon={UserX} label="Faltas" value={`${report.data.totalNoShows} · ${formatPercentage(report.data.noShowRate)}`} bordered />
+            <SummaryCard icon={UserCheck} label="Taxa de comparecimento" value={formatPercentage(report.data.attendanceRate)} bordered />
           </section>
+          <p className="mt-2 text-xs text-text-500">
+            As taxas consideram só os desfechos (concluído, cancelado e falta). Comparecimento = concluídos ÷ (concluídos + faltas).
+            {report.data.totalInvalidated > 0 && ` ${report.data.totalInvalidated} registro(s) invalidado(s) no período não entram nas taxas.`}
+          </p>
 
           {report.data.entries.length === 0
             ? <StateCard>Nenhum agendamento encontrado para os filtros selecionados.</StateCard>
@@ -99,15 +105,15 @@ export function AppointmentsReportPage({ embedded = false }: { embedded?: boolea
                     <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2"><UsersRound size={18} className="text-text-600" /><h2 className="truncate text-lg font-semibold text-text-900">{entry.professionalName}</h2></div>
-                        <p className="mt-2 text-sm text-text-600">{formatCount(entry.totalCount)}</p>
+                        <p className="mt-2 text-sm text-text-600">{formatCount(entry.totalCount)}{entry.invalidatedCount > 0 ? ` · ${entry.invalidatedCount} invalidado(s)` : ''}</p>
                       </div>
                       <dl className="grid gap-4 sm:grid-cols-3 lg:min-w-[42rem] lg:grid-cols-6">
                         <Metric label="Confirmados" value={String(entry.confirmedCount)} />
                         <Metric label="Concluídos" value={String(entry.completedCount)} />
-                        <Metric label="Cancelados" value={String(entry.cancelledCount)} />
-                        <Metric label="Invalidados" value={String(entry.invalidatedCount)} />
-                        <Metric label="Faltas" value={String(entry.noShowCount)} />
-                        <Metric label="Taxa de conclusão" value={formatPercentage(entry.completionRate)} highlight />
+                        <Metric label="Cancelados" value={`${entry.cancelledCount} · ${formatPercentage(entry.cancellationRate)}`} />
+                        <Metric label="Faltas" value={`${entry.noShowCount} · ${formatPercentage(entry.noShowRate)}`} />
+                        <Metric label="Conclusão" value={formatPercentage(entry.completionRate)} />
+                        <Metric label="Comparecimento" value={formatPercentage(entry.attendanceRate)} highlight />
                       </dl>
                     </div>
                   </article>

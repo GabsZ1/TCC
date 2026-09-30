@@ -8,7 +8,7 @@ type View = 'realizados' | 'status'
 /**
  * Tela "Atendimentos" do administrador.
  * - Aba "Atendimentos realizados" (padrão): US 2.13, lista de atendimentos finalizados.
- * - Aba "Visão por status": indicador de ocupação/cancelamento por profissional (relatório já existente).
+ * - Aba "Comparecimento": agenda por profissional com taxas de conclusão, cancelamento, falta e comparecimento.
  */
 export function EstablishmentAppointmentsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -26,13 +26,13 @@ export function EstablishmentAppointmentsPage() {
         <p className="page-subtitle">
           {view === 'realizados'
             ? 'Consulte os atendimentos finalizados pela equipe, filtrando por funcionário e período de conclusão.'
-            : 'Acompanhe o volume de agendamentos por profissional e período, incluindo cancelamentos e invalidações.'}
+            : 'Veja se a agenda de cada profissional está virando atendimento: concluídos, cancelamentos, faltas e taxa de comparecimento.'}
         </p>
       </header>
 
       <div role="tablist" aria-label="Visões de atendimentos" className="mt-6 inline-flex rounded-xl border border-background-300 bg-background-100 p-1">
         <TabButton active={view === 'realizados'} onClick={() => selectView('realizados')} icon={<ClipboardCheck size={16} />}>Atendimentos realizados</TabButton>
-        <TabButton active={view === 'status'} onClick={() => selectView('status')} icon={<BarChart3 size={16} />}>Visão por status</TabButton>
+        <TabButton active={view === 'status'} onClick={() => selectView('status')} icon={<BarChart3 size={16} />}>Comparecimento</TabButton>
       </div>
 
       <div role="tabpanel">

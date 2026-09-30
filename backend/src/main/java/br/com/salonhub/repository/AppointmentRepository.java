@@ -160,6 +160,52 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     long countByEstablishmentId(Long establishmentId);
 
+    /** Relatório financeiro: concluídos no período (pela data de conclusão), agrupados por serviço. */
+    @Query("""
+            select service.id as id, service.name as name, count(appointment) as completedCount,
+                   sum(appointment.agreedPrice) as revenue, sum(appointment.commissionAmount) as commission
+            from Appointment appointment
+            join appointment.service service
+            join appointment.professional professional
+            where appointment.establishment.id = :establishmentId
+              and appointment.status = br.com.salonhub.entity.AppointmentStatus.COMPLETED
+              and appointment.completedAt >= :periodStart
+              and appointment.completedAt < :periodEnd
+              and (:professionalId is null or professional.id = :professionalId)
+              and (:serviceId is null or service.id = :serviceId)
+            group by service.id, service.name
+            order by sum(appointment.agreedPrice) desc, service.name asc
+            """)
+    List<FinancialReportRow> findFinancialReportByService(
+            @Param("establishmentId") Long establishmentId,
+            @Param("periodStart") LocalDateTime periodStart,
+            @Param("periodEnd") LocalDateTime periodEnd,
+            @Param("professionalId") Long professionalId,
+            @Param("serviceId") Long serviceId);
+
+    /** Relatório financeiro: mesmos filtros, agrupados por profissional. */
+    @Query("""
+            select professional.id as id, professional.name as name, count(appointment) as completedCount,
+                   sum(appointment.agreedPrice) as revenue, sum(appointment.commissionAmount) as commission
+            from Appointment appointment
+            join appointment.service service
+            join appointment.professional professional
+            where appointment.establishment.id = :establishmentId
+              and appointment.status = br.com.salonhub.entity.AppointmentStatus.COMPLETED
+              and appointment.completedAt >= :periodStart
+              and appointment.completedAt < :periodEnd
+              and (:professionalId is null or professional.id = :professionalId)
+              and (:serviceId is null or service.id = :serviceId)
+            group by professional.id, professional.name
+            order by sum(appointment.agreedPrice) desc, professional.name asc
+            """)
+    List<FinancialReportRow> findFinancialReportByProfessional(
+            @Param("establishmentId") Long establishmentId,
+            @Param("periodStart") LocalDateTime periodStart,
+            @Param("periodEnd") LocalDateTime periodEnd,
+            @Param("professionalId") Long professionalId,
+            @Param("serviceId") Long serviceId);
+
     /** Atendimentos que já terminaram e continuam confirmados (ninguém concluiu nem registrou falta). */
     List<Appointment> findByEstablishmentIdAndStatusAndEndsAtLessThanEqualOrderByStartsAt(
             Long establishmentId, AppointmentStatus status, LocalDateTime endsAt);

@@ -50,9 +50,18 @@ public class CustomerController {
     @GetMapping("/opcoes-agendamento")
     @Transactional(readOnly = true)
     public BookingOptions bookingOptions(@AuthenticationPrincipal Jwt jwt) {
-        Long establishmentId = establishmentId(jwt);
+        var staff = authorization.requireEstablishmentStaff(Long.valueOf(jwt.getSubject()));
+        Long establishmentId = staff.getEstablishment().getId();
+        var activeServices = services.findByEstablishmentIdAndActiveTrue(establishmentId);
+        if (staff.getRole() == UserRole.PROFESSIONAL) {
+            // O profissional agenda só na própria agenda e só os serviços que ele realiza.
+            return new BookingOptions(
+                    activeServices.stream().filter(staff::offers)
+                            .map(service -> new BookingOption(service.getId(), service.getName())).toList(),
+                    List.of(new BookingOption(staff.getId(), staff.getName())));
+        }
         return new BookingOptions(
-                services.findByEstablishmentIdAndActiveTrue(establishmentId).stream()
+                activeServices.stream()
                         .map(service -> new BookingOption(service.getId(), service.getName())).toList(),
                 users.findByEstablishmentIdAndRoleAndActiveTrue(establishmentId, UserRole.PROFESSIONAL).stream()
                         .map(professional -> new BookingOption(professional.getId(), professional.getName())).toList());

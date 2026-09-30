@@ -1,10 +1,18 @@
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { useAuth } from '@/hooks/useAuth'
+import { formatDateTime } from '@/lib/format'
+import { APPOINTMENT_STATUS_LABELS, APPOINTMENT_STATUS_STYLES } from '@/features/appointments/appointmentStatus'
+import type { Appointment } from '@/features/appointments/appointmentsApi'
 import { getApiErrorMessage } from '@/lib/apiError'
 import { createCustomer, createCustomerAppointment, fetchBookingOptions, fetchCustomerAppointments, fetchCustomers, updateCustomer, type Customer } from './customersApi'
 
 export function CustomersPage() {
   const queryClient = useQueryClient()
+  const { user } = useAuth()
+  // O profissional só agenda na própria agenda (o backend também garante isso).
+  const isProfessional = user?.role === 'PROFESSIONAL'
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<Customer | null>(null)
   const [editing, setEditing] = useState<Customer | 'new' | null>(null)
@@ -22,7 +30,7 @@ export function CustomersPage() {
     onSuccess: (customer) => { queryClient.invalidateQueries({ queryKey: ['customers'] }); setSelected(customer); setEditing(null) },
   })
   const booking = useMutation({
-    mutationFn: () => createCustomerAppointment(selected!.id, Number(serviceId), Number(professionalId), startsAt),
+    mutationFn: () => createCustomerAppointment(selected!.id, Number(serviceId), isProfessional ? Number(user!.id) : Number(professionalId), startsAt),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['customer-appointments', selected?.id] }); queryClient.invalidateQueries({ queryKey: ['establishment-agenda'] }); setStartsAt('') },
   })
   const status = useMutation({
@@ -66,15 +74,56 @@ export function CustomersPage() {
           <section className="surface-card p-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-semibold">{selected.name}</h2><p className="text-sm text-text-600">{selected.phone}{selected.email ? ` · ${selected.email}` : ''}</p></div><div className="flex gap-3"><button onClick={() => openForm(selected)}>Editar</button><button onClick={() => status.mutate()} disabled={status.isPending}>{selected.active ? 'Desativar' : 'Reativar'}</button></div></div></section>
           {selected.active && <form onSubmit={submitBooking} className="surface-card space-y-3 p-5"><h2 className="font-semibold">Agendar para {selected.name}</h2>
             <label className="block text-sm">Serviço<select required className="filter-input mt-1 w-full" value={serviceId} onChange={(event) => setServiceId(event.target.value)}><option value="">Selecione</option>{options.data?.services.map((service) => <option key={service.id} value={service.id}>{service.name}</option>)}</select></label>
-            <label className="block text-sm">Profissional<select required className="filter-input mt-1 w-full" value={professionalId} onChange={(event) => setProfessionalId(event.target.value)}><option value="">Selecione</option>{options.data?.professionals.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}</select></label>
+            {isProfessional
+              ? <p className="text-sm">Profissional<span className="filter-input mt-1 block w-full bg-background-100 text-text-700">{user?.name} (sua agenda)</span></p>
+              : <label className="block text-sm">Profissional<select required className="filter-input mt-1 w-full" value={professionalId} onChange={(event) => setProfessionalId(event.target.value)}><option value="">Selecione</option>{options.data?.professionals.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}</select></label>}
             <label className="block text-sm">Data e horário<input required type="datetime-local" className="filter-input mt-1 w-full" value={startsAt} onChange={(event) => setStartsAt(event.target.value)} /></label>
             {booking.isError && <p role="alert" className="text-danger-600">{getApiErrorMessage(booking.error, 'Não foi possível agendar.')}</p>}
             {booking.isSuccess && <p role="status" className="text-success-700">Agendamento criado.</p>}
             <button className="btn-primary" disabled={booking.isPending}>Agendar</button>
           </form>}
-          <section className="surface-card p-5"><h2 className="font-semibold">Histórico</h2>{history.data?.length === 0 && <p className="mt-3 text-sm text-text-600">Nenhum atendimento ainda.</p>}{history.data?.map((appointment) => <div key={appointment.id} className="mt-3 border-t border-background-300 pt-3 text-sm"><strong>{appointment.serviceName}</strong><p>{new Date(appointment.startsAt).toLocaleString('pt-BR')} · {appointment.professionalName} · {appointment.status}</p></div>)}</section>
+          <CustomerHistory key={selected.id} appointments={history.data} isLoading={history.isLoading} isError={history.isError} />
         </> : <div className="surface-card p-5 text-text-600">Selecione um cliente para ver o histórico e agendar.</div>}
       </section>
     </div>
   </div>
+}
+
+const HISTORY_PAGE_SIZE = 10
+
+/** Histórico do cliente, 10 por página. O `key` do cliente reinicia a página ao trocar de cliente. */
+function CustomerHistory({ appointments, isLoading, isError }: { appointments?: Appointment[]; isLoading: boolean; isError: boolean }) {
+  const [page, setPage] = useState(0)
+  const items = appointments ?? []
+  const totalPages = Math.max(1, Math.ceil(items.length / HISTORY_PAGE_SIZE))
+  const current = Math.min(page, totalPages - 1)
+  const visible = items.slice(current * HISTORY_PAGE_SIZE, (current + 1) * HISTORY_PAGE_SIZE)
+
+  return <section className="surface-card p-5">
+    <div className="flex items-center justify-between gap-3">
+      <h2 className="font-semibold">Histórico</h2>
+      {items.length > 0 && <span className="text-xs text-text-500">{items.length} atendimento(s)</span>}
+    </div>
+    {isLoading && <p className="mt-3 text-sm text-text-600">Carregando histórico...</p>}
+    {isError && <p role="alert" className="mt-3 text-sm text-danger-600">Não foi possível carregar o histórico.</p>}
+    {!isLoading && !isError && items.length === 0 && <p className="mt-3 text-sm text-text-600">Nenhum atendimento ainda.</p>}
+    <ul className="mt-2">
+      {visible.map((appointment) => (
+        <li key={appointment.id} className="flex flex-wrap items-start justify-between gap-2 border-t border-background-300 py-3 text-sm first:border-t-0">
+          <div>
+            <strong className="text-text-900">{appointment.serviceName}</strong>
+            <p className="text-text-600">{formatDateTime(appointment.startsAt).replace(' ', ' às ')} · {appointment.professionalName}</p>
+          </div>
+          <span className={`status-pill ${APPOINTMENT_STATUS_STYLES[appointment.status]}`}>{APPOINTMENT_STATUS_LABELS[appointment.status]}</span>
+        </li>
+      ))}
+    </ul>
+    {totalPages > 1 && (
+      <div className="mt-3 flex items-center justify-between gap-3 border-t border-background-300 pt-3 text-sm">
+        <button type="button" onClick={() => setPage(current - 1)} disabled={current === 0} className="inline-flex items-center gap-1 font-semibold text-text-700 disabled:opacity-40"><ChevronLeft size={16} /> Anterior</button>
+        <span className="text-text-600">Página {current + 1} de {totalPages}</span>
+        <button type="button" onClick={() => setPage(current + 1)} disabled={current >= totalPages - 1} className="inline-flex items-center gap-1 font-semibold text-text-700 disabled:opacity-40">Próxima <ChevronRight size={16} /></button>
+      </div>
+    )}
+  </section>
 }

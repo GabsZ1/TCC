@@ -1,6 +1,7 @@
 package br.com.salonhub.service.appointment;
 
 import br.com.salonhub.dto.appointment.AppointmentCreateRequest;
+import br.com.salonhub.dto.appointment.AppointmentRescheduleRequest;
 import br.com.salonhub.dto.appointment.AppointmentResponse;
 import br.com.salonhub.entity.Appointment;
 import br.com.salonhub.entity.AppointmentStatus;
@@ -68,6 +69,11 @@ public class AppointmentCommandService {
     public AppointmentResponse createForCustomer(Long administratorId, Long customerId,
                                                  AppointmentCreateRequest request) {
         User administrator = tenantAuthorizationService.requireEstablishmentStaff(administratorId);
+        // O administrador agenda para qualquer profissional; o profissional, só para si mesmo.
+        if (administrator.getRole() == UserRole.PROFESSIONAL
+                && !administrator.getId().equals(request.professionalId())) {
+            throw new AccessDeniedException("O profissional só pode criar agendamentos na própria agenda.");
+        }
         Long establishmentId = administrator.getEstablishment().getId();
         Establishment establishment = findActiveEstablishmentForUpdate(establishmentId);
         Customer customer = customerRepository.findByIdAndEstablishmentId(customerId, establishmentId)
@@ -112,6 +118,47 @@ public class AppointmentCommandService {
         validateSchedule(establishment, professional, appointment.getCustomer(), startsAt, endsAt, appointment.getId(), true);
 
         appointment.update(service, professional, startsAt);
+        return AppointmentResponse.fromEntity(appointment);
+    }
+
+    /**
+     * Remarcação e troca de profissional pelo administrador (ex.: profissional faltou, cliente pediu
+     * outro horário). Passa pelas mesmas validações de disponibilidade e conflito do agendamento,
+     * mas sem a antecedência mínima do agendamento online.
+     */
+    @Transactional
+    public AppointmentResponse rescheduleAsAdministrator(
+            Long administratorId, Long appointmentId, AppointmentRescheduleRequest request) {
+        User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
+        Long establishmentId = administrator.getEstablishment().getId();
+
+        // Mesma ordem de locks da criação: estabelecimento, profissional e, por fim, o agendamento.
+        Establishment establishment = findActiveEstablishmentForUpdate(establishmentId);
+        User professional = findAndLockProfessional(request.professionalId(), establishmentId);
+        Appointment appointment = appointmentRepository.findByIdAndEstablishmentIdForUpdate(appointmentId, establishmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Agendamento não encontrado."));
+        if (appointment.getStatus() != AppointmentStatus.CONFIRMED
+                || !appointment.getStartsAt().isAfter(LocalDateTime.now(clock))) {
+            throw new ConflictException("Apenas agendamentos confirmados que ainda não começaram podem ser remarcados.");
+        }
+
+        boolean changesService = request.serviceId() != null
+                && !request.serviceId().equals(appointment.getService().getId());
+        EstablishmentService service = changesService
+                ? findActiveService(request.serviceId(), establishmentId)
+                : appointment.getService();
+        requireProfessionalOffersService(professional, service);
+
+        LocalDateTime startsAt = request.startsAt();
+        int durationMinutes = changesService ? service.getDurationMinutes() : appointment.getDurationMinutes();
+        validateSchedule(establishment, professional, appointment.getCustomer(), startsAt,
+                startsAt.plusMinutes(durationMinutes), appointment.getId(), false);
+
+        if (changesService) {
+            appointment.update(service, professional, startsAt);
+        } else {
+            appointment.reschedule(professional, startsAt);
+        }
         return AppointmentResponse.fromEntity(appointment);
     }
 

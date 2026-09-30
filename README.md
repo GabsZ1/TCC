@@ -390,8 +390,21 @@ CONFIRMED ────────┼──> CANCELLED
 - **Não compareceu (`NO_SHOW`):** registrado pelo profissional do atendimento ou pelo administrador, com `PATCH /api/agendamentos/{id}/falta`. Só vale para agendamentos confirmados e a partir de **15 minutos após o início** (tolerância de atraso), sem precisar esperar o fim previsto. A falta libera o horário do profissional. Não pode ser desfeita.
 - **Nada é automático:** o sistema nunca marca falta ou conclusão sozinho, porque um atendimento feito e não fechado seria registrado como falta e afetaria a comissão.
 - **Pendentes de fechamento:** `GET /api/agendamentos/pendentes-fechamento` lista os agendamentos que já terminaram e continuam `CONFIRMED` (o admin vê os do estabelecimento; o profissional, os dele). As duas agendas mostram um aviso com essa lista e os botões "Concluir" e "Não compareceu".
+- **Remarcação pelo administrador:** `PUT /api/agendamentos/{id}/remarcacao` com `professionalId`, `startsAt` e `serviceId` opcional. Vale para agendamentos confirmados que ainda não começaram e muda horário, profissional ou serviço, mantendo o cliente. Passa pelas mesmas validações de jornada, bloqueios e conflitos, mas sem a antecedência mínima do agendamento online. Manter o serviço mantém o preço combinado; trocar o serviço atualiza preço, comissão e duração. O profissional não remarca. Na agenda do admin, fica no botão "Remarcar".
 - **Pausa do estabelecimento:** só é bloqueada por agendamentos confirmados que ainda não terminaram. Um confirmado esquecido no passado não impede a pausa.
 - **Relatórios:** o relatório de atendimentos conta as faltas separadamente. Faltas não geram comissão.
+
+### Relatórios do estabelecimento
+
+Todos são só do administrador, aceitam `startDate` e `endDate` (juntas; sem elas, vale o mês corrente) e têm exportação em CSV no mesmo endereço com `/csv` no final. O CSV é gerado a partir do mesmo objeto que a tela recebe, então os números nunca divergem. O arquivo usa `;` como separador, vírgula decimal e UTF-8 com BOM, para abrir certo no Excel em português.
+
+| Relatório | Endpoint | O que responde |
+|---|---|---|
+| Comissões | `GET /api/estabelecimentos/me/relatorio-comissoes` | Quanto cada profissional gerou de comissão (concluídos, pela data de conclusão). |
+| Financeiro | `GET /api/estabelecimentos/me/relatorio-financeiro` (filtros `professionalId` e `serviceId`) | Faturamento bruto, comissões, valor após comissões, atendimentos concluídos e ticket médio, por serviço e por profissional. "Valor após comissões" não é lucro. |
+| Agenda e comparecimento | `GET /api/estabelecimentos/me/relatorio-atendimentos` | Por profissional (pela data agendada): confirmados, concluídos, cancelados, faltas e invalidados, com as taxas de conclusão, cancelamento, falta e comparecimento. |
+
+As taxas usam só os desfechos da agenda (concluído, cancelado e falta). O comparecimento é concluídos ÷ (concluídos + faltas). Invalidados são correções de registro: aparecem na contagem, mas ficam fora das taxas. A lista "Atendimentos realizados" continua sendo o detalhamento que sustenta esses números.
 
 ### Funcionários (US 2.1, 2.2 e 2.6) e perfil do funcionário
 

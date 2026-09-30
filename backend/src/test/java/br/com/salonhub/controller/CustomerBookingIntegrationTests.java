@@ -69,6 +69,36 @@ class CustomerBookingIntegrationTests {
                 .header("Authorization", auth))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1));
 
+        // Profissional: agenda só na própria agenda.
+        Number colleagueId = JsonPath.read(mvc.perform(post("/api/funcionarios").header("Authorization", auth)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"Colega balcão\",\"email\":\"colega.balcao@salonhub.test\","
+                        + "\"occupation\":\"Cabeleireiro(a)\",\"cpf\":\"%s\",\"hireDate\":\"2025-01-02\"}"
+                        .formatted(TestDocuments.cpf())))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString(), "$.id");
+        String professionalAuth = "Bearer " + JsonPath.read(mvc.perform(post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"prof.balcao@salonhub.test\",\"password\":\"senha123\"}"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(), "$.token");
+        mvc.perform(get("/api/clientes/estabelecimento/me/opcoes-agendamento").header("Authorization", professionalAuth))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.professionals.length()").value(1))
+                .andExpect(jsonPath("$.professionals[0].id").value(professionalId))
+                .andExpect(jsonPath("$.services[0].id").value(serviceId));
+        mvc.perform(get("/api/clientes/estabelecimento/me/opcoes-agendamento").header("Authorization", auth))
+                .andExpect(jsonPath("$.professionals.length()").value(2));
+        mvc.perform(post("/api/agendamentos/estabelecimento/me/clientes/{id}", customerId.longValue())
+                .header("Authorization", professionalAuth).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"serviceId\":%d,\"professionalId\":%d,\"startsAt\":\"%sT14:00:00\"}"
+                        .formatted(serviceId.longValue(), colleagueId.longValue(), day)))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/api/agendamentos/estabelecimento/me/clientes/{id}", customerId.longValue())
+                .header("Authorization", professionalAuth).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"serviceId\":%d,\"professionalId\":%d,\"startsAt\":\"%sT14:00:00\"}"
+                        .formatted(serviceId.longValue(), professionalId.longValue(), day)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.professionalId").value(professionalId));
+
         mvc.perform(post("/api/auth/cadastro").contentType(MediaType.APPLICATION_JSON).content("""
                 {"ownerName":"Admin outro salão","ownerEmail":"outro.balcao@salonhub.test",
                  "password":"senha123","establishmentName":"Outro Salão","cnpj":"11444777000161"}

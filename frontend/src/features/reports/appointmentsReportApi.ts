@@ -9,7 +9,11 @@ export interface AppointmentsReportEntry {
   invalidatedCount: number
   noShowCount: number
   totalCount: number
+  /** Taxas sobre os desfechos (concluído, cancelado, falta); invalidados não entram. */
   completionRate: number
+  attendanceRate: number
+  cancellationRate: number
+  noShowRate: number
 }
 
 export interface AppointmentsReport {
@@ -21,6 +25,10 @@ export interface AppointmentsReport {
   totalCancelled: number
   totalInvalidated: number
   totalNoShows: number
+  completionRate: number
+  attendanceRate: number
+  cancellationRate: number
+  noShowRate: number
 }
 
 export interface AppointmentsReportFilters {
