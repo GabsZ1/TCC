@@ -114,10 +114,16 @@ public class AppointmentCommandService {
         }
 
         LocalDateTime startsAt = request.startsAt();
-        LocalDateTime endsAt = startsAt.plusMinutes(service.getDurationMinutes());
+        boolean changesService = !service.getId().equals(appointment.getService().getId());
+        int durationMinutes = changesService ? service.getDurationMinutes() : appointment.getDurationMinutes();
+        LocalDateTime endsAt = startsAt.plusMinutes(durationMinutes);
         validateSchedule(establishment, professional, appointment.getCustomer(), startsAt, endsAt, appointment.getId(), true);
 
-        appointment.update(service, professional, startsAt);
+        if (changesService) {
+            appointment.update(service, professional, startsAt);
+        } else {
+            appointment.reschedule(professional, startsAt);
+        }
         return AppointmentResponse.fromEntity(appointment);
     }
 

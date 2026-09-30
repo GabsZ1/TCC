@@ -167,13 +167,27 @@ class AppointmentFlowIntegrationTests {
                         .header("Authorization", bearer(clientToken)))
                 .andExpect(status().isForbidden());
 
+        // O reajuste posterior à reserva não altera o combinado ao remarcar o mesmo serviço.
+        mockMvc.perform(put("/api/servicos/{id}", serviceId.longValue())
+                        .header("Authorization", bearer(administratorToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Corte reajustado","price":70.00,
+                                 "commissionPercentage":40.00,"durationMinutes":90}
+                                """))
+                .andExpect(status().isOk());
         mockMvc.perform(put("/api/agendamentos/{id}", appointmentId.longValue())
                         .header("Authorization", bearer(clientToken))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(appointmentPayload(serviceId, professionalId, startsAt)))
+                        .content(appointmentPayload(serviceId, professionalId, appointmentDate.atTime(11, 0))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(appointmentId))
-                .andExpect(jsonPath("$.endsAt").value(appointmentDate + "T11:00:00"));
+                .andExpect(jsonPath("$.serviceName").value("Corte MVP"))
+                .andExpect(jsonPath("$.agreedPrice").value(50.0))
+                .andExpect(jsonPath("$.commissionPercentage").value(0.0))
+                .andExpect(jsonPath("$.commissionAmount").value(0.0))
+                .andExpect(jsonPath("$.durationMinutes").value(60))
+                .andExpect(jsonPath("$.endsAt").value(appointmentDate + "T12:00:00"));
 
         mockMvc.perform(put("/api/agendamentos/{id}", appointmentId.longValue())
                         .header("Authorization", bearer(clientToken))
