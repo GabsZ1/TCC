@@ -22,7 +22,7 @@ export function ServiceFormModal({ service, isSubmitting, errorMessage, onSubmit
     const commissionText = String(form.get('commissionPercentage') || '')
     const commissionPercentage = commissionText === '' ? 0 : Number(commissionText)
 
-    if (price <= 0 || durationMinutes <= 0 || commissionPercentage < 0 || commissionPercentage > 100) {
+    if (price <= 0 || price > 99999999.99 || durationMinutes <= 0 || durationMinutes > 1440 || commissionPercentage < 0 || commissionPercentage > 100) {
       setError('Confira o valor, a duração e a comissão informados.')
       return
     }
@@ -44,7 +44,7 @@ export function ServiceFormModal({ service, isSubmitting, errorMessage, onSubmit
         <ServiceField name="name" label="Nome do serviço" defaultValue={service?.name} maxLength={100} placeholder="Ex.: Corte feminino" />
         <ServiceField name="description" label="Descrição (opcional)" defaultValue={service?.description ?? ''} required={false} maxLength={255} placeholder="Uma descrição curta para identificar o serviço" />
         <div className="grid grid-cols-2 gap-3">
-          <ServiceField name="price" label="Valor" type="number" min="0.01" step="0.01" defaultValue={service?.price} icon={<Wallet size={15} />} prefix="R$" />
+          <ServiceField name="price" label="Valor" type="number" min="0.01" max="99999999.99" step="0.01" defaultValue={service?.price} icon={<Wallet size={15} />} prefix="R$" />
           <ServiceField name="durationMinutes" label="Duração" type="number" min="1" max="1440" defaultValue={service?.durationMinutes ?? 30} icon={<Clock3 size={15} />} suffix="min" />
         </div>
         <ServiceField name="commissionPercentage" label="Comissão (opcional)" type="number" min="0" max="100" step="0.01" defaultValue={service?.commissionPercentage ?? 0} required={false} icon={<Percent size={15} />} suffix="%" />

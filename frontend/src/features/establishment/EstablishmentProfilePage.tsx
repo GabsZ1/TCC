@@ -148,21 +148,21 @@ export function EstablishmentProfilePage() {
             <p className="mt-1 text-sm text-text-600">Os campos estão separados para facilitar a futura integração com o mapa.</p>
             <div className="mt-4 grid gap-5 sm:grid-cols-6">
               <ProfileField label="CEP" value={formatCep(currentForm.postalCode)} onChange={changePostalCode} placeholder="00000-000" inputMode="numeric" className="sm:col-span-2" hint={cepStatus?.text ?? 'Digite o CEP para preencher o endereço.'} hintTone={cepStatus?.tone} />
-              <ProfileField label="Logradouro" value={currentForm.street} onChange={(value) => updateField('street', value)} placeholder="Rua, avenida..." className="sm:col-span-4" />
-              <ProfileField label="Número" value={currentForm.streetNumber} onChange={(value) => updateField('streetNumber', value)} className="sm:col-span-2" inputRef={streetNumberInput} />
-              <ProfileField label="Complemento" value={currentForm.addressComplement} onChange={(value) => updateField('addressComplement', value)} className="sm:col-span-4" />
-              <ProfileField label="Bairro" value={currentForm.neighborhood} onChange={(value) => updateField('neighborhood', value)} className="sm:col-span-2" />
-              <ProfileField label="Cidade" value={currentForm.city} onChange={(value) => updateField('city', value)} className="sm:col-span-3" />
-              <ProfileField label="UF" value={currentForm.state} onChange={(value) => updateField('state', value.toUpperCase().slice(0, 2))} placeholder="SP" className="sm:col-span-1" />
+              <ProfileField label="Logradouro" value={currentForm.street} onChange={(value) => updateField('street', value)} maxLength={150} placeholder="Rua, avenida..." className="sm:col-span-4" />
+              <ProfileField label="Número" value={currentForm.streetNumber} onChange={(value) => updateField('streetNumber', value)} maxLength={20} className="sm:col-span-2" inputRef={streetNumberInput} />
+              <ProfileField label="Complemento" value={currentForm.addressComplement} onChange={(value) => updateField('addressComplement', value)} maxLength={100} className="sm:col-span-4" />
+              <ProfileField label="Bairro" value={currentForm.neighborhood} onChange={(value) => updateField('neighborhood', value)} maxLength={100} className="sm:col-span-2" />
+              <ProfileField label="Cidade" value={currentForm.city} onChange={(value) => updateField('city', value)} maxLength={100} className="sm:col-span-3" />
+              <ProfileField label="UF" value={currentForm.state} onChange={(value) => updateField('state', value.toUpperCase().slice(0, 2))} pattern="AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO" placeholder="SP" className="sm:col-span-1" />
             </div>
           </div>
 
           <div className="border-t border-background-300 pt-6">
             <div className="flex items-center gap-2 text-text-700"><Phone size={18} /><h2 className="font-semibold text-text-900">Contato público</h2></div>
             <div className="mt-4 grid gap-5 sm:grid-cols-3">
-              <ProfileField label="WhatsApp" value={currentForm.whatsapp} onChange={(value) => updateField('whatsapp', value)} placeholder="(00) 00000-0000" />
-              <ProfileField label="Telefone" value={currentForm.phone} onChange={(value) => updateField('phone', value)} placeholder="(00) 0000-0000" />
-              <ProfileField label="Instagram" value={currentForm.instagram} onChange={(value) => updateField('instagram', value)} placeholder="@seuperfil" icon={<AtSign size={15} />} />
+              <ProfileField label="WhatsApp" value={currentForm.whatsapp} onChange={(value) => updateField('whatsapp', value)} maxLength={20} placeholder="(00) 00000-0000" />
+              <ProfileField label="Telefone" value={currentForm.phone} onChange={(value) => updateField('phone', value)} maxLength={20} placeholder="(00) 0000-0000" />
+              <ProfileField label="Instagram" value={currentForm.instagram} onChange={(value) => updateField('instagram', value)} maxLength={100} placeholder="@seuperfil" icon={<AtSign size={15} />} />
             </div>
           </div>
 
@@ -185,11 +185,13 @@ interface ProfileFieldProps {
   icon?: React.ReactNode
   inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode']
   inputRef?: React.Ref<HTMLInputElement>
+  maxLength?: number
+  pattern?: string
   hint?: string
   hintTone?: 'info' | 'error'
 }
-function ProfileField({ label, value, onChange, placeholder, className = '', icon, inputMode, inputRef, hint, hintTone = 'info' }: ProfileFieldProps) {
-  return <label className={`block ${className}`}><span className="flex items-center gap-1.5 text-sm font-medium text-text-800">{icon}{label}</span><input ref={inputRef} value={value ?? ''} inputMode={inputMode} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="mt-2 w-full rounded-xl border border-background-300 px-3.5 py-3 text-text-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 disabled:bg-background-100" />{hint && <span role={hintTone === 'error' ? 'alert' : 'status'} className={`mt-1.5 block text-xs ${hintTone === 'error' ? 'text-danger-600' : 'text-text-500'}`}>{hint}</span>}</label>
+function ProfileField({ label, value, onChange, placeholder, className = '', icon, inputMode, inputRef, maxLength, pattern, hint, hintTone = 'info' }: ProfileFieldProps) {
+  return <label className={`block ${className}`}><span className="flex items-center gap-1.5 text-sm font-medium text-text-800">{icon}{label}</span><input ref={inputRef} value={value ?? ''} inputMode={inputMode} maxLength={maxLength} pattern={pattern} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="mt-2 w-full rounded-xl border border-background-300 px-3.5 py-3 text-text-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 disabled:bg-background-100" />{hint && <span role={hintTone === 'error' ? 'alert' : 'status'} className={`mt-1.5 block text-xs ${hintTone === 'error' ? 'text-danger-600' : 'text-text-500'}`}>{hint}</span>}</label>
 }
 function SectionHeader({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) { return <div><div className="flex items-center gap-2 text-text-600">{icon}<h2 className="text-lg font-semibold text-text-900">{title}</h2></div><p className="mt-1 text-sm text-text-600">{description}</p></div> }
 function PageContainer({ children }: { children: React.ReactNode }) { return <div className="page-shell">{children}</div> }

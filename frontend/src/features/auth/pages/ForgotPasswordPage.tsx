@@ -18,6 +18,7 @@ export function ForgotPasswordPage() {
   function submit(event: FormEvent) {
     event.preventDefault()
     if (!email.trim() || mutation.isPending) return
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) || email.trim().length > 150) return
     mutation.mutate(email.trim())
   }
 
@@ -40,7 +41,7 @@ export function ForgotPasswordPage() {
           <Link className="secondary-button mt-6 w-full py-3" to="/login"><ArrowLeft size={17} /> Voltar para o login</Link>
         </div>
       ) : (
-        <form onSubmit={submit} noValidate>
+        <form onSubmit={submit}>
           <label className="block text-sm font-semibold text-text-800" htmlFor="recovery-email">E-mail</label>
           <div className="relative">
             <Mail className="pointer-events-none absolute left-3.5 top-1/2 mt-1 size-[17px] -translate-y-1/2 text-text-400" />
@@ -50,6 +51,7 @@ export function ForgotPasswordPage() {
               autoComplete="email"
               autoFocus
               required
+              maxLength={150}
               value={email}
               onChange={(event) => { setEmail(event.target.value); if (mutation.isError) mutation.reset() }}
               placeholder="voce@exemplo.com"

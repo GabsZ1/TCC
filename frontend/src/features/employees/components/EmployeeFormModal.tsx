@@ -15,7 +15,7 @@ const hireDateField = z.string().refine((value) => value === '' || value <= toda
 
 const createSchema = z.object({
   name: z.string().trim().min(1, 'Nome é um campo obrigatório!').max(150),
-  email: z.string().trim().min(1, 'Email é um campo obrigatório!').email('Email inválido'),
+  email: z.string().trim().min(1, 'Email é um campo obrigatório!').email('Email inválido').max(150),
   occupation: z.string().trim().min(1, 'Ocupação é um campo obrigatório!').max(80),
   cpf: cpfField.refine((value) => value !== '', 'CPF é um campo obrigatório!'),
   hireDate: hireDateField.refine((value) => value !== '', 'Data de admissão é um campo obrigatório!'),

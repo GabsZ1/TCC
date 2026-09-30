@@ -45,9 +45,9 @@ export function InitialRegistrationPage() {
       <form onSubmit={handleSubmit}>
         <FormSection icon={<UserRound size={18} />} title="Sua conta" description="Dados usados para acessar e administrar o Meu Espaço.">
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field name="ownerName" label="Seu nome" autoComplete="name" placeholder="Nome completo" />
-            <Field name="ownerEmail" label="Seu e-mail" type="email" autoComplete="email" placeholder="voce@exemplo.com" />
-            <Field name="password" label="Senha" type="password" minLength={8} autoComplete="new-password" placeholder="Mínimo de 8 caracteres" className="sm:col-span-2" />
+            <Field name="ownerName" label="Seu nome" maxLength={150} autoComplete="name" placeholder="Nome completo" />
+            <Field name="ownerEmail" label="Seu e-mail" type="email" maxLength={150} autoComplete="email" placeholder="voce@exemplo.com" />
+            <Field name="password" label="Senha" type="password" minLength={8} maxLength={72} autoComplete="new-password" placeholder="Mínimo de 8 caracteres" className="sm:col-span-2" />
           </div>
         </FormSection>
 
@@ -55,10 +55,10 @@ export function InitialRegistrationPage() {
 
         <FormSection icon={<Building2 size={18} />} title="Seu negócio" description="Informações básicas do estabelecimento que será criado.">
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field name="establishmentName" label="Nome do estabelecimento" placeholder="Ex.: Studio Aurora" className="sm:col-span-2" />
+            <Field name="establishmentName" label="Nome do estabelecimento" maxLength={150} placeholder="Ex.: Studio Aurora" className="sm:col-span-2" />
             <CnpjField />
-            <Field name="establishmentPhone" label="Telefone (opcional)" required={false} placeholder="(44) 99999-9999" />
-            <Field name="establishmentEmail" label="E-mail do estabelecimento (opcional)" type="email" required={false} placeholder="contato@negocio.com" className="sm:col-span-2" />
+            <Field name="establishmentPhone" label="Telefone (opcional)" required={false} maxLength={20} placeholder="(44) 99999-9999" />
+            <Field name="establishmentEmail" label="E-mail do estabelecimento (opcional)" type="email" required={false} maxLength={150} placeholder="contato@negocio.com" className="sm:col-span-2" />
           </div>
         </FormSection>
 

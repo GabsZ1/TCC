@@ -100,7 +100,7 @@ export function CustomersPage() {
           <label className="block text-sm">Nome<input className="filter-input mt-1 w-full" required maxLength={150} value={name} onChange={(event) => setName(event.target.value)} /></label>
           <label className="block text-sm">Telefone<IMaskInput mask={PHONE_MASK} className="filter-input mt-1 w-full" required inputMode="tel" placeholder="(00) 00000-0000" value={formatPhone(phone)} onAccept={(value: string) => setPhone(value)} /></label>
           {phone && !isValidPhone(phone) && <p className="text-sm text-danger-600">Informe um telefone com DDD e 10 ou 11 dígitos.</p>}
-          <label className="block text-sm">Email (opcional)<input className="filter-input mt-1 w-full" type="email" value={email} onChange={(event) => setEmail(event.target.value)} /></label>
+          <label className="block text-sm">Email (opcional)<input className="filter-input mt-1 w-full" type="email" maxLength={150} value={email} onChange={(event) => setEmail(event.target.value)} /></label>
           {editing === 'new' && suggestions.data && suggestions.data.length > 0 && <div className="rounded-xl border border-background-300 p-3 text-sm">
             <p className="font-semibold">Possíveis clientes já cadastrados</p>
             <p className="mt-1 text-text-600">Selecione um cadastro existente para agendar, ou salve este formulário para criar outro cliente.</p>
