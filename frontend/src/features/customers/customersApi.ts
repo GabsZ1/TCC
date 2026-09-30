@@ -15,10 +15,19 @@ export interface CustomerInput { name: string; phone: string; email: string; act
 
 export const fetchCustomers = (search = '') =>
   api.get<Customer[]>('/clientes/estabelecimento/me', { params: { search } }).then((response) => response.data)
+export const fetchCustomerSuggestions = (phone: string, email: string) =>
+  api.get<Customer[]>('/clientes/estabelecimento/me/sugestoes', { params: { phone, email } }).then((response) => response.data)
 export const createCustomer = (input: CustomerInput) =>
   api.post<Customer>('/clientes/estabelecimento/me', input).then((response) => response.data)
 export const updateCustomer = (id: number, input: CustomerInput) =>
   api.put<Customer>(`/clientes/estabelecimento/me/${id}`, input).then((response) => response.data)
+export interface CustomerDuplicateCandidate { id: number; name: string; phone: string | null; email: string | null; linked: boolean; appointmentCount: number }
+export const fetchCustomerDuplicates = (id: number) =>
+  api.get<CustomerDuplicateCandidate[]>(`/clientes/estabelecimento/me/${id}/possiveis-duplicados`).then((response) => response.data)
+export const mergeCustomers = (id: number, otherId: number) =>
+  api.patch<Customer>(`/clientes/estabelecimento/me/${id}/mesclar/${otherId}`).then((response) => response.data)
+export const keepCustomersSeparate = (id: number, otherId: number) =>
+  api.patch(`/clientes/estabelecimento/me/${id}/manter-separados/${otherId}`)
 export const fetchCustomerAppointments = (id: number) =>
   api.get<Appointment[]>(`/clientes/estabelecimento/me/${id}/agendamentos`).then((response) => response.data)
 export const fetchBookingOptions = () =>

@@ -11,6 +11,7 @@ import br.com.salonhub.repository.EstablishmentServiceRepository;
 import br.com.salonhub.repository.UserRepository;
 import br.com.salonhub.entity.UserRole;
 import br.com.salonhub.service.TenantAuthorizationService;
+import br.com.salonhub.service.CustomerDuplicateService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -30,6 +31,30 @@ public class CustomerController {
     private final EstablishmentServiceRepository services;
     private final UserRepository users;
     private final TenantAuthorizationService authorization;
+    private final CustomerDuplicateService duplicates;
+
+    @GetMapping("/sugestoes")
+    public List<CustomerResponse> suggestions(@AuthenticationPrincipal Jwt jwt,
+                                              @RequestParam(required = false) String phone,
+                                              @RequestParam(required = false) String email) {
+        return duplicates.suggestionsForNew(Long.valueOf(jwt.getSubject()), phone, email);
+    }
+
+    @GetMapping("/{id}/possiveis-duplicados")
+    public List<CustomerDuplicateService.Candidate> duplicates(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
+        return duplicates.candidates(Long.valueOf(jwt.getSubject()), id);
+    }
+
+    @PatchMapping("/{id}/mesclar/{otherId}")
+    public CustomerResponse merge(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id, @PathVariable Long otherId) {
+        return CustomerResponse.fromEntity(duplicates.merge(Long.valueOf(jwt.getSubject()), id, otherId));
+    }
+
+    @PatchMapping("/{id}/manter-separados/{otherId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void keepSeparate(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id, @PathVariable Long otherId) {
+        duplicates.keepSeparate(Long.valueOf(jwt.getSubject()), id, otherId);
+    }
 
     @GetMapping
     @Transactional(readOnly = true)

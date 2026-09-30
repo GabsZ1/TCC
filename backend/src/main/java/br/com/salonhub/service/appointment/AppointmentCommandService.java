@@ -20,6 +20,7 @@ import br.com.salonhub.repository.EstablishmentRepository;
 import br.com.salonhub.repository.EstablishmentServiceRepository;
 import br.com.salonhub.repository.UserRepository;
 import br.com.salonhub.service.TenantAuthorizationService;
+import br.com.salonhub.service.CustomerResolutionService;
 import br.com.salonhub.service.professionalagenda.ProfessionalAvailabilityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -35,6 +36,7 @@ public class AppointmentCommandService {
 
     private final AppointmentRepository appointmentRepository;
     private final CustomerRepository customerRepository;
+    private final CustomerResolutionService customerResolutionService;
     private final EstablishmentRepository establishmentRepository;
     private final EstablishmentServiceRepository serviceRepository;
     private final UserRepository userRepository;
@@ -46,13 +48,7 @@ public class AppointmentCommandService {
     public AppointmentResponse create(Long clientId, Long establishmentId, AppointmentCreateRequest request) {
         User client = lockClient(clientId);
         Establishment establishment = findActiveEstablishmentForUpdate(establishmentId);
-        Customer customer = customerRepository.findByEstablishmentIdAndUserId(establishmentId, clientId)
-                .orElseGet(() -> {
-                    Customer created = Customer.create(establishment, client.getName(), client.getPhone(), client.getEmail());
-                    created.link(client);
-                    return customerRepository.saveAndFlush(created);
-                });
-        if (!customer.isActive()) throw new ConflictException("Cliente inativo neste estabelecimento.");
+        Customer customer = customerResolutionService.resolveForBooking(establishment, client);
         EstablishmentService service = findActiveService(request.serviceId(), establishmentId);
         User professional = findAndLockProfessional(request.professionalId(), establishmentId);
         requireProfessionalOffersService(professional, service);

@@ -117,6 +117,13 @@ public class Appointment {
         return appointment;
     }
 
+    public void reassignCustomer(Customer customer) {
+        if (!establishment.getId().equals(customer.getEstablishment().getId())) {
+            throw new IllegalArgumentException("O cliente deve pertencer ao mesmo estabelecimento.");
+        }
+        this.customer = customer;
+    }
+
 
     public void cancel() {
         this.status = AppointmentStatus.CANCELLED;

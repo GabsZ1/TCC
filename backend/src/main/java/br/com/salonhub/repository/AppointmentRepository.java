@@ -116,6 +116,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     List<Appointment> findByCustomerUserIdOrderByStartsAtDesc(Long clientId);
 
     List<Appointment> findByCustomerIdAndEstablishmentIdOrderByStartsAtDesc(Long customerId, Long establishmentId);
+    long countByCustomerId(Long customerId);
 
     Optional<Appointment> findByIdAndCustomerUserId(Long id, Long clientId);
 
