@@ -50,7 +50,7 @@ export function EstablishmentProfilePage() {
       queryClient.setQueryData(QUERY_KEY, updated)
       setForm(profileToForm(updated))
       setMessage(updated.locationAvailable
-        ? 'Perfil atualizado. Localização obtida pelo endereço ou CEP e salva para o mapa e a busca por proximidade.'
+        ? 'Perfil atualizado. Localização obtida pelo endereço ou CEP e salva para a busca por proximidade.'
         : updated.street && updated.streetNumber && updated.city && updated.state
           ? 'Perfil atualizado. Não foi possível localizar este endereço ou CEP; confira os dados e salve novamente.'
           : 'Perfil atualizado. Preencha CEP, rua, número, cidade e UF para calcular a localização.')

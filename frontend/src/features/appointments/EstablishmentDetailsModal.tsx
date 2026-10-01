@@ -21,17 +21,8 @@ export function EstablishmentDetailsModal({ establishmentId, establishmentName, 
   })
   const profile = profileQuery.data
   const address = profile ? formatAddress(profile) : null
-  const mapQuery = profile && profile.latitude != null && profile.longitude != null
-    ? `${profile.latitude},${profile.longitude}`
-    : profile ? formatMapAddress(profile) : null
-  const mapsUrl = mapQuery ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(mapQuery)}` : null
-  const mapsKey = import.meta.env.VITE_GOOGLE_MAPS_EMBED_API_KEY
-  const embedUrl = mapQuery && mapsKey
-    ? `https://www.google.com/maps/embed/v1/place?key=${encodeURIComponent(mapsKey)}&q=${encodeURIComponent(mapQuery)}`
-    : null
-  const previewUrl = !embedUrl && profile?.latitude != null && profile.longitude != null
-    ? `https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(`${profile.longitude - 0.004},${profile.latitude - 0.003},${profile.longitude + 0.004},${profile.latitude + 0.003}`)}&layer=mapnik&marker=${encodeURIComponent(`${profile.latitude},${profile.longitude}`)}`
-    : null
+  const mapAddress = profile ? formatMapAddress(profile) : null
+  const mapsUrl = mapAddress ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapAddress)}` : null
 
   return (
     <Modal title={establishmentName} onClose={onClose} size="xl">
@@ -61,9 +52,8 @@ export function EstablishmentDetailsModal({ establishmentId, establishmentName, 
               <h3 className="flex items-center gap-2 font-semibold text-text-950"><MapPin size={18} className="text-primary-600" /> Endereço</h3>
               <p className="mt-3 text-sm leading-6 text-text-600">{address || 'Endereço ainda não informado.'}</p>
               {profile.postalCode && <p className="mt-1 text-xs text-text-500">CEP {formatPostalCode(profile.postalCode)}</p>}
-              {(embedUrl || previewUrl) && <iframe title={`Mapa de ${establishmentName}`} src={embedUrl || previewUrl || undefined} loading="lazy" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" className="mt-4 h-48 w-full rounded-xl border border-background-300 sm:h-64" />}
-              {mapsUrl && <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="secondary-button mt-4 w-full justify-center"><MapPin size={16} /> Como chegar</a>}
-              {!mapsUrl && <p className="mt-4 rounded-xl bg-background-100 px-4 py-3 text-xs leading-5 text-text-500">O mapa estará disponível quando o endereço for informado.</p>}
+              {mapsUrl && <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="secondary-button mt-4 min-h-11 w-full justify-center"><MapPin size={16} /> Abrir no Google Maps</a>}
+              {!mapsUrl && <p className="mt-4 rounded-xl bg-background-100 px-4 py-3 text-xs leading-5 text-text-500">O link do mapa estará disponível quando o endereço for informado.</p>}
             </section>
 
             <section className="rounded-2xl border border-background-300 p-4 sm:p-5">
@@ -117,7 +107,7 @@ function formatAddress(profile: Awaited<ReturnType<typeof fetchEstablishmentProf
   return [street, profile.addressComplement, profile.neighborhood, [profile.city, profile.state].filter(Boolean).join(' - ')].filter(Boolean).join(' · ')
 }
 function formatMapAddress(profile: Awaited<ReturnType<typeof fetchEstablishmentProfile>>) {
-  if (!profile.street || !profile.city || !profile.state) return null
+  if (!profile.street || !profile.streetNumber || !profile.city || !profile.state) return null
   return [profile.street, profile.streetNumber, profile.neighborhood, profile.city, profile.state, profile.postalCode, 'Brasil']
     .filter(Boolean).join(', ')
 }
