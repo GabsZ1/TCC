@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { api, clearStoredToken, getStoredToken, setStoredToken } from '@/lib/api'
 import type { AuthenticatedUser, LoginCredentials, LoginResponse } from '@/types/auth'
 import { AuthContext } from '@/contexts/authStore'
@@ -7,27 +8,35 @@ import { AuthContext } from '@/contexts/authStore'
 const INACTIVITY_LIMIT_MS = 30 * 60 * 1000
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient()
   const [user, setUser] = useState<AuthenticatedUser | null>(null)
   const [isLoading, setIsLoading] = useState(() => !!getStoredToken())
   const sessionRequestRef = useRef<AbortController | null>(null)
 
   const logout = useCallback(() => {
+    sessionRequestRef.current?.abort()
     clearStoredToken()
+    void queryClient.cancelQueries()
+    queryClient.clear()
     setUser(null)
-  }, [])
+    setIsLoading(false)
+  }, [queryClient])
 
   const login = useCallback(async (credentials: LoginCredentials) => {
     sessionRequestRef.current?.abort()
     const { data } = await api.post<LoginResponse>('/auth/login', credentials)
+    void queryClient.cancelQueries()
+    queryClient.clear()
     setStoredToken(data.token)
     setUser(data.user)
     setIsLoading(false)
     return data.user
-  }, [])
+  }, [queryClient])
 
   const refreshUser = useCallback(async () => {
+    const token = getStoredToken()
     const { data } = await api.get<AuthenticatedUser>('/auth/me')
-    setUser(data)
+    if (token && getStoredToken() === token) setUser(data)
   }, [])
 
   // Carrega o usuário autenticado a partir do token salvo, se houver.

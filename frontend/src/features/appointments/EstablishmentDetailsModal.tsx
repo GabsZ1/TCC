@@ -34,30 +34,41 @@ export function EstablishmentDetailsModal({ establishmentId, establishmentName, 
     : null
 
   return (
-    <Modal title={establishmentName} onClose={onClose} size="lg">
+    <Modal title={establishmentName} onClose={onClose} size="xl">
       {profileQuery.isLoading && <div className="py-10 text-center text-sm text-text-500">Carregando detalhes...</div>}
       {profileQuery.isError && <div className="rounded-xl border border-danger-500/20 bg-danger-50 p-4 text-sm text-danger-600">{getApiErrorMessage(profileQuery.error, 'Não foi possível carregar os detalhes do estabelecimento.')}</div>}
       {profile && (
-        <div className="space-y-7">
-          <div className="relative"><EstablishmentImage establishmentId={establishmentId} kind="capa" hasImage={profile.hasCover} className="h-40 w-full rounded-2xl object-cover" /><EstablishmentImage establishmentId={establishmentId} kind="logo" hasImage={profile.hasLogo} className="absolute -bottom-4 left-4 size-16 rounded-xl border-2 border-white object-cover" /></div>
-          <section className="rounded-2xl bg-primary-900 p-5 text-white sm:p-6">
-            <p className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-primary-200">Quem somos</p>
-            <p className="mt-3 whitespace-pre-line text-sm leading-7 text-primary-50">{profile.aboutUs || 'Este estabelecimento ainda não adicionou uma apresentação.'}</p>
+        <div className="space-y-6 sm:space-y-8">
+          <section className="overflow-hidden rounded-2xl border border-background-300 bg-white">
+            <EstablishmentImage establishmentId={establishmentId} kind="capa" hasImage={profile.hasCover} className="h-36 w-full object-cover sm:h-52 lg:h-60" />
+            <div className="flex flex-col gap-4 px-4 pb-5 sm:flex-row sm:items-end sm:gap-5 sm:px-6">
+              <EstablishmentImage establishmentId={establishmentId} kind="logo" hasImage={profile.hasLogo} className="-mt-8 size-20 shrink-0 rounded-2xl border-4 border-white object-cover shadow-md sm:-mt-10 sm:size-24" />
+              <div className="min-w-0 flex-1">
+                <h3 className="break-words text-xl font-extrabold tracking-tight text-text-950 sm:text-2xl">{establishmentName}</h3>
+                {(profile.city || profile.state) && <p className="mt-1 flex items-center gap-1.5 text-sm text-text-600"><MapPin size={15} className="shrink-0 text-primary-600" />{[profile.city, profile.state].filter(Boolean).join(' · ')}</p>}
+              </div>
+              <button type="button" onClick={() => navigate(`/estabelecimentos/${establishmentId}/agendar`)} className="primary-button hidden justify-center sm:inline-flex">Agendar horário</button>
+            </div>
           </section>
 
-          <div className="grid gap-5 md:grid-cols-2">
+          <section className="rounded-2xl bg-primary-900 p-5 text-white sm:p-6">
+            <h3 className="text-base font-bold text-white">Quem somos</h3>
+            <p className="mt-2 whitespace-pre-line text-sm leading-7 text-primary-50">{profile.aboutUs || 'Este estabelecimento ainda não adicionou uma apresentação.'}</p>
+          </section>
+
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
             <section className="rounded-2xl border border-background-300 p-5">
               <h3 className="flex items-center gap-2 font-semibold text-text-950"><MapPin size={18} className="text-primary-600" /> Endereço</h3>
               <p className="mt-3 text-sm leading-6 text-text-600">{address || 'Endereço ainda não informado.'}</p>
               {profile.postalCode && <p className="mt-1 text-xs text-text-500">CEP {formatPostalCode(profile.postalCode)}</p>}
-              {(embedUrl || previewUrl) && <iframe title={`Mapa de ${establishmentName}`} src={embedUrl || previewUrl || undefined} loading="lazy" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" className="mt-4 h-64 w-full rounded-xl border border-background-300" />}
-              {mapsUrl && <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="secondary-button mt-4 w-full"><MapPin size={16} /> Como chegar no Google Maps</a>}
+              {(embedUrl || previewUrl) && <iframe title={`Mapa de ${establishmentName}`} src={embedUrl || previewUrl || undefined} loading="lazy" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" className="mt-4 h-48 w-full rounded-xl border border-background-300 sm:h-64" />}
+              {mapsUrl && <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="secondary-button mt-4 w-full justify-center"><MapPin size={16} /> Como chegar</a>}
               {!mapsUrl && <p className="mt-4 rounded-xl bg-background-100 px-4 py-3 text-xs leading-5 text-text-500">O mapa estará disponível quando o endereço for informado.</p>}
             </section>
 
-            <section className="rounded-2xl border border-background-300 p-5">
+            <section className="rounded-2xl border border-background-300 p-4 sm:p-5">
               <h3 className="font-semibold text-text-950">Fale com o estabelecimento</h3>
-              <div className="mt-3 space-y-2">
+              <div className="mt-4 space-y-2">
                 {profile.whatsapp && <ContactLink href={`https://wa.me/${whatsappNumber(profile.whatsapp)}`} icon={<MessageCircle size={16} />} label="WhatsApp" value={profile.whatsapp} />}
                 {profile.phone && <ContactLink href={`tel:${profile.phone}`} icon={<Phone size={16} />} label="Telefone" value={profile.phone} />}
                 {profile.instagram && <ContactLink href={`https://instagram.com/${profile.instagram}`} icon={<AtSign size={16} />} label="Instagram" value={`@${profile.instagram}`} />}
@@ -77,7 +88,7 @@ export function EstablishmentDetailsModal({ establishmentId, establishmentName, 
 
           <section>
             <div className="flex items-end justify-between gap-3"><div><p className="eyebrow">Catálogo</p><h3 className="mt-1 text-lg font-semibold text-text-950">Serviços</h3></div><span className="text-xs text-text-500">{profile.services.length} disponível(is)</span></div>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
               {profile.services.map((service) => <div key={service.id} className="rounded-xl border border-background-300 p-4"><div className="flex items-start justify-between gap-3"><p className="flex items-center gap-2 font-semibold text-text-900"><Scissors size={15} className="text-primary-600" />{service.name}</p><span className="whitespace-nowrap text-sm font-bold text-primary-700">{formatMoney(service.price)}</span></div>{service.description && <p className="mt-2 text-sm leading-5 text-text-500">{service.description}</p>}<p className="mt-2 flex items-center gap-1 text-xs text-text-500"><Clock3 size={13} /> {service.durationMinutes} min</p></div>)}
               {profile.services.length === 0 && <p className="text-sm text-text-500">Nenhum serviço disponível no momento.</p>}
             </div>
@@ -88,8 +99,8 @@ export function EstablishmentDetailsModal({ establishmentId, establishmentName, 
             <div className="mt-3 flex flex-wrap gap-2">{profile.professionals.map((professional) => <span key={professional.id} className="inline-flex items-center gap-2 rounded-xl bg-background-100 py-1.5 pl-1.5 pr-3.5 text-sm font-medium text-text-700"><EmployeeAvatar id={professional.id} name={professional.name} hasPhoto={professional.hasPhoto} catalogEstablishmentId={establishmentId} size="sm" />{professional.name}</span>)}{profile.professionals.length === 0 && <p className="text-sm text-text-500">Nenhum profissional disponível no momento.</p>}</div>
           </section>
 
-          <div className="flex justify-end border-t border-background-300 pt-5">
-            <button type="button" onClick={() => navigate(`/estabelecimentos/${establishmentId}/agendar`)} className="primary-button">Agendar neste estabelecimento</button>
+          <div className="sticky bottom-0 z-10 -mx-5 -mb-5 border-t border-background-300 bg-background-50/95 px-5 py-3 backdrop-blur-xl sm:hidden">
+            <button type="button" onClick={() => navigate(`/estabelecimentos/${establishmentId}/agendar`)} className="primary-button w-full justify-center">Agendar horário</button>
           </div>
         </div>
       )}
@@ -98,7 +109,7 @@ export function EstablishmentDetailsModal({ establishmentId, establishmentName, 
 }
 
 function ContactLink({ href, icon, label, value }: { href: string; icon: React.ReactNode; label: string; value: string }) {
-  return <a href={href} target="_blank" rel="noreferrer" className="flex items-center gap-3 rounded-xl bg-background-100 px-3.5 py-3 hover:bg-primary-50"><span className="text-primary-600">{icon}</span><span><span className="block text-xs text-text-500">{label}</span><span className="block text-sm font-semibold text-text-800">{value}</span></span></a>
+  return <a href={href} target="_blank" rel="noopener noreferrer" className="flex min-h-14 items-center gap-3 rounded-xl bg-background-100 px-3.5 py-3 transition-colors hover:bg-primary-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"><span className="shrink-0 text-primary-600">{icon}</span><span className="min-w-0"><span className="block text-xs text-text-500">{label}</span><span className="block break-all text-sm font-semibold text-text-800">{value}</span></span></a>
 }
 
 function formatAddress(profile: Awaited<ReturnType<typeof fetchEstablishmentProfile>>) {

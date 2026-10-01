@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { BadgeDollarSign, CalendarRange, Scissors, UsersRound } from 'lucide-react'
-import { ExportCsvButton } from '@/components/ui/ExportCsvButton'
+import { ExportReportButtons } from '@/components/ui/ExportReportButtons'
 import { fetchEmployees } from '@/features/employees/services/employeesApi'
 import { fetchCommissionReport, type CommissionReportFilters } from '@/features/commissions/commissionReportApi'
 import { getApiErrorMessage } from '@/lib/apiError'
@@ -73,7 +73,7 @@ export function CommissionReportPage() {
         <div className="flex flex-wrap items-center gap-3 sm:col-span-2 lg:col-span-3">
           <button type="submit" className="primary-button">Aplicar filtros</button>
           <button type="button" onClick={clearFilters} className="secondary-button">Limpar filtros</button>
-          <ExportCsvButton path="/estabelecimentos/me/relatorio-comissoes/csv" params={filters} filename="relatorio-comissoes.csv" />
+          <ExportReportButtons path="/estabelecimentos/me/relatorio-comissoes" params={filters} filename="relatorio-comissoes" />
         </div>
       </form>
 

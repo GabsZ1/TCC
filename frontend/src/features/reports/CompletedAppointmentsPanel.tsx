@@ -2,6 +2,7 @@ import { useState, type FormEvent, type ReactNode } from 'react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { BadgeDollarSign, ChevronLeft, ChevronRight, CircleDollarSign, ClipboardCheck, RotateCcw, X } from 'lucide-react'
 import { fetchEmployees } from '@/features/employees/services/employeesApi'
+import { ExportReportButtons } from '@/components/ui/ExportReportButtons'
 import {
   fetchCompletedAppointments,
   type CompletedAppointmentEntry,
@@ -100,6 +101,7 @@ export function CompletedAppointmentsPanel() {
         <div className="flex flex-wrap gap-3 sm:col-span-2 lg:col-span-3">
           <button type="submit" className="primary-button">Aplicar filtros</button>
           <button type="button" onClick={clearFilters} className="secondary-button"><RotateCcw size={15} /> Limpar filtros</button>
+          <ExportReportButtons path="/estabelecimentos/me/atendimentos-realizados" params={filters} filename="atendimentos-realizados" formats={['pdf']} />
         </div>
       </form>
 

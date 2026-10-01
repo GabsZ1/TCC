@@ -1,10 +1,10 @@
 import { useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { BadgeDollarSign, CalendarCheck, CalendarRange, Receipt, TrendingUp, Wallet } from 'lucide-react'
-import { ExportCsvButton } from '@/components/ui/ExportCsvButton'
+import { ExportReportButtons } from '@/components/ui/ExportReportButtons'
 import { fetchEmployees } from '@/features/employees/services/employeesApi'
 import { fetchAllAdministrativeServices } from '@/features/services/servicesApi'
-import { FINANCIAL_REPORT_CSV_PATH, fetchFinancialReport, type FinancialReportFilters, type FinancialReportLine } from '@/features/reports/financialReportApi'
+import { fetchFinancialReport, type FinancialReportFilters, type FinancialReportLine } from '@/features/reports/financialReportApi'
 import { getApiErrorMessage } from '@/lib/apiError'
 import { formatMoney } from '@/lib/format'
 
@@ -83,7 +83,7 @@ export function FinancialReportPage() {
         <div className="flex flex-wrap items-center gap-3 sm:col-span-2 lg:col-span-4">
           <button type="submit" className="primary-button">Aplicar filtros</button>
           <button type="button" onClick={clearFilters} className="secondary-button">Limpar filtros</button>
-          <ExportCsvButton path={FINANCIAL_REPORT_CSV_PATH} params={filters} filename="relatorio-financeiro.csv" />
+          <ExportReportButtons path="/estabelecimentos/me/relatorio-financeiro" params={filters} filename="relatorio-financeiro" />
         </div>
       </form>
 
