@@ -50,12 +50,12 @@ export function RescheduleAppointmentModal({ appointment, onRescheduled, onClose
       </label>
       <div><p className="text-sm font-medium text-text-800">Horários disponíveis</p><div className="mt-2 flex flex-wrap gap-2">
         {availability.isFetching && <span className="text-sm text-text-600">Buscando horários...</span>}
-        {availability.data?.availableTimes.map((slot) => <button key={slot} type="button" aria-pressed={time === slot} onClick={() => setTime(slot)} className={time === slot ? 'btn-primary' : 'rounded-lg border border-background-300 px-3 py-2 text-sm'}>{slot.slice(0, 5)}</button>)}
+        {availability.data?.availableTimes.map((slot) => <button key={slot} type="button" aria-pressed={time === slot} onClick={() => setTime(slot)} className={time === slot ? 'primary-button' : 'secondary-button'}>{slot.slice(0, 5)}</button>)}
         {availability.data?.availableTimes.length === 0 && <span className="text-sm text-text-600">Nenhum horário disponível nesta data.</span>}
         {availability.isError && <p role="alert" className="text-sm text-danger-600">{getApiErrorMessage(availability.error, 'Não foi possível consultar os horários.')}</p>}
       </div></div>
       {mutation.isError && <p role="alert" className="text-sm text-danger-600">{getApiErrorMessage(mutation.error, 'Não foi possível remarcar o agendamento.')}</p>}
-      <div className="flex justify-end gap-3"><button type="button" onClick={onClose}>Voltar</button>
+      <div className="flex flex-wrap justify-end gap-3"><button type="button" className="secondary-button" onClick={onClose}>Voltar</button>
         <button type="submit" disabled={!time || !availability.data?.availableTimes.includes(time) || mutation.isPending} className="primary-button disabled:opacity-60">{mutation.isPending ? 'Salvando...' : 'Remarcar'}</button></div>
     </form>
   </Modal>

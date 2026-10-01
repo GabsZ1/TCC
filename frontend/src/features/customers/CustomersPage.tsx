@@ -83,16 +83,16 @@ export function CustomersPage() {
       <p className="eyebrow">Gestão</p><h1 className="page-title mt-3">Clientes do estabelecimento</h1>
       <p className="page-subtitle">Cadastre clientes sem conta, consulte o histórico e marque atendimentos recebidos no balcão, por telefone ou WhatsApp.</p>
     </header>
-    <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(260px,1fr)_minmax(360px,2fr)]">
+    <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
       <section className="surface-card p-5">
-        <div className="flex items-center justify-between gap-3"><h2 className="font-semibold">Clientes</h2><button className="btn-primary" onClick={() => openForm('new')}>Novo cliente</button></div>
+        <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-semibold text-text-900">Clientes</h2><button type="button" className="primary-button" onClick={() => openForm('new')}>Novo cliente</button></div>
         <input className="filter-input mt-4 w-full" aria-label="Buscar cliente" placeholder="Buscar por nome, telefone ou e-mail" value={search} onChange={(event) => { setSearch(event.target.value); setCustomerPage(0) }} />
         <select className="filter-input mt-2 w-full" aria-label="Filtrar clientes por status" value={activeFilter} onChange={(event) => { setActiveFilter(event.target.value); setCustomerPage(0) }}><option value="all">Todos</option><option value="active">Ativos</option><option value="inactive">Inativos</option></select>
         {customers.isError && <p role="alert" className="mt-3 text-danger-600">{getApiErrorMessage(customers.error, 'Não foi possível carregar os clientes.')}</p>}
-        <div className="mt-4 space-y-2">{customers.data?.content.map((customer) => <button key={customer.id} type="button" onClick={() => { setSelected(customer); setTime(''); merge.reset(); separate.reset() }} className="w-full rounded-xl border border-background-300 p-3 text-left hover:bg-background-50">
+        <div className="mt-4 space-y-2">{customers.data?.content.map((customer) => <button key={customer.id} type="button" onClick={() => { setSelected(customer); setTime(''); merge.reset(); separate.reset() }} aria-pressed={selected?.id === customer.id} className="w-full rounded-xl border border-background-300 bg-background-50 p-3 text-left hover:border-primary-300 hover:bg-primary-50 aria-pressed:border-primary-500 aria-pressed:bg-primary-50">
           <strong className="block">{customer.name}</strong><span className="text-sm text-text-600">{formatPhone(customer.phone)}{customer.active ? '' : ' · Inativo'}</span>
         </button>)}</div>
-        {customers.data && customers.data.totalPages > 1 && <div className="mt-4 flex items-center justify-between text-sm"><button type="button" disabled={customerPage === 0} onClick={() => setCustomerPage(customerPage - 1)}>Anterior</button><span>Página {customerPage + 1} de {customers.data.totalPages}</span><button type="button" disabled={customerPage + 1 >= customers.data.totalPages} onClick={() => setCustomerPage(customerPage + 1)}>Próxima</button></div>}
+        {customers.data && customers.data.totalPages > 1 && <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm"><button type="button" className="ghost-button disabled:opacity-40" disabled={customerPage === 0} onClick={() => setCustomerPage(customerPage - 1)}>Anterior</button><span className="text-text-600">Página {customerPage + 1} de {customers.data.totalPages}</span><button type="button" className="ghost-button disabled:opacity-40" disabled={customerPage + 1 >= customers.data.totalPages} onClick={() => setCustomerPage(customerPage + 1)}>Próxima</button></div>}
       </section>
       <section className="space-y-6">
         {editing && <form onSubmit={submitCustomer} className="surface-card space-y-3 p-5">
@@ -106,15 +106,15 @@ export function CustomersPage() {
             <p className="mt-1 text-text-600">Selecione um cadastro existente para agendar, ou salve este formulário para criar outro cliente.</p>
             {suggestions.data.map((customer) => <div key={customer.id} className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-background-300 pt-2">
               <span>{customer.name} · {formatPhone(customer.phone)}{customer.email ? ` · ${customer.email}` : ''}</span>
-              <button type="button" className="font-semibold" onClick={() => { setSelected(customer); setTime(''); setEditing(null) }}>Usar cadastro existente</button>
+              <button type="button" className="ghost-button text-primary-700" onClick={() => { setSelected(customer); setTime(''); setEditing(null) }}>Usar cadastro existente</button>
             </div>)}
           </div>}
           {editing === 'new' && suggestions.isError && <p role="alert" className="text-danger-600">{getApiErrorMessage(suggestions.error, 'Não foi possível consultar cadastros semelhantes.')}</p>}
           {save.isError && <p role="alert" className="text-danger-600">{getApiErrorMessage(save.error, 'Não foi possível salvar o cliente.')}</p>}
-          <div className="flex gap-3"><button className="btn-primary" disabled={save.isPending || !isValidPhone(phone)}>Salvar</button><button type="button" onClick={() => setEditing(null)}>Cancelar</button></div>
+          <div className="flex flex-wrap gap-3"><button className="primary-button" disabled={save.isPending || !isValidPhone(phone)}>Salvar</button><button type="button" className="secondary-button" onClick={() => setEditing(null)}>Cancelar</button></div>
         </form>}
         {selected ? <>
-          <section className="surface-card p-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-semibold">{selected.name}</h2><p className="text-sm text-text-600">{formatPhone(selected.phone)}{selected.email ? ` · ${selected.email}` : ''}</p><p className="mt-1 text-xs text-text-600">{selected.userId != null ? 'Conta vinculada' : 'Conta não vinculada'}</p></div><div className="flex gap-3"><button onClick={() => openForm(selected)}>Editar</button>{!isProfessional && <button onClick={() => status.mutate()} disabled={status.isPending}>{selected.active ? 'Desativar' : 'Reativar'}</button>}</div></div>
+          <section className="surface-card p-5"><div className="flex flex-wrap items-center justify-between gap-3"><div className="min-w-0"><h2 className="text-lg font-semibold">{selected.name}</h2><p className="break-words text-sm text-text-600">{formatPhone(selected.phone)}{selected.email ? ` · ${selected.email}` : ''}</p><p className="mt-1 text-xs text-text-600">{selected.userId != null ? 'Conta vinculada' : 'Conta não vinculada'}</p></div><div className="flex flex-wrap gap-2"><button type="button" className="secondary-button" onClick={() => openForm(selected)}>Editar</button>{!isProfessional && <button type="button" className="secondary-button" onClick={() => status.mutate()} disabled={status.isPending}>{selected.active ? 'Desativar' : 'Reativar'}</button>}</div></div>
           </section>
           {user?.role === 'ADMIN' && (duplicates.data?.length || duplicates.isError) && <section className="surface-card p-5">
             <h2 className="font-semibold">Possíveis cadastros duplicados</h2>
@@ -123,8 +123,8 @@ export function CustomersPage() {
             {duplicates.data?.map((candidate) => <div key={candidate.id} className="mt-3 border-t border-background-300 pt-3 text-sm">
               <strong>{candidate.name}</strong><p className="text-text-600">{candidate.phone ? formatPhone(candidate.phone) : 'Sem telefone'}{candidate.email ? ` · ${candidate.email}` : ''}</p>
               <p className="text-text-600">{candidate.linked ? 'Conta vinculada' : 'Conta não vinculada'} · {candidate.appointmentCount} atendimento(s)</p>
-              <div className="mt-2 flex gap-3"><button type="button" className="btn-primary" disabled={merge.isPending || separate.isPending} onClick={() => { if (window.confirm('Mesclar os históricos destes cadastros? Esta ação não pode ser desfeita.')) merge.mutate(candidate.id) }}>Mesclar cadastros</button>
-                <button type="button" disabled={merge.isPending || separate.isPending} onClick={() => separate.mutate(candidate.id)}>Manter separados</button></div>
+              <div className="mt-3 flex flex-wrap gap-2"><button type="button" className="primary-button" disabled={merge.isPending || separate.isPending} onClick={() => { if (window.confirm('Mesclar os históricos destes cadastros? Esta ação não pode ser desfeita.')) merge.mutate(candidate.id) }}>Mesclar cadastros</button>
+                <button type="button" className="secondary-button" disabled={merge.isPending || separate.isPending} onClick={() => separate.mutate(candidate.id)}>Manter separados</button></div>
             </div>)}
             {merge.isError && <p role="alert" className="mt-3 text-sm text-danger-600">{getApiErrorMessage(merge.error, 'Não foi possível mesclar os cadastros.')}</p>}
             {separate.isError && <p role="alert" className="mt-3 text-sm text-danger-600">{getApiErrorMessage(separate.error, 'Não foi possível manter os cadastros separados.')}</p>}
@@ -137,13 +137,13 @@ export function CustomersPage() {
             <label className="block text-sm">Data<input required type="date" min={minBookingDate} className="filter-input mt-1 w-full" value={date} onChange={(event) => { setDate(event.target.value); setTime('') }} /></label>
             <div><p className="text-sm">Horários disponíveis</p><div className="mt-2 flex flex-wrap gap-2">
               {availability.isFetching && <span className="text-sm text-text-600">Buscando horários...</span>}
-              {availability.data?.availableTimes.map((slot) => <button key={slot} type="button" aria-pressed={time === slot} onClick={() => setTime(slot)} className={time === slot ? 'btn-primary' : 'rounded-lg border border-background-300 px-3 py-2 text-sm'}>{slot.slice(0, 5)}</button>)}
+              {availability.data?.availableTimes.map((slot) => <button key={slot} type="button" aria-pressed={time === slot} onClick={() => setTime(slot)} className={time === slot ? 'primary-button' : 'secondary-button'}>{slot.slice(0, 5)}</button>)}
               {availability.data?.availableTimes.length === 0 && <span className="text-sm text-text-600">Nenhum horário disponível nesta data.</span>}
               {availability.isError && <p role="alert" className="text-sm text-danger-600">{getApiErrorMessage(availability.error, 'Não foi possível consultar os horários.')}</p>}
             </div></div>
             {booking.isError && <p role="alert" className="text-danger-600">{getApiErrorMessage(booking.error, 'Não foi possível agendar.')}</p>}
             {booking.isSuccess && <p role="status" className="text-success-700">Agendamento criado.</p>}
-            <button className="btn-primary" disabled={booking.isPending || !time || !availability.data?.availableTimes.includes(time)}>Agendar</button>
+            <button className="primary-button" disabled={booking.isPending || !time || !availability.data?.availableTimes.includes(time)}>Agendar</button>
           </form>}
           <CustomerHistory key={selected.id} customerId={selected.id} />
         </> : <div className="surface-card p-5 text-text-600">Selecione um cliente para ver o histórico e agendar.</div>}

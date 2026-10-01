@@ -16,11 +16,13 @@ import {
 } from '@/features/system-admin/systemEstablishmentsApi'
 
 const QUERY_KEY = ['system-establishments']
+const ESTABLISHMENTS_PER_PAGE = 10
 type Action = 'block' | 'allow' | 'pause' | 'resume' | 'deactivate' | 'reactivate'
 
 export function SystemEstablishmentsPage() {
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
+  const [page, setPage] = useState(0)
   const [selection, setSelection] = useState<{ establishment: SystemEstablishment; action: Action } | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [detailsOf, setDetailsOf] = useState<SystemEstablishment | null>(null)
@@ -35,12 +37,16 @@ export function SystemEstablishmentsPage() {
     onError: () => setSelection(null),
   })
   const filtered = useMemo(() => {
-    const term = search.trim().toLocaleLowerCase('pt-BR')
+    const term = normalizeName(search)
     if (!term) return establishments.data ?? []
+    const digits = term.replace(/\D/g, '')
     return (establishments.data ?? []).filter((item) =>
-      item.name.toLocaleLowerCase('pt-BR').includes(term) || item.cnpj.includes(term.replace(/\D/g, '')),
+      normalizeName(item.name).includes(term) || (digits.length > 0 && item.cnpj.includes(digits)),
     )
   }, [establishments.data, search])
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ESTABLISHMENTS_PER_PAGE))
+  const currentPage = Math.min(page, totalPages - 1)
+  const visible = filtered.slice(currentPage * ESTABLISHMENTS_PER_PAGE, (currentPage + 1) * ESTABLISHMENTS_PER_PAGE)
 
   function select(establishment: SystemEstablishment, action: Action) {
     setMessage(null)
@@ -54,13 +60,13 @@ export function SystemEstablishmentsPage() {
       {stateMutation.isError && <p role="alert" className="mt-6 rounded-xl bg-danger-50 px-4 py-3 text-sm text-danger-600">{getApiErrorMessage(stateMutation.error, 'Não foi possível alterar o estado do estabelecimento.')}</p>}
       <section className="surface-card mt-7 overflow-hidden">
         <div className="flex flex-col gap-4 border-b border-background-300 p-5 sm:flex-row sm:items-center sm:justify-between">
-          <div><h2 className="font-semibold text-text-900">Todos os estabelecimentos</h2><p className="mt-1 text-sm text-text-500">{establishments.data?.length ?? 0} cadastro(s) encontrado(s)</p></div>
-          <label className="relative block sm:w-80"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-400" size={17} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar por nome ou CNPJ" className="w-full rounded-xl border border-background-300 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" /></label>
+          <div><h2 className="font-semibold text-text-900">Todos os estabelecimentos</h2><p className="mt-1 text-sm text-text-500">{filtered.length} de {establishments.data?.length ?? 0} cadastro(s)</p></div>
+          <label className="relative block sm:w-80"><span className="sr-only">Buscar estabelecimento por nome ou CNPJ</span><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-400" size={17} /><input type="search" value={search} onChange={(event) => { setSearch(event.target.value); setPage(0) }} placeholder="Buscar por nome ou CNPJ" className="w-full rounded-xl border border-background-300 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" /></label>
         </div>
         {establishments.isLoading && <State>Carregando estabelecimentos...</State>}
         {establishments.isError && <State error>{getApiErrorMessage(establishments.error, 'Não foi possível carregar os estabelecimentos.')}</State>}
         {!establishments.isLoading && !establishments.isError && filtered.length === 0 && <State>Nenhum estabelecimento encontrado.</State>}
-        {filtered.length > 0 && <div className="divide-y divide-background-300">{filtered.map((item) => (
+        {visible.length > 0 && <div className="divide-y divide-background-300">{visible.map((item) => (
           <article key={item.id} className="p-5">
             <div className="flex items-start gap-3"><span className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary-100 text-primary-700"><Building2 size={20} /></span><div className="min-w-0 flex-1"><h3 className="font-semibold text-text-900">{item.name}</h3><p className="mt-1 text-sm text-text-500">CNPJ {formatCnpj(item.cnpj)}{item.email ? ` · ${item.email}` : ''}</p><div className="mt-3 flex flex-wrap gap-2"><Status active={item.active} label={item.active ? 'Site ativo' : 'Site desativado'} />{item.paused && <Status label="Operação pausada" />}{item.bookingsBlocked && <Status label="Agendamentos bloqueados" />}</div></div></div>
             <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
@@ -71,6 +77,7 @@ export function SystemEstablishmentsPage() {
             </div>
           </article>
         ))}</div>}
+        {totalPages > 1 && <nav aria-label="Páginas de estabelecimentos" className="flex flex-wrap items-center justify-between gap-3 border-t border-background-300 p-5 text-sm text-text-600"><button type="button" className="secondary-button disabled:opacity-50" disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}>Anterior</button><span>Página {currentPage + 1} de {totalPages}</span><button type="button" className="secondary-button disabled:opacity-50" disabled={currentPage >= totalPages - 1} onClick={() => setPage(currentPage + 1)}>Próxima</button></nav>}
       </section>
       {detailsOf && <SystemEstablishmentDetailsModal establishmentId={detailsOf.id} establishmentName={detailsOf.name} onClose={() => setDetailsOf(null)} />}
       {selection && <ConfirmDialog {...confirmationProps(selection.establishment, selection.action)} isLoading={stateMutation.isPending} onConfirm={() => stateMutation.mutate(selection)} onCancel={() => setSelection(null)} />}
@@ -111,3 +118,4 @@ function ActionButton({ children, icon, danger = false, disabled, onClick }: { c
 function Status({ active = false, label }: { active?: boolean; label: string }) { return <span className={`status-pill ${active ? 'bg-success-50 text-success-700' : 'bg-warning-100 text-warning-700'}`}>{label}</span> }
 function State({ children, error = false }: { children: React.ReactNode; error?: boolean }) { return <div className={`p-10 text-center text-sm ${error ? 'text-danger-600' : 'text-text-500'}`}>{children}</div> }
 function formatCnpj(value: string) { return value.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') }
+function normalizeName(value: string) { return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLocaleLowerCase('pt-BR') }

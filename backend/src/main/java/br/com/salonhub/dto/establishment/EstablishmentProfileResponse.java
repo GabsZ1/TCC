@@ -6,6 +6,7 @@ import br.com.salonhub.entity.Establishment;
 import br.com.salonhub.entity.EstablishmentProfile;
 
 import java.util.List;
+import java.math.BigDecimal;
 
 public record EstablishmentProfileResponse(
         Long establishmentId,
@@ -22,6 +23,8 @@ public record EstablishmentProfileResponse(
         String city,
         String state,
         boolean locationAvailable,
+        BigDecimal latitude,
+        BigDecimal longitude,
         boolean hasLogo,
         boolean hasCover,
         List<BusinessHourResponse> businessHours,
@@ -49,6 +52,8 @@ public record EstablishmentProfileResponse(
                 profile == null ? null : profile.getCity(),
                 profile == null ? null : profile.getState(),
                 profile != null && profile.hasLocation(),
+                profile == null ? null : profile.getLatitude(),
+                profile == null ? null : profile.getLongitude(),
                 profile != null && profile.getLogo() != null,
                 profile != null && profile.getCover() != null,
                 businessHours,

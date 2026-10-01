@@ -9,6 +9,7 @@ import br.com.salonhub.entity.Establishment;
 import br.com.salonhub.entity.EstablishmentProfile;
 import br.com.salonhub.entity.UserRole;
 import br.com.salonhub.service.geocoding.GeocodingService;
+import br.com.salonhub.service.geocoding.BrasilApiCepGeocodingService;
 import br.com.salonhub.exception.ConflictException;
 import br.com.salonhub.exception.ResourceNotFoundException;
 import br.com.salonhub.repository.EstablishmentProfileRepository;
@@ -33,6 +34,7 @@ public class EstablishmentProfileService {
     private final UserRepository userRepository;
     private final TenantAuthorizationService tenantAuthorizationService;
     private final GeocodingService geocodingService;
+    private final BrasilApiCepGeocodingService brasilApiCepGeocodingService;
 
     @Transactional(readOnly = true)
     public EstablishmentProfileResponse findPublic(Long establishmentId) {
@@ -73,7 +75,11 @@ public class EstablishmentProfileService {
                 normalizeState(request.state()));
         String currentAddress = addressOf(profile);
         if (!currentAddress.isBlank() && (!previousAddress.equals(currentAddress) || !profile.hasLocation())) {
-            geocodingService.geocode(currentAddress).ifPresent(c -> profile.updateLocation(c.latitude(), c.longitude()));
+            var coordinates = geocodingService.geocode(currentAddress);
+            if (coordinates.isEmpty()) {
+                coordinates = brasilApiCepGeocodingService.geocodePostalCode(profile.getPostalCode());
+            }
+            coordinates.ifPresent(c -> profile.updateLocation(c.latitude(), c.longitude()));
         }
         profileRepository.save(profile);
         return response(establishment, profile);
@@ -92,7 +98,8 @@ public class EstablishmentProfileService {
     }
 
     private String addressOf(EstablishmentProfile profile) {
-        if (profile.getStreet() == null || profile.getCity() == null || profile.getState() == null) return "";
+        if (profile.getStreet() == null || profile.getStreetNumber() == null
+                || profile.getCity() == null || profile.getState() == null) return "";
         return java.util.stream.Stream.of(profile.getStreet(), profile.getStreetNumber(), profile.getNeighborhood(),
                 profile.getCity(), profile.getState(), profile.getPostalCode(), "Brasil")
                 .filter(v -> v != null && !v.isBlank()).collect(java.util.stream.Collectors.joining(", "));

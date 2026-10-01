@@ -47,6 +47,8 @@ export interface EstablishmentProfile {
   city: string | null
   state: string | null
   locationAvailable: boolean
+  latitude: number | null
+  longitude: number | null
   hasLogo: boolean
   hasCover: boolean
   businessHours: BusinessHour[]

@@ -36,6 +36,7 @@ export function EstablishmentProfilePage() {
   const profileQuery = useQuery({ queryKey: QUERY_KEY, queryFn: fetchMyEstablishmentProfile })
   const [form, setForm] = useState<EstablishmentProfileInput | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const [locationWarning, setLocationWarning] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [cepStatus, setCepStatus] = useState<{ tone: 'info' | 'error'; text: string } | null>(null)
   const cepRequest = useRef<AbortController | null>(null)
@@ -48,7 +49,12 @@ export function EstablishmentProfilePage() {
     onSuccess: (updated) => {
       queryClient.setQueryData(QUERY_KEY, updated)
       setForm(profileToForm(updated))
-      setMessage('Perfil público atualizado com sucesso.')
+      setMessage(updated.locationAvailable
+        ? 'Perfil atualizado. Localização obtida pelo endereço ou CEP e salva para o mapa e a busca por proximidade.'
+        : updated.street && updated.streetNumber && updated.city && updated.state
+          ? 'Perfil atualizado. Não foi possível localizar este endereço ou CEP; confira os dados e salve novamente.'
+          : 'Perfil atualizado. Preencha CEP, rua, número, cidade e UF para calcular a localização.')
+      setLocationWarning(!updated.locationAvailable)
       setErrorMessage(null)
     },
     onError: (error) => {
@@ -131,7 +137,7 @@ export function EstablishmentProfilePage() {
           <SectionHeader icon={<Store size={20} />} title="Informações públicas" description="Serviços, profissionais e horários ativos são incluídos automaticamente no perfil." />
         </div>
         <fieldset disabled={mutation.isPending} className="space-y-7 p-5 sm:p-6">
-          {message && <p role="status" className="rounded-xl bg-success-50 px-4 py-3 text-sm text-success-600">{message}</p>}
+          {message && <p role="status" className={`rounded-xl px-4 py-3 text-sm ${locationWarning ? 'bg-warning-50 text-warning-700' : 'bg-success-50 text-success-700'}`}>{message}</p>}
           {errorMessage && <p role="alert" className="rounded-xl border border-danger-500/30 bg-danger-500/5 px-4 py-3 text-sm text-danger-600">{errorMessage}</p>}
 
           <div>
@@ -145,7 +151,8 @@ export function EstablishmentProfilePage() {
 
           <div className="border-t border-background-300 pt-6">
             <div className="flex items-center gap-2 text-text-700"><MapPin size={18} /><h2 className="font-semibold text-text-900">Endereço</h2></div>
-            <p className="mt-1 text-sm text-text-600">Os campos estão separados para facilitar a futura integração com o mapa.</p>
+            <p className="mt-1 text-sm text-text-600">Ao salvar, o sistema tenta localizar o endereço. Se não houver serviço de geocodificação configurado, usa as coordenadas do CEP quando disponíveis. A posição pelo CEP pode ser aproximada.</p>
+            {profile?.locationAvailable && <p className="mt-2 text-xs font-medium text-success-700">Localização salva no banco de dados.</p>}
             <div className="mt-4 grid gap-5 sm:grid-cols-6">
               <ProfileField label="CEP" value={formatCep(currentForm.postalCode)} onChange={changePostalCode} placeholder="00000-000" inputMode="numeric" className="sm:col-span-2" hint={cepStatus?.text ?? 'Digite o CEP para preencher o endereço.'} hintTone={cepStatus?.tone} />
               <ProfileField label="Logradouro" value={currentForm.street} onChange={(value) => updateField('street', value)} maxLength={150} placeholder="Rua, avenida..." className="sm:col-span-4" />

@@ -1,0 +1,56 @@
+21:24:23.231 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [br.com.salonhub.controller.EstablishmentProfileControllerIntegrationTests]: EstablishmentProfileControllerIntegrationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+21:24:23.510 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration br.com.salonhub.SalonhubApplication for test class br.com.salonhub.controller.EstablishmentProfileControllerIntegrationTests
+21:24:23.615 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [br.com.salonhub.controller.EstablishmentProfileControllerIntegrationTests]: EstablishmentProfileControllerIntegrationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+21:24:23.622 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration br.com.salonhub.SalonhubApplication for test class br.com.salonhub.controller.EstablishmentProfileControllerIntegrationTests
+21:24:23.712 [main] INFO org.springframework.boot.devtools.restart.RestartApplicationListener -- Restart disabled due to context in which it is running
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.1.0)
+
+2026-09-30T21:24:24.027-03:00  INFO 90404 --- [salonhub] [           main] ishmentProfileControllerIntegrationTests : Starting EstablishmentProfileControllerIntegrationTests using Java 21.0.12.1 with PID 90404 (started by guilh in C:\TCC\Projeto\backend)
+2026-09-30T21:24:24.028-03:00  INFO 90404 --- [salonhub] [           main] ishmentProfileControllerIntegrationTests : No active profile set, falling back to 1 default profile: "local"
+2026-09-30T21:24:25.271-03:00  INFO 90404 --- [salonhub] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-09-30T21:24:25.340-03:00  INFO 90404 --- [salonhub] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 56 ms. Found 12 JPA repository interfaces.
+Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (C:\TCC\Projeto\.m2\repository\net\bytebuddy\byte-buddy-agent\1.18.10\byte-buddy-agent-1.18.10.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+2026-09-30T21:24:37.095-03:00  INFO 90404 --- [salonhub] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-09-30T21:24:37.462-03:00  INFO 90404 --- [salonhub] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@3bf40c74
+2026-09-30T21:24:37.464-03:00  INFO 90404 --- [salonhub] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-09-30T21:24:37.513-03:00  INFO 90404 --- [salonhub] [           main] org.flywaydb.core.FlywayExecutor         : Database: jdbc:postgresql://localhost:5433/salonhub_db (PostgreSQL 16.14)
+2026-09-30T21:24:37.778-03:00  INFO 90404 --- [salonhub] [           main] o.f.core.internal.command.DbValidate     : Successfully validated 38 migrations (execution time 00:00.157s)
+2026-09-30T21:24:37.827-03:00  INFO 90404 --- [salonhub] [           main] o.f.core.internal.command.DbMigrate      : Current version of schema "public": 38
+2026-09-30T21:24:37.838-03:00  INFO 90404 --- [salonhub] [           main] o.f.core.internal.command.DbMigrate      : Schema "public" is up to date. No migration necessary.
+2026-09-30T21:24:38.275-03:00  INFO 90404 --- [salonhub] [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-09-30T21:24:38.357-03:00  INFO 90404 --- [salonhub] [           main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.4.1.Final
+2026-09-30T21:24:38.857-03:00  INFO 90404 --- [salonhub] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-09-30T21:24:38.960-03:00  INFO 90404 --- [salonhub] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [jdbc:postgresql://localhost:5433/salonhub_db]
+	Database driver: PostgreSQL JDBC Driver
+	Database dialect: PostgreSQLDialect
+	Database version: 16.14
+	Default catalog/schema: salonhub_db/public
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-09-30T21:24:40.142-03:00  INFO 90404 --- [salonhub] [           main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-09-30T21:24:40.189-03:00  INFO 90404 --- [salonhub] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-09-30T21:24:40.305-03:00  INFO 90404 --- [salonhub] [           main] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-09-30T21:24:44.259-03:00  INFO 90404 --- [salonhub] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-09-30T21:24:44.260-03:00  INFO 90404 --- [salonhub] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-09-30T21:24:44.263-03:00  INFO 90404 --- [salonhub] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 3 ms
+2026-09-30T21:24:44.406-03:00  INFO 90404 --- [salonhub] [           main] ishmentProfileControllerIntegrationTests : Started EstablishmentProfileControllerIntegrationTests in 20.703 seconds (process running for 22.468)
+2026-09-30T21:24:44.438-03:00  WARN 90404 --- [salonhub] [           main] o.s.core.events.SpringDocAppInitializer  : SpringDoc /v3/api-docs endpoint is enabled by default. To disable it in production, set the property 'springdoc.api-docs.enabled=false'
+2026-09-30T21:24:44.438-03:00  WARN 90404 --- [salonhub] [           main] o.s.core.events.SpringDocAppInitializer  : SpringDoc /swagger-ui.html endpoint is enabled by default. To disable it in production, set the property 'springdoc.swagger-ui.enabled=false'

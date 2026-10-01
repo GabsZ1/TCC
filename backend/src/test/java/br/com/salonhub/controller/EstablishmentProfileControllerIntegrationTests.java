@@ -6,8 +6,13 @@ import br.com.salonhub.entity.User;
 import br.com.salonhub.entity.UserRole;
 import br.com.salonhub.repository.EstablishmentRepository;
 import br.com.salonhub.repository.EstablishmentServiceRepository;
+import br.com.salonhub.repository.EstablishmentProfileRepository;
 import br.com.salonhub.repository.UserRepository;
 import br.com.salonhub.service.TokenService;
+import br.com.salonhub.service.geocoding.Coordinates;
+import br.com.salonhub.service.geocoding.GeocodingService;
+import br.com.salonhub.service.geocoding.BrasilApiCepGeocodingService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -17,13 +22,20 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.math.BigDecimal;
+import java.util.Optional;
+
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -36,8 +48,17 @@ class EstablishmentProfileControllerIntegrationTests {
     @Autowired private MockMvc mockMvc;
     @Autowired private EstablishmentRepository establishmentRepository;
     @Autowired private EstablishmentServiceRepository serviceRepository;
+    @Autowired private EstablishmentProfileRepository profileRepository;
     @Autowired private UserRepository userRepository;
     @Autowired private TokenService tokenService;
+    @MockitoBean private GeocodingService geocodingService;
+    @MockitoBean private BrasilApiCepGeocodingService brasilApiCepGeocodingService;
+
+    @BeforeEach
+    void stubGeocoding() {
+        when(geocodingService.geocode(anyString())).thenReturn(Optional.empty());
+        when(brasilApiCepGeocodingService.geocodePostalCode(anyString())).thenReturn(Optional.empty());
+    }
 
     @Test
     void onlyOwnAdministratorCanManageLogoAndCover() throws Exception {
@@ -66,6 +87,8 @@ class EstablishmentProfileControllerIntegrationTests {
 
     @Test
     void shouldCreateUpdateAndExposePublicProfileWithCurrentCatalog() throws Exception {
+        when(geocodingService.geocode(anyString())).thenReturn(Optional.of(
+                new Coordinates(new BigDecimal("-23.420999"), new BigDecimal("-51.933056"))));
         Establishment establishment = establishmentRepository.saveAndFlush(
                 Establishment.builder().name("Studio Perfil").cnpj("12345678000195").build());
         User admin = user("Admin Perfil", "admin-profile@salonhub.test", UserRole.ADMIN, establishment);
@@ -111,13 +134,67 @@ class EstablishmentProfileControllerIntegrationTests {
                 .andExpect(jsonPath("$.aboutUs").value("Um espaço para cuidar de você."))
                 .andExpect(jsonPath("$.instagram").value("studio.perfil"))
                 .andExpect(jsonPath("$.whatsapp").value("44999999999"))
-                .andExpect(jsonPath("$.state").value("PR"));
+                .andExpect(jsonPath("$.state").value("PR"))
+                .andExpect(jsonPath("$.latitude").value(-23.420999))
+                .andExpect(jsonPath("$.longitude").value(-51.933056));
+        verify(geocodingService).geocode("Avenida Brasil, 100, Centro, Maringá, PR, 87000000, Brasil");
+        var savedLocation = profileRepository.findByEstablishmentId(establishment.getId()).orElseThrow();
+        org.assertj.core.api.Assertions.assertThat(savedLocation.getLatitude()).isEqualByComparingTo("-23.420999");
+        org.assertj.core.api.Assertions.assertThat(savedLocation.getLongitude()).isEqualByComparingTo("-51.933056");
 
         mockMvc.perform(get("/api/estabelecimentos/{id}/perfil", establishment.getId())
                         .header("Authorization", bearer(client)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.postalCode").value("87000000"))
-                .andExpect(jsonPath("$.street").value("Avenida Brasil"));
+                .andExpect(jsonPath("$.street").value("Avenida Brasil"))
+                .andExpect(jsonPath("$.locationAvailable").value(true));
+    }
+
+    @Test
+    void proximityUsesStoredCoordinatesAndPlacesUnknownLocationsLast() throws Exception {
+        Establishment close = establishmentRepository.saveAndFlush(
+                Establishment.builder().name("Studio Próximo").cnpj("32345678000140").build());
+        Establishment unknown = establishmentRepository.saveAndFlush(
+                Establishment.builder().name("Studio Sem Ponto").cnpj("42345678000131").build());
+        User admin = user("Admin Próximo", "admin-nearby@salonhub.test", UserRole.ADMIN, close);
+        User client = user("Cliente Próximo", "client-nearby@salonhub.test", UserRole.CLIENT, null);
+        when(geocodingService.geocode(anyString())).thenReturn(Optional.of(
+                new Coordinates(new BigDecimal("-23.420999"), new BigDecimal("-51.933056"))));
+
+        mockMvc.perform(put("/api/estabelecimentos/me/perfil")
+                        .header("Authorization", bearer(admin))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"street\":\"Avenida Brasil\",\"streetNumber\":\"100\",\"city\":\"Maringá\",\"state\":\"PR\"}"))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/estabelecimentos/proximos")
+                        .header("Authorization", bearer(client))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"latitude\":-23.420999,\"longitude\":-51.933056}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(close.getId()))
+                .andExpect(jsonPath("$[0].distanceKm").value(0.0))
+                .andExpect(jsonPath("$[1].id").value(unknown.getId()))
+                .andExpect(jsonPath("$[1].distanceKm").isEmpty());
+    }
+
+    @Test
+    void fallsBackToPostalCodeCoordinatesWithoutGeoapifyKey() throws Exception {
+        Establishment establishment = establishmentRepository.saveAndFlush(
+                Establishment.builder().name("Studio CEP").cnpj("52345678000122").build());
+        User admin = user("Admin CEP", "admin-cep@salonhub.test", UserRole.ADMIN, establishment);
+        when(brasilApiCepGeocodingService.geocodePostalCode("87000000")).thenReturn(Optional.of(
+                new Coordinates(new BigDecimal("-23.420999"), new BigDecimal("-51.933056"))));
+
+        mockMvc.perform(put("/api/estabelecimentos/me/perfil")
+                        .header("Authorization", bearer(admin))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"postalCode\":\"87000000\",\"street\":\"Avenida Brasil\",\"streetNumber\":\"100\",\"city\":\"Maringá\",\"state\":\"PR\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.locationAvailable").value(true))
+                .andExpect(jsonPath("$.latitude").value(-23.420999));
+        verify(brasilApiCepGeocodingService).geocodePostalCode("87000000");
+        org.assertj.core.api.Assertions.assertThat(profileRepository.findByEstablishmentId(establishment.getId())
+                .orElseThrow().getLatitude()).isEqualByComparingTo("-23.420999");
     }
 
     @Test

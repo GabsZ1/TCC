@@ -14,8 +14,8 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      // Encaminha chamadas /api/* para o backend Spring Boot em dev,
-      // evitando problemas de CORS sem precisar configurar nada no back.
+      // Encaminha chamadas /api/* para o backend Spring Boot em dev.
+      // O navegador preserva Origin, liberado no profile local do backend.
       '/api': {
         target: 'http://localhost:8080',
         changeOrigin: true,

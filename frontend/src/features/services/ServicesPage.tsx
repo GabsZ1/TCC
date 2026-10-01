@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Clock3, Pencil, Plus, Power, RotateCcw, Scissors, WalletCards } from 'lucide-react'
+import { Clock3, Pencil, Plus, Power, RotateCcw, Scissors, Search, WalletCards, X } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { ServiceFormModal } from '@/features/services/ServiceFormModal'
-import { createService, deactivateService, fetchAdministrativeServices, reactivateService, updateService, type SalonService, type SalonServiceInput } from '@/features/services/servicesApi'
+import { createService, deactivateService, fetchAdministrativeServices, fetchServiceCounts, reactivateService, updateService, type SalonService, type SalonServiceInput } from '@/features/services/servicesApi'
 import { getApiErrorMessage } from '@/lib/apiError'
 
 const QUERY_KEY = ['services', 'administrative']
+type StatusFilter = 'all' | 'active' | 'inactive'
 
 export function ServicesPage() {
   const queryClient = useQueryClient()
@@ -15,13 +16,24 @@ export function ServicesPage() {
   const [error, setError] = useState<string | null>(null)
   const [statusError, setStatusError] = useState<string | null>(null)
   const [page, setPage] = useState(0)
-  const servicesQuery = useQuery({ queryKey: [...QUERY_KEY, page], queryFn: () => fetchAdministrativeServices(page) })
+  const [searchInput, setSearchInput] = useState('')
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const servicesQuery = useQuery({
+    queryKey: [...QUERY_KEY, page, search, statusFilter],
+    queryFn: () => fetchAdministrativeServices(page, 20, search, statusFilter === 'all' ? undefined : statusFilter === 'active'),
+  })
+  const countsQuery = useQuery({ queryKey: ['services', 'counts'], queryFn: fetchServiceCounts })
   const services = servicesQuery.data?.content ?? []
-  const activeCount = services.filter((service) => service.active).length
 
   useEffect(() => {
-    if (servicesQuery.data && services.length === 0 && page > 0) setPage(page - 1)
-  }, [page, services.length, servicesQuery.data])
+    const timeout = window.setTimeout(() => setSearch(searchInput.trim()), 300)
+    return () => window.clearTimeout(timeout)
+  }, [searchInput])
+
+  useEffect(() => {
+    if (servicesQuery.data && page >= servicesQuery.data.totalPages && page > 0) setPage(Math.max(0, servicesQuery.data.totalPages - 1))
+  }, [page, servicesQuery.data])
 
   const saveMutation = useMutation({
     mutationFn: (input: SalonServiceInput) => editing === 'new' ? createService(input) : updateService((editing as SalonService).id, input),
@@ -66,10 +78,19 @@ export function ServicesPage() {
         <button onClick={() => setEditing('new')} className="primary-button w-fit"><Plus size={17} /> Novo serviço</button>
       </header>
 
-      <div className="mt-7 flex flex-wrap gap-2">
-        <span className="rounded-full border border-background-300 bg-background-50 px-3 py-1.5 text-xs font-semibold text-text-600">{servicesQuery.data?.totalElements ?? 0} no catálogo</span>
-        <span className="rounded-full border border-success-500/20 bg-success-50 px-3 py-1.5 text-xs font-semibold text-success-700">{activeCount} ativos nesta página</span>
-        <span className="rounded-full border border-background-300 bg-background-200 px-3 py-1.5 text-xs font-semibold text-text-600">{services.length - activeCount} inativos nesta página</span>
+      <div className="mt-7 flex flex-wrap gap-2" role="group" aria-label="Filtrar serviços por status">
+        <FilterButton active={statusFilter === 'all'} onClick={() => { setStatusFilter('all'); setPage(0) }} label="Todos" count={countsQuery.data?.total} />
+        <FilterButton active={statusFilter === 'active'} onClick={() => { setStatusFilter('active'); setPage(0) }} label="Ativos" count={countsQuery.data?.active} tone="success" />
+        <FilterButton active={statusFilter === 'inactive'} onClick={() => { setStatusFilter('inactive'); setPage(0) }} label="Inativos" count={countsQuery.data?.inactive} />
+      </div>
+
+      <div className="mt-5 max-w-md">
+        <label htmlFor="service-search" className="text-sm font-semibold text-text-800">Buscar serviço</label>
+        <div className="relative mt-1">
+          <Search size={17} aria-hidden="true" className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-text-400" />
+          <input id="service-search" type="search" value={searchInput} onChange={(event) => { setSearchInput(event.target.value); setPage(0) }} placeholder="Digite o nome do serviço" className="field-control mt-0 pl-10 pr-10" />
+          {searchInput && <button type="button" onClick={() => { setSearchInput(''); setSearch(''); setPage(0) }} aria-label="Limpar busca" className="icon-button absolute right-1.5 top-1/2 -translate-y-1/2"><X size={16} /></button>}
+        </div>
       </div>
 
       {statusError && <p role="alert" className="mt-5 rounded-xl border border-danger-500/20 bg-danger-50 px-4 py-3 text-sm text-danger-600">{statusError}</p>}
@@ -77,7 +98,7 @@ export function ServicesPage() {
       <div className="mt-6 grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
         {servicesQuery.isLoading && <StateCard>Carregando serviços...</StateCard>}
         {servicesQuery.isError && <StateCard error>{getApiErrorMessage(servicesQuery.error, 'Não foi possível carregar os serviços.')}</StateCard>}
-        {!servicesQuery.isLoading && !servicesQuery.isError && services.length === 0 && <StateCard>Nenhum serviço cadastrado. Cadastre o primeiro para liberar agendamentos.</StateCard>}
+        {!servicesQuery.isLoading && !servicesQuery.isError && services.length === 0 && <StateCard>{search || statusFilter !== 'all' ? 'Nenhum serviço encontrado para os filtros selecionados.' : 'Nenhum serviço cadastrado. Cadastre o primeiro para liberar agendamentos.'}</StateCard>}
         {services.map((service) => (
           <article key={service.id} className={`surface-card group relative overflow-hidden p-5 transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-lifted)] ${service.active ? '' : 'opacity-[0.78]'}`}>
             <div className={`absolute inset-x-0 top-0 h-1 ${service.active ? 'bg-primary-500' : 'bg-background-400'}`} />
@@ -130,6 +151,10 @@ export function ServicesPage() {
 
 function StateCard({ children, error = false }: { children: React.ReactNode; error?: boolean }) {
   return <div className={`sm:col-span-2 2xl:col-span-3 surface-card p-10 text-center ${error ? 'text-danger-600' : 'text-text-600'}`}>{children}</div>
+}
+
+function FilterButton({ active, onClick, label, count, tone = 'default' }: { active: boolean; onClick: () => void; label: string; count?: number; tone?: 'default' | 'success' }) {
+  return <button type="button" onClick={onClick} aria-pressed={active} className={`rounded-full border px-3.5 py-2 text-xs font-bold transition focus-visible:outline-offset-2 ${active ? 'border-primary-600 bg-primary-600 text-on-primary shadow-sm' : tone === 'success' ? 'border-success-500/20 bg-success-50 text-success-700 hover:border-success-500/50' : 'border-background-300 bg-background-50 text-text-700 hover:border-primary-300 hover:bg-primary-50'}`}>{count ?? '—'} {label.toLowerCase()}</button>
 }
 
 function formatMoney(value: number) {

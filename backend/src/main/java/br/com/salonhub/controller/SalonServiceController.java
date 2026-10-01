@@ -2,6 +2,7 @@ package br.com.salonhub.controller;
 
 import br.com.salonhub.dto.service.EstablishmentServiceRequest;
 import br.com.salonhub.dto.service.EstablishmentServiceResponse;
+import br.com.salonhub.dto.service.ServiceCountsResponse;
 import br.com.salonhub.dto.PagedResponse;
 import br.com.salonhub.service.ServiceCatalogService;
 import jakarta.validation.Valid;
@@ -31,9 +32,16 @@ public class SalonServiceController {
     public ResponseEntity<PagedResponse<EstablishmentServiceResponse>> findAll(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) Boolean active,
+            @RequestParam(required = false) String search) {
         return ResponseEntity.ok(PagedResponse.from(serviceCatalogService.findAll(
-                currentUserId(jwt), Math.max(0, page), Math.max(1, Math.min(size, 100)))));
+                currentUserId(jwt), Math.max(0, page), Math.max(1, Math.min(size, 100)), active, search)));
+    }
+
+    @GetMapping("/resumo")
+    public ResponseEntity<ServiceCountsResponse> counts(@AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(serviceCatalogService.counts(currentUserId(jwt)));
     }
 
     @PutMapping("/{id}")

@@ -19,6 +19,18 @@ public interface EstablishmentServiceRepository extends JpaRepository<Establishm
     Page<EstablishmentService> findByEstablishmentId(Long establishmentId, Pageable pageable);
 
     @Query("""
+            select s from EstablishmentService s
+            where s.establishment.id = :establishmentId
+              and (:active is null or s.active = :active)
+              and lower(s.name) like :searchPattern
+            """)
+    Page<EstablishmentService> findAdministrativeServices(Long establishmentId, Boolean active, String searchPattern, Pageable pageable);
+
+    long countByEstablishmentId(Long establishmentId);
+
+    long countByEstablishmentIdAndActiveTrue(Long establishmentId);
+
+    @Query("""
             select count(s) > 0 from EstablishmentService s
             where s.establishment.id = :establishmentId
               and lower(trim(s.name)) = lower(trim(:name))

@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { AuthShell } from '@/features/auth/components/AuthShell'
 import { useAuth } from '@/hooks/useAuth'
+import { getApiErrorMessage } from '@/lib/apiError'
 import type { UserRole } from '@/types/auth'
 
 const allowedPathsByRole: Record<UserRole, (path: string) => boolean> = {
@@ -43,10 +44,9 @@ export function LoginPage() {
         : defaultPath
       navigate(redirectTo, { replace: true })
     } catch (err) {
-      const message = axios.isAxiosError(err)
-        ? (err.response?.data as { message?: string })?.message
-        : undefined
-      setError(message ?? 'E-mail ou senha inválidos')
+      setError(axios.isAxiosError(err) && err.response?.status === 401
+        ? getApiErrorMessage(err, 'E-mail ou senha inválidos')
+        : getApiErrorMessage(err, 'Não foi possível entrar. Verifique se o backend está em execução e tente novamente.'))
     } finally {
       setIsSubmitting(false)
     }

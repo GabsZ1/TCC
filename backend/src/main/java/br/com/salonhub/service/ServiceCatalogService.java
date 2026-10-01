@@ -2,6 +2,7 @@ package br.com.salonhub.service;
 
 import br.com.salonhub.dto.service.EstablishmentServiceRequest;
 import br.com.salonhub.dto.service.EstablishmentServiceResponse;
+import br.com.salonhub.dto.service.ServiceCountsResponse;
 import br.com.salonhub.entity.EstablishmentService;
 import br.com.salonhub.entity.User;
 import br.com.salonhub.exception.ResourceNotFoundException;
@@ -16,6 +17,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 
 import java.util.List;
+import java.util.Locale;
 import java.math.BigDecimal;
 
 @Service
@@ -45,12 +47,22 @@ public class ServiceCatalogService {
     }
 
     @Transactional(readOnly = true)
-    public Page<EstablishmentServiceResponse> findAll(Long administratorId, int page, int size) {
+    public Page<EstablishmentServiceResponse> findAll(Long administratorId, int page, int size, Boolean active, String search) {
         User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
 
-        return establishmentServiceRepository.findByEstablishmentId(administrator.getEstablishment().getId(),
-                        PageRequest.of(page, size, Sort.by("name").ascending().and(Sort.by("id"))))
+        String searchPattern = "%" + (search == null ? "" : search.trim().toLowerCase(Locale.ROOT)) + "%";
+        return establishmentServiceRepository.findAdministrativeServices(administrator.getEstablishment().getId(),
+                        active, searchPattern, PageRequest.of(page, size, Sort.by("name").ascending().and(Sort.by("id"))))
                 .map(EstablishmentServiceResponse::fromEntity);
+    }
+
+    @Transactional(readOnly = true)
+    public ServiceCountsResponse counts(Long administratorId) {
+        User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
+        Long establishmentId = administrator.getEstablishment().getId();
+        long total = establishmentServiceRepository.countByEstablishmentId(establishmentId);
+        long active = establishmentServiceRepository.countByEstablishmentIdAndActiveTrue(establishmentId);
+        return new ServiceCountsResponse(total, active, total - active);
     }
 
     @Transactional

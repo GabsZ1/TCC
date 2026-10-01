@@ -69,6 +69,8 @@ export interface PublicEstablishmentProfile {
   neighborhood: string | null
   city: string | null
   state: string | null
+  latitude: number | null
+  longitude: number | null
   hasLogo: boolean
   hasCover: boolean
   businessHours: Array<{ dayOfWeek: string; closed: boolean; openingTime: string | null; closingTime: string | null }>

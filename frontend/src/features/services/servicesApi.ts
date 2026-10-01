@@ -25,12 +25,22 @@ export interface Page<T> {
   totalElements: number
 }
 
+export interface ServiceCounts {
+  total: number
+  active: number
+  inactive: number
+}
+
 export function fetchServices() {
   return fetchAllAdministrativeServices().then((services) => services.filter((service) => service.active))
 }
 
-export function fetchAdministrativeServices(page = 0, size = 20) {
-  return api.get<Page<SalonService>>('/servicos', { params: { page, size } }).then((response) => response.data)
+export function fetchAdministrativeServices(page = 0, size = 20, search = '', active?: boolean) {
+  return api.get<Page<SalonService>>('/servicos', { params: { page, size, search: search || undefined, active } }).then((response) => response.data)
+}
+
+export function fetchServiceCounts() {
+  return api.get<ServiceCounts>('/servicos/resumo').then((response) => response.data)
 }
 
 export async function fetchAllAdministrativeServices() {

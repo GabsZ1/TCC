@@ -133,7 +133,7 @@ export function AppointmentsPage() {
               {locationMessage && <p role="alert" className="text-xs text-warning-100">{locationMessage}</p>}              {establishments.isLoading && <p className="rounded-xl bg-white/10 px-4 py-3 text-sm text-[#c3cde0]">Carregando estabelecimentos...</p>}
               {establishments.isError && <p className="mt-3 text-sm text-danger-700">{getApiErrorMessage(establishments.error, 'Não foi possível carregar os estabelecimentos.')}</p>}
               {!establishments.isLoading && !establishments.isError && establishmentData?.length === 0 && <p className="mt-3 text-sm text-[#c3cde0]">Nenhum estabelecimento está disponível no momento.</p>}
-              {(establishmentData?.length ?? 0) > ESTABLISHMENTS_PER_PAGE && (
+              {(establishmentData?.length ?? 0) > 0 && (
                 <label className="relative block">
                   <span className="sr-only">Buscar estabelecimento</span>
                   <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#c3cde0]" />

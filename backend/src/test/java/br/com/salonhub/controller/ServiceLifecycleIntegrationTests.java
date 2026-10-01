@@ -137,6 +137,41 @@ class ServiceLifecycleIntegrationTests {
     }
 
     @Test
+    void shouldSearchAndFilterServicesWithCatalogWideCounts() throws Exception {
+        create(admin, "Corte feminino");
+        long inactiveId = create(admin, "Corte masculino");
+        create(admin, "Barba");
+        mvc.perform(delete("/api/servicos/{id}", inactiveId).with(as(admin)))
+                .andExpect(status().isNoContent());
+
+        Establishment other = establishments.saveAndFlush(Establishment.builder()
+                .name("Other filters").cnpj("97979797000197").build());
+        User otherAdmin = user("other-filters", UserRole.ADMIN, other);
+        create(otherAdmin, "Corte de outro salão");
+
+        mvc.perform(get("/api/servicos/resumo").with(as(admin)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(3))
+                .andExpect(jsonPath("$.active").value(2))
+                .andExpect(jsonPath("$.inactive").value(1));
+        mvc.perform(get("/api/servicos").with(as(admin))
+                        .param("search", "  CORTE  ").param("active", "true").param("size", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].name").value("Corte feminino"));
+        mvc.perform(get("/api/servicos").with(as(admin))
+                        .param("search", "corte").param("active", "false"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].name").value("Corte masculino"));
+        mvc.perform(get("/api/servicos/resumo").with(as(otherAdmin)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(1));
+        mvc.perform(get("/api/servicos/resumo").with(as(client)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void shouldForbidClientAndProfessionalFromManagingServiceLifecycle() throws Exception {
         long id = create(admin, "Corte");
         User professional = user("professional", UserRole.PROFESSIONAL, admin.getEstablishment());
