@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { CalendarCheck, CalendarRange, CalendarX2, UserCheck, UserX, UsersRound } from 'lucide-react'
-import { ExportCsvButton } from '@/components/ui/ExportCsvButton'
+import { ExportReportButtons } from '@/components/ui/ExportReportButtons'
 import { fetchEmployees } from '@/features/employees/services/employeesApi'
 import { fetchAppointmentsReport, type AppointmentsReportFilters } from '@/features/reports/appointmentsReportApi'
 import { getApiErrorMessage } from '@/lib/apiError'
@@ -75,7 +75,7 @@ export function AppointmentsReportPage({ embedded = false }: { embedded?: boolea
         <div className="flex flex-wrap items-center gap-3 sm:col-span-2 lg:col-span-3">
           <button type="submit" className="primary-button">Aplicar filtros</button>
           <button type="button" onClick={clearFilters} className="secondary-button">Limpar filtros</button>
-          <ExportCsvButton path="/estabelecimentos/me/relatorio-atendimentos/csv" params={filters} filename="relatorio-comparecimento.csv" />
+          <ExportReportButtons path="/estabelecimentos/me/relatorio-atendimentos" params={filters} filename="relatorio-comparecimento" />
         </div>
       </form>
 

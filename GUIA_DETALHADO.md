@@ -396,7 +396,7 @@ CONFIRMED ────────┼──> CANCELLED
 
 ### Relatórios do estabelecimento
 
-Todos são só do administrador, aceitam `startDate` e `endDate` (juntas; sem elas, vale o mês corrente) e têm exportação em CSV no mesmo endereço com `/csv` no final. O CSV é gerado a partir do mesmo objeto que a tela recebe, então os números nunca divergem. O arquivo usa `;` como separador, vírgula decimal e UTF-8 com BOM, para abrir certo no Excel em português.
+Todos são só do administrador, aceitam `startDate` e `endDate` (juntas; sem elas, vale o mês corrente) e têm exportação em CSV ou PDF no mesmo endereço com `/csv` ou `/pdf` no final. Os arquivos são gerados a partir do mesmo objeto que a tela recebe. O CSV usa `;` como separador, vírgula decimal e UTF-8 com BOM, para abrir certo no Excel em português. O PDF inclui período, totais, detalhamento e numeração de páginas.
 
 | Relatório | Endpoint | O que responde |
 |---|---|---|
@@ -449,7 +449,7 @@ GET /api/estabelecimentos/me/atendimentos-realizados?startDate=2026-03-01&endDat
 Authorization: Bearer TOKEN_DO_ADMIN
 ```
 
-Somente administrador. Lista atendimentos **finalizados** (invalidados e cancelados ficam de fora) com funcionário, data de conclusão, serviço, cliente, valor e comissão, do mais recente para o mais antigo. Filtros por funcionário (apenas do próprio estabelecimento) e por período de conclusão, combináveis; **sem filtros, retorna todo o histórico**. Paginado (padrão 20, máximo 100 por página); `totalServiceValue` e `totalCommission` somam todos os resultados do filtro, não só a página. No frontend: menu "Atendimentos", aba "Atendimentos realizados" (a aba "Visão por status" mantém o relatório de volume por situação).
+Somente administrador. Lista atendimentos **finalizados** (invalidados e cancelados ficam de fora) com funcionário, data de conclusão, serviço, cliente, valor e comissão, do mais recente para o mais antigo. Filtros por funcionário (apenas do próprio estabelecimento) e por período de conclusão, combináveis; **sem filtros, retorna todo o histórico**. Paginado (padrão 20, máximo 100 por página); `totalServiceValue` e `totalCommission` somam todos os resultados do filtro, não só a página. `GET /api/estabelecimentos/me/atendimentos-realizados/pdf` exporta todos os resultados filtrados em PDF, independentemente da página aberta. No frontend: menu "Atendimentos", aba "Atendimentos realizados" (a aba "Visão por status" mantém o relatório de volume por situação).
 
 Configurações do JWT:
 

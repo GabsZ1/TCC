@@ -1,5 +1,5 @@
-import { useEffect, useState, type ComponentType } from 'react'
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { useCallback, useEffect, useRef, useState, type ComponentType } from 'react'
+import { NavLink, Outlet } from 'react-router-dom'
 import {
   BadgeDollarSign,
   Building2,
@@ -29,10 +29,8 @@ type NavItem = {
 
 export function AppLayout() {
   const { user, logout } = useAuth()
-  const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-
-  useEffect(() => setMobileMenuOpen(false), [location.pathname])
+  const closeMobileMenu = useCallback(() => setMobileMenuOpen(false), [])
 
   const roleNavItems: NavItem[] = user?.role === 'SYSTEM_ADMIN'
     ? [
@@ -103,7 +101,7 @@ export function AppLayout() {
       </div>
 
       {mobileMenuOpen && (
-        <MobileDrawer items={navItems} user={user} onClose={() => setMobileMenuOpen(false)} onLogout={logout} />
+        <MobileDrawer items={navItems} user={user} onClose={closeMobileMenu} onLogout={logout} />
       )}
     </div>
   )
@@ -158,11 +156,12 @@ function DesktopSidebar({ items, user, onLogout }: { items: NavItem[]; user: Ret
   )
 }
 
-function SidebarLink({ item }: { item: NavItem }) {
+function SidebarLink({ item, onNavigate }: { item: NavItem; onNavigate?: () => void }) {
   const Icon = item.icon
   return (
     <NavLink
       to={item.to}
+      onClick={onNavigate}
       end={item.to === '/'}
       className={({ isActive }) =>
         `group relative flex items-center gap-3 rounded-[0.72rem] px-3 py-2.5 text-sm font-semibold transition ${
@@ -184,15 +183,50 @@ function SidebarLink({ item }: { item: NavItem }) {
 }
 
 function MobileDrawer({ items, user, onClose, onLogout }: { items: NavItem[]; user: ReturnType<typeof useAuth>['user']; onClose: () => void; onLogout: () => void }) {
+  const drawerRef = useRef<HTMLElement>(null)
+  const closeButtonRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    closeButtonRef.current?.focus()
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        onClose()
+      }
+      if (event.key !== 'Tab' || !drawerRef.current) return
+      const focusable = Array.from(drawerRef.current.querySelectorAll<HTMLElement>('a[href], button:not([disabled])'))
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last?.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first?.focus()
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      document.body.style.overflow = previousOverflow
+      previouslyFocused?.focus()
+    }
+  }, [onClose])
+
   return (
     <div className="fixed inset-0 z-[60] md:hidden" role="dialog" aria-modal="true" aria-label="Menu de navegação">
       <button className="absolute inset-0 bg-overlay backdrop-blur-[2px]" onClick={onClose} aria-label="Fechar menu" />
-      <aside className="absolute inset-y-0 left-0 flex w-[min(88vw,20rem)] flex-col bg-[var(--sidebar-bg)] p-4 shadow-2xl">
+      <aside ref={drawerRef} className="absolute inset-y-0 left-0 flex w-[min(88vw,20rem)] flex-col bg-[var(--sidebar-bg)] p-4 shadow-2xl">
         <div className="flex items-center justify-between px-1 pt-1">
           <Brand inverse />
-          <button onClick={onClose} className="grid size-10 place-items-center rounded-[0.7rem] text-[var(--sidebar-muted)] hover:bg-white/10 hover:text-white" aria-label="Fechar menu"><X size={20} /></button>
+          <button ref={closeButtonRef} onClick={onClose} className="grid size-10 place-items-center rounded-[0.7rem] text-[var(--sidebar-muted)] hover:bg-white/10 hover:text-white" aria-label="Fechar menu"><X size={20} /></button>
         </div>
-        <div className="mt-8 flex-1 space-y-1 overflow-y-auto">{items.map((item) => <SidebarLink key={item.to} item={item} />)}</div>
+        <div className="mt-8 flex-1 space-y-1 overflow-y-auto">{items.map((item) => <SidebarLink key={item.to} item={item} onNavigate={onClose} />)}</div>
         <div className="border-t border-[var(--sidebar-border)] pt-4">
           <div className="flex items-center gap-3"><Avatar name={user?.name} /><div className="min-w-0 flex-1"><p className="truncate text-sm font-bold text-white">{user?.name}</p><p className="truncate text-xs text-[var(--sidebar-muted)]">{user?.establishmentName ?? roleLabel(user?.role)}</p></div></div>
           <button type="button" onClick={onLogout} className="mt-4 flex w-full items-center justify-center gap-2 rounded-[0.72rem] border border-[var(--sidebar-border)] py-2.5 text-sm font-bold text-white hover:bg-white/10"><LogOut size={16} /> Sair</button>

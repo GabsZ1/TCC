@@ -1,9 +1,11 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AtSign, MapPin, Phone, Save, Store } from 'lucide-react'
+import { AtSign, Images, MapPin, Phone, Save, Store } from 'lucide-react'
 import { getApiErrorMessage } from '@/lib/apiError'
 import { CepNotFoundError, cepDigits, formatCep, lookupCep } from '@/lib/cep'
 import { EstablishmentImage } from './EstablishmentImage'
+import { EstablishmentGalleryManager } from './EstablishmentGalleryManager'
+import { EstablishmentSectionHeader } from './EstablishmentSectionHeader'
 import { deleteEstablishmentImage, uploadEstablishmentImage, type ImageKind } from './establishmentImagesApi'
 import {
   fetchMyEstablishmentProfile,
@@ -16,6 +18,8 @@ const QUERY_KEY = ['my-establishment-profile']
 
 function ProfileImageControl({ profile, kind }: { profile: EstablishmentProfile; kind: ImageKind }) {
   const queryClient = useQueryClient()
+  const fileInput = useRef<HTMLInputElement>(null)
+  const [validationError, setValidationError] = useState<string | null>(null)
   const hasImage = kind === 'logo' ? profile.hasLogo : profile.hasCover
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: QUERY_KEY })
@@ -23,10 +27,25 @@ function ProfileImageControl({ profile, kind }: { profile: EstablishmentProfile;
   }
   const upload = useMutation({ mutationFn: (file: File) => uploadEstablishmentImage(kind, file), onSuccess: refresh })
   const remove = useMutation({ mutationFn: () => deleteEstablishmentImage(kind), onSuccess: refresh })
+  const busy = upload.isPending || remove.isPending
+  function selectImage(file: File | undefined) {
+    if (!file) return
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 2 * 1024 * 1024) {
+      setValidationError('Use uma imagem JPG, PNG ou WEBP de até 2 MB.')
+      return
+    }
+    setValidationError(null)
+    remove.reset()
+    upload.mutate(file)
+  }
   return <div className="space-y-3"><h3 className="text-sm font-semibold">{kind === 'logo' ? 'Logo' : 'Capa'}</h3>
     <EstablishmentImage establishmentId={profile.establishmentId} kind={kind} mine hasImage={hasImage} className={kind === 'logo' ? 'size-28 rounded-xl object-cover' : 'h-28 w-full rounded-xl object-cover'} />
-    <input aria-label={`Enviar ${kind}`} type="file" accept="image/jpeg,image/png,image/webp" onChange={event => { const file = event.target.files?.[0]; if (file) upload.mutate(file); event.target.value = '' }} />
-    {hasImage && <button type="button" disabled={remove.isPending} onClick={() => remove.mutate()} className="text-sm font-semibold text-danger-600">Remover</button>}
+    <div className="flex flex-wrap gap-2">
+      <button type="button" disabled={busy} onClick={() => fileInput.current?.click()} className="secondary-button min-h-11 justify-center disabled:opacity-50">{upload.isPending ? 'Enviando...' : hasImage ? 'Trocar imagem' : 'Adicionar imagem'}</button>
+      {hasImage && <button type="button" disabled={busy} onClick={() => { setValidationError(null); upload.reset(); remove.mutate() }} className="min-h-11 rounded-xl px-3 text-sm font-semibold text-danger-600 hover:bg-danger-50 disabled:opacity-50">{remove.isPending ? 'Removendo...' : 'Remover'}</button>}
+    </div>
+    <input ref={fileInput} aria-label={`Enviar ${kind}`} type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} className="hidden" onChange={event => { selectImage(event.target.files?.[0]); event.target.value = '' }} />
+    {validationError && <p role="alert" className="text-sm text-danger-600">{validationError}</p>}
     {(upload.isError || remove.isError) && <p role="alert" className="text-sm text-danger-600">{getApiErrorMessage(upload.error ?? remove.error, 'Não foi possível atualizar a imagem.')}</p>}
   </div>
 }
@@ -50,7 +69,7 @@ export function EstablishmentProfilePage() {
       queryClient.setQueryData(QUERY_KEY, updated)
       setForm(profileToForm(updated))
       setMessage(updated.locationAvailable
-        ? 'Perfil atualizado. Localização obtida pelo endereço ou CEP e salva para o mapa e a busca por proximidade.'
+        ? 'Perfil atualizado. Localização obtida pelo endereço ou CEP e salva para a busca por proximidade.'
         : updated.street && updated.streetNumber && updated.city && updated.state
           ? 'Perfil atualizado. Não foi possível localizar este endereço ou CEP; confira os dados e salve novamente.'
           : 'Perfil atualizado. Preencha CEP, rua, número, cidade e UF para calcular a localização.')
@@ -127,31 +146,27 @@ export function EstablishmentProfilePage() {
         <p className="page-subtitle">Defina as informações que os clientes verão ao consultar os detalhes do seu estabelecimento.</p>
       </header>
 
-      {profile && <section className="surface-card mt-7 p-5"><h2 className="font-semibold">Logo e capa</h2><div className="mt-4 grid gap-5 sm:grid-cols-2">
+      {profile && <section className="surface-card mt-7 p-5 sm:p-6"><EstablishmentSectionHeader icon={<Images size={20} />} title="Logo e capa" description="Escolha imagens JPG, PNG ou WEBP de até 2 MB cada. As mudanças são salvas imediatamente." /><div className="mt-5 grid gap-5 sm:grid-cols-2">
         <ProfileImageControl profile={profile} kind="logo" />
         <ProfileImageControl profile={profile} kind="capa" />
       </div></section>}
 
-      <form onSubmit={submit} className="surface-card mt-7 overflow-hidden">
-        <div className="border-b border-background-300 bg-background-100/60 p-5 sm:p-6">
-          <SectionHeader icon={<Store size={20} />} title="Informações públicas" description="Serviços, profissionais e horários ativos são incluídos automaticamente no perfil." />
-        </div>
-        <fieldset disabled={mutation.isPending} className="space-y-7 p-5 sm:p-6">
-          {message && <p role="status" className={`rounded-xl px-4 py-3 text-sm ${locationWarning ? 'bg-warning-50 text-warning-700' : 'bg-success-50 text-success-700'}`}>{message}</p>}
-          {errorMessage && <p role="alert" className="rounded-xl border border-danger-500/30 bg-danger-500/5 px-4 py-3 text-sm text-danger-600">{errorMessage}</p>}
+      {profile && <EstablishmentGalleryManager establishmentId={profile.establishmentId} />}
 
-          <div>
-            <div className="flex items-center gap-2 text-text-700"><Store size={18} /><h2 className="font-semibold text-text-900">Apresentação</h2></div>
+      <form onSubmit={submit} className="mt-7 space-y-5">
+        <fieldset disabled={mutation.isPending} className="space-y-5">
+          <section className="surface-card p-5 sm:p-6">
+            <EstablishmentSectionHeader icon={<Store size={20} />} title="Apresentação" description="Conte sobre o espaço e seus diferenciais. Serviços, equipe e horários ativos entram automaticamente no perfil público." />
             <label className="mt-4 block">
               <span className="text-sm font-medium text-text-800">Quem somos</span>
               <textarea value={currentForm.aboutUs ?? ''} maxLength={3000} rows={6} onChange={(event) => updateField('aboutUs', event.target.value)} placeholder="Conte a história, os diferenciais e o estilo do seu estabelecimento..." className="mt-2 w-full resize-y rounded-xl border border-background-300 px-3.5 py-3 text-text-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 disabled:bg-background-100" />
               <span className="mt-1 block text-right text-xs text-text-500">{currentForm.aboutUs?.length ?? 0}/3000</span>
             </label>
-          </div>
+          </section>
 
-          <div className="border-t border-background-300 pt-6">
-            <div className="flex items-center gap-2 text-text-700"><MapPin size={18} /><h2 className="font-semibold text-text-900">Endereço</h2></div>
-            <p className="mt-1 text-sm text-text-600">Ao salvar, o sistema tenta localizar o endereço. Se não houver serviço de geocodificação configurado, usa as coordenadas do CEP quando disponíveis. A posição pelo CEP pode ser aproximada.</p>
+          <section className="surface-card p-5 sm:p-6">
+            <EstablishmentSectionHeader icon={<MapPin size={20} />} title="Endereço" description="Informe o endereço exibido no perfil público e usado na busca por proximidade." />
+            <p className="mt-2 text-sm text-text-600">Ao salvar, o sistema tenta localizar o endereço. Sem um serviço de geocodificação configurado, usa as coordenadas aproximadas do CEP quando disponíveis.</p>
             {profile?.locationAvailable && <p className="mt-2 text-xs font-medium text-success-700">Localização salva no banco de dados.</p>}
             <div className="mt-4 grid gap-5 sm:grid-cols-6">
               <ProfileField label="CEP" value={formatCep(currentForm.postalCode)} onChange={changePostalCode} placeholder="00000-000" inputMode="numeric" className="sm:col-span-2" hint={cepStatus?.text ?? 'Digite o CEP para preencher o endereço.'} hintTone={cepStatus?.tone} />
@@ -162,21 +177,21 @@ export function EstablishmentProfilePage() {
               <ProfileField label="Cidade" value={currentForm.city} onChange={(value) => updateField('city', value)} maxLength={100} className="sm:col-span-3" />
               <ProfileField label="UF" value={currentForm.state} onChange={(value) => updateField('state', value.toUpperCase().slice(0, 2))} pattern="AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO" placeholder="SP" className="sm:col-span-1" />
             </div>
-          </div>
+          </section>
 
-          <div className="border-t border-background-300 pt-6">
-            <div className="flex items-center gap-2 text-text-700"><Phone size={18} /><h2 className="font-semibold text-text-900">Contato público</h2></div>
+          <section className="surface-card p-5 sm:p-6">
+            <EstablishmentSectionHeader icon={<Phone size={20} />} title="Contato público" description="Canais que os clientes podem usar para falar com o estabelecimento." />
             <div className="mt-4 grid gap-5 sm:grid-cols-3">
               <ProfileField label="WhatsApp" value={currentForm.whatsapp} onChange={(value) => updateField('whatsapp', value)} maxLength={20} placeholder="(00) 00000-0000" />
               <ProfileField label="Telefone" value={currentForm.phone} onChange={(value) => updateField('phone', value)} maxLength={20} placeholder="(00) 0000-0000" />
               <ProfileField label="Instagram" value={currentForm.instagram} onChange={(value) => updateField('instagram', value)} maxLength={100} placeholder="@seuperfil" icon={<AtSign size={15} />} />
             </div>
-          </div>
-
-          <div className="rounded-xl bg-secondary-50 px-4 py-3 text-sm leading-6 text-text-700">A futura galeria de fotos poderá ser ligada diretamente a este perfil.</div>
+          </section>
         </fieldset>
-        <div className="flex justify-end border-t border-background-300 p-4 sm:px-6">
-          <button type="submit" disabled={mutation.isPending} className="primary-button disabled:cursor-not-allowed disabled:opacity-60"><Save size={18} /> {mutation.isPending ? 'Salvando...' : 'Salvar perfil público'}</button>
+        {message && <p role="status" className={`rounded-xl px-4 py-3 text-sm ${locationWarning ? 'bg-warning-50 text-warning-700' : 'bg-success-50 text-success-700'}`}>{message}</p>}
+        {errorMessage && <p role="alert" className="rounded-xl border border-danger-500/30 bg-danger-500/5 px-4 py-3 text-sm text-danger-600">{errorMessage}</p>}
+        <div className="surface-card flex justify-end p-4">
+          <button type="submit" disabled={mutation.isPending} className="primary-button w-full justify-center disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"><Save size={18} /> {mutation.isPending ? 'Salvando...' : 'Salvar alterações'}</button>
         </div>
       </form>
     </PageContainer>
@@ -200,7 +215,6 @@ interface ProfileFieldProps {
 function ProfileField({ label, value, onChange, placeholder, className = '', icon, inputMode, inputRef, maxLength, pattern, hint, hintTone = 'info' }: ProfileFieldProps) {
   return <label className={`block ${className}`}><span className="flex items-center gap-1.5 text-sm font-medium text-text-800">{icon}{label}</span><input ref={inputRef} value={value ?? ''} inputMode={inputMode} maxLength={maxLength} pattern={pattern} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="mt-2 w-full rounded-xl border border-background-300 px-3.5 py-3 text-text-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 disabled:bg-background-100" />{hint && <span role={hintTone === 'error' ? 'alert' : 'status'} className={`mt-1.5 block text-xs ${hintTone === 'error' ? 'text-danger-600' : 'text-text-500'}`}>{hint}</span>}</label>
 }
-function SectionHeader({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) { return <div><div className="flex items-center gap-2 text-text-600">{icon}<h2 className="text-lg font-semibold text-text-900">{title}</h2></div><p className="mt-1 text-sm text-text-600">{description}</p></div> }
 function PageContainer({ children }: { children: React.ReactNode }) { return <div className="page-shell">{children}</div> }
 function StateCard({ children, error = false }: { children: React.ReactNode; error?: boolean }) { return <div className={`rounded-2xl border bg-background-50 p-8 text-center ${error ? 'border-danger-500/30 text-danger-600' : 'border-background-300 text-text-600'}`}>{children}</div> }
 function profileToForm(profile: EstablishmentProfile): EstablishmentProfileInput { return { aboutUs: profile.aboutUs ?? '', instagram: profile.instagram ?? '', whatsapp: profile.whatsapp ?? '', phone: profile.phone ?? '', postalCode: profile.postalCode ?? '', street: profile.street ?? '', streetNumber: profile.streetNumber ?? '', addressComplement: profile.addressComplement ?? '', neighborhood: profile.neighborhood ?? '', city: profile.city ?? '', state: profile.state ?? '' } }

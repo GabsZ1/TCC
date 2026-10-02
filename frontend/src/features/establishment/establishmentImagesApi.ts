@@ -6,7 +6,7 @@ const path = (kind: ImageKind) => `/estabelecimentos/me/perfil/imagens/${kind}`
 export const uploadEstablishmentImage = (kind: ImageKind, file: File) => {
   const form = new FormData()
   form.append('file', file)
-  return api.post(path(kind), form)
+  return api.post(path(kind), form, { headers: { 'Content-Type': 'multipart/form-data' } })
 }
 export const deleteEstablishmentImage = (kind: ImageKind) => api.delete(path(kind))
 export const fetchEstablishmentImage = (establishmentId: number, kind: ImageKind, mine = false) =>

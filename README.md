@@ -117,7 +117,9 @@ As opções completas estão em [`application.properties`](backend/src/main/reso
 
 Para calcular latitude e longitude automaticamente, preencha CEP, rua, número, cidade e UF e salve o perfil. Sem configuração adicional, o backend usa as coordenadas do CEP fornecidas pela BrasilAPI; esse ponto pode ser aproximado ou não estar disponível. Se `GEOAPIFY_API_KEY` estiver configurada, o backend tenta localizar pelo endereço completo primeiro. As coordenadas ficam nas colunas `establishment_profiles.latitude` e `establishment_profiles.longitude` (migration V28), e uma mudança no endereço recalcula o ponto. Salve novamente o perfil dos estabelecimentos já cadastrados para preencher coordenadas ainda vazias.
 
-Nos detalhes, quando há coordenadas, a tela mostra um mapa pequeno sem configuração adicional (OpenStreetMap) e o botão **Como chegar no Google Maps** abre a rota em outra aba; o Google Maps pode usar a localização atual do cliente como origem. Para que o próprio mapa incorporado seja do Google, configure `VITE_GOOGLE_MAPS_EMBED_API_KEY` no frontend e habilite a Maps Embed API no Google Cloud. O link de rotas não precisa dessa chave. Quando a localização vem apenas do CEP, o ponto mostrado pode ser aproximado.
+Nos detalhes do perfil público, **Abrir no Google Maps** pesquisa o endereço completo cadastrado em outra aba, sem chave de API. O link usa rua, número, bairro, cidade, UF e CEP, em vez das coordenadas aproximadas do CEP. Confira o endereço cadastrado caso o serviço de mapas sugira outro local.
+
+O administrador pode incluir até 15 fotos JPG, PNG ou WEBP (2 MB por foto) na **Galeria de mídia** do perfil, alterar sua ordem por arrastar ou pelas setas e remover imagens. A galeria aparece nos detalhes públicos do estabelecimento com foto principal, navegação e miniaturas. Os arquivos usam o mesmo armazenamento S3 da logo e da capa; o banco guarda apenas referências e a ordem.
 
 ## 🧪 Qualidade e testes
 

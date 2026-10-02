@@ -110,12 +110,12 @@ export function ProfessionalProfilePage() {
           </section>
 
           <section className="surface-card overflow-hidden">
-            <div className="flex items-center justify-between gap-3 border-b border-background-300 bg-background-100/60 p-5">
+            <div className="flex flex-col gap-3 border-b border-background-300 bg-background-100/60 p-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-text-900">Contato e atuação</h2>
                 <p className="text-sm text-text-600">Você mesmo pode atualizar estes dados.</p>
               </div>
-              {!form && <button type="button" className="secondary-button" onClick={() => startEditing(current)}><Pencil size={15} /> Editar</button>}
+              {!form && <button type="button" className="secondary-button w-full sm:w-auto" onClick={() => startEditing(current)}><Pencil size={15} /> Editar</button>}
             </div>
 
             {!form ? (
@@ -151,8 +151,8 @@ export function ProfessionalProfilePage() {
                 {formError && <p role="alert" className="rounded-xl border border-danger-500/30 bg-danger-500/5 px-4 py-3 text-sm text-danger-600">{formError}</p>}
 
                 <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                  <button type="button" className="secondary-button" onClick={() => { setForm(null); setFormError(null) }}>Cancelar</button>
-                  <button type="submit" className="primary-button">Salvar</button>
+                  <button type="button" className="secondary-button w-full sm:w-auto" onClick={() => { setForm(null); setFormError(null) }}>Cancelar</button>
+                  <button type="submit" className="primary-button w-full sm:w-auto">Revisar alterações</button>
                 </div>
               </form>
             )}

@@ -28,8 +28,6 @@ export interface FinancialReportFilters {
   serviceId?: number
 }
 
-export const FINANCIAL_REPORT_CSV_PATH = '/estabelecimentos/me/relatorio-financeiro/csv'
-
 export function fetchFinancialReport(filters: FinancialReportFilters) {
   return api.get<FinancialReport>('/estabelecimentos/me/relatorio-financeiro', { params: filters }).then((response) => response.data)
 }

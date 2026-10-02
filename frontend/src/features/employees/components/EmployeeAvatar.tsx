@@ -6,7 +6,7 @@ interface Props {
   id: number
   name: string
   hasPhoto: boolean
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'sm' | 'md' | 'lg' | 'xl'
   /** Quando informado, busca a foto pelo catálogo do estabelecimento (visão do cliente). */
   catalogEstablishmentId?: number
 }
@@ -22,7 +22,7 @@ export function EmployeeAvatar({ id, name, hasPhoto, size = 'md', catalogEstabli
   })
   const url = hasPhoto ? photo.data ?? null : null
 
-  const dimension = size === 'lg' ? 'size-20 rounded-2xl text-lg' : size === 'sm' ? 'size-6 rounded-lg text-[0.6rem]' : 'size-9 rounded-xl text-xs'
+  const dimension = size === 'xl' ? 'size-24 rounded-2xl text-2xl' : size === 'lg' ? 'size-20 rounded-2xl text-lg' : size === 'sm' ? 'size-6 rounded-lg text-[0.6rem]' : 'size-9 rounded-xl text-xs'
   if (url) {
     return <img src={url} alt={`Foto de ${name}`} className={`${dimension} shrink-0 object-cover`} />
   }

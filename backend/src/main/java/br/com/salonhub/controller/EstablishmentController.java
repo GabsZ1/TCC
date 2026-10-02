@@ -6,6 +6,7 @@ import br.com.salonhub.dto.establishment.EstablishmentResponse;
 import br.com.salonhub.dto.establishment.EstablishmentUpdateRequest;
 import br.com.salonhub.dto.report.AppointmentsReportResponse;
 import br.com.salonhub.dto.report.CompletedAppointmentsResponse;
+import br.com.salonhub.dto.report.CompletedAppointmentEntry;
 import br.com.salonhub.dto.report.FinancialReportResponse;
 import br.com.salonhub.service.AppointmentsReportService;
 import br.com.salonhub.service.CommissionReportService;
@@ -15,10 +16,12 @@ import br.com.salonhub.service.EstablishmentManagementService;
 import br.com.salonhub.service.EstablishmentOperationService;
 import br.com.salonhub.service.FinancialReportService;
 import br.com.salonhub.service.ReportCsvExporter;
+import br.com.salonhub.service.ReportPdfExporter;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ContentDisposition;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +30,8 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/estabelecimentos/me")
@@ -41,6 +46,7 @@ public class EstablishmentController {
     private final CompletedAppointmentsService completedAppointmentsService;
     private final FinancialReportService financialReportService;
     private final ReportCsvExporter csvExporter;
+    private final ReportPdfExporter pdfExporter;
 
     @GetMapping
     public EstablishmentResponse findMine(@AuthenticationPrincipal Jwt jwt) {
@@ -72,6 +78,17 @@ public class EstablishmentController {
         return csv("relatorio-comissoes", report.periodStart(), report.periodEnd(), csvExporter.commission(report));
     }
 
+    @GetMapping("/relatorio-comissoes/pdf")
+    public ResponseEntity<byte[]> commissionReportPdf(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) Long professionalId) {
+        CommissionReportResponse report = commissionReportService.getReport(
+                Long.valueOf(jwt.getSubject()), startDate, endDate, professionalId);
+        return pdf("relatorio-comissoes", report.periodStart(), report.periodEnd(), pdfExporter.commission(report));
+    }
+
     /** Relatório financeiro/produção: faturamento, comissões, valor após comissões e ticket médio. */
     @GetMapping("/relatorio-financeiro")
     public FinancialReportResponse financialReport(
@@ -95,6 +112,18 @@ public class EstablishmentController {
         return csv("relatorio-financeiro", report.periodStart(), report.periodEnd(), csvExporter.financial(report));
     }
 
+    @GetMapping("/relatorio-financeiro/pdf")
+    public ResponseEntity<byte[]> financialReportPdf(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) Long professionalId,
+            @RequestParam(required = false) Long serviceId) {
+        FinancialReportResponse report = financialReportService.getReport(
+                Long.valueOf(jwt.getSubject()), startDate, endDate, professionalId, serviceId);
+        return pdf("relatorio-financeiro", report.periodStart(), report.periodEnd(), pdfExporter.financial(report));
+    }
+
     @GetMapping("/atendimentos-realizados")
     public CompletedAppointmentsResponse completedAppointments(
             @AuthenticationPrincipal Jwt jwt,
@@ -105,6 +134,23 @@ public class EstablishmentController {
             @RequestParam(required = false) Integer size) {
         return completedAppointmentsService.find(
                 Long.valueOf(jwt.getSubject()), startDate, endDate, professionalId, page, size);
+    }
+
+    @GetMapping("/atendimentos-realizados/pdf")
+    public ResponseEntity<byte[]> completedAppointmentsPdf(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) Long professionalId) {
+        Long userId = Long.valueOf(jwt.getSubject());
+        CompletedAppointmentsResponse first = completedAppointmentsService.find(
+                userId, startDate, endDate, professionalId, 0, 100);
+        List<CompletedAppointmentEntry> entries = new ArrayList<>(first.entries());
+        for (int page = 1; page < first.totalPages(); page++) {
+            entries.addAll(completedAppointmentsService.find(
+                    userId, startDate, endDate, professionalId, page, 100).entries());
+        }
+        return pdf("atendimentos-realizados", startDate, endDate, pdfExporter.completed(first, entries));
     }
 
     @GetMapping("/relatorio-atendimentos")
@@ -127,11 +173,32 @@ public class EstablishmentController {
         return csv("relatorio-comparecimento", report.periodStart(), report.periodEnd(), csvExporter.appointments(report));
     }
 
+    @GetMapping("/relatorio-atendimentos/pdf")
+    public ResponseEntity<byte[]> appointmentsReportPdf(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) Long professionalId) {
+        AppointmentsReportResponse report = appointmentsReportService.getReport(
+                Long.valueOf(jwt.getSubject()), startDate, endDate, professionalId);
+        return pdf("relatorio-comparecimento", report.periodStart(), report.periodEnd(), pdfExporter.appointments(report));
+    }
+
     private static ResponseEntity<byte[]> csv(String name, LocalDate start, LocalDate end, byte[] content) {
         return ResponseEntity.ok()
                 .contentType(new MediaType("text", "csv", java.nio.charset.StandardCharsets.UTF_8))
                 .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
                         .filename(name + "_" + start + "_" + end + ".csv").build().toString())
+                .body(content);
+    }
+
+    private static ResponseEntity<byte[]> pdf(String name, LocalDate start, LocalDate end, byte[] content) {
+        String period = start == null || end == null ? "historico" : start + "_" + end;
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename(name + "_" + period + ".pdf").build().toString())
                 .body(content);
     }
 

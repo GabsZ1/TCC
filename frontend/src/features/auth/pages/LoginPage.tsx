@@ -5,14 +5,7 @@ import axios from 'axios'
 import { AuthShell } from '@/features/auth/components/AuthShell'
 import { useAuth } from '@/hooks/useAuth'
 import { getApiErrorMessage } from '@/lib/apiError'
-import type { UserRole } from '@/types/auth'
-
-const allowedPathsByRole: Record<UserRole, (path: string) => boolean> = {
-  SYSTEM_ADMIN: (path) => ['/', '/alterar-senha', '/admin/estabelecimentos'].includes(path),
-  ADMIN: (path) => ['/', '/alterar-senha', '/funcionarios', '/servicos', '/estabelecimento', '/perfil-estabelecimento', '/agenda', '/relatorio-comissoes', '/relatorio-atendimentos'].includes(path),
-  CLIENT: (path) => ['/', '/alterar-senha', '/agendamentos', '/meu-perfil'].includes(path) || /^\/estabelecimentos\/\d+\/agendar$/.test(path),
-  PROFESSIONAL: (path) => ['/', '/alterar-senha', '/meu-perfil', '/minha-agenda', '/meus-servicos', '/meus-atendimentos'].includes(path),
-}
+import { postLoginPath } from '@/features/auth/postLoginPath'
 
 export function LoginPage() {
   const { login } = useAuth()
@@ -38,11 +31,7 @@ export function LoginPage() {
     try {
       const user = await login({ email, password })
       const requestedPath = (location.state as { from?: Location })?.from?.pathname
-      const defaultPath = '/'
-      const redirectTo = requestedPath && allowedPathsByRole[user.role](requestedPath)
-        ? requestedPath
-        : defaultPath
-      navigate(redirectTo, { replace: true })
+      navigate(postLoginPath(user.role, requestedPath), { replace: true })
     } catch (err) {
       setError(axios.isAxiosError(err) && err.response?.status === 401
         ? getApiErrorMessage(err, 'E-mail ou senha inválidos')

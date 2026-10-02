@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Link, Routes, Route } from 'react-router-dom'
 import { ProtectedRoute } from '@/routes/ProtectedRoute'
 import { AppLayout } from '@/components/layout/AppLayout'
 
@@ -86,8 +86,22 @@ function App() {
             </Route>
           </Route>
         </Route>
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Suspense>
+  )
+}
+
+function NotFoundPage() {
+  return (
+    <main className="grid min-h-screen place-items-center bg-background-100 px-5">
+      <div className="surface-card w-full max-w-md p-8 text-center">
+        <p className="eyebrow justify-center">Erro 404</p>
+        <h1 className="mt-3 text-2xl font-extrabold text-text-950">Página não encontrada</h1>
+        <p className="mt-3 text-sm leading-6 text-text-600">Confira o endereço ou volte para o início.</p>
+        <Link to="/" className="primary-button mt-6 w-full justify-center">Ir para o início</Link>
+      </div>
+    </main>
   )
 }
 

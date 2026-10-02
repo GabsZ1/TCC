@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Building2, CalendarClock, Save, CalendarOff, Pause, Play, RotateCcw } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { EstablishmentSectionHeader } from './EstablishmentSectionHeader'
 import { getApiErrorMessage } from '@/lib/apiError'
 import { allowMyEstablishmentBookings, blockMyEstablishmentBookings, fetchMyEstablishment, pauseMyEstablishment, resumeMyEstablishment, updateMyEstablishment, type BusinessHour, type Establishment, type EstablishmentUpdateInput, type WeekDay } from '@/features/establishment/establishmentApi'
 
@@ -27,6 +28,7 @@ function EstablishmentContent({ establishment }: { establishment: Awaited<Return
   const [form, setForm] = useState<EstablishmentUpdateInput>(() => toForm(establishment))
   const [message, setMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [feedbackPlacement, setFeedbackPlacement] = useState<'form' | 'state'>('state')
   const [confirmation, setConfirmation] = useState<'block' | 'pause' | null>(null)
 
   const updateMutation = useMutation({
@@ -65,12 +67,14 @@ function EstablishmentContent({ establishment }: { establishment: Awaited<Return
   function submit(event: FormEvent) {
     event.preventDefault()
     if (!establishment?.active) return
+    setFeedbackPlacement('form')
     setMessage(null)
     setErrorMessage(null)
     updateMutation.mutate(form)
   }
 
   function changeState(operation: () => Promise<Establishment>, successMessage: string) {
+    setFeedbackPlacement('state')
     setMessage(null)
     setErrorMessage(null)
     stateMutation.mutate({ operation, successMessage })
@@ -79,22 +83,20 @@ function EstablishmentContent({ establishment }: { establishment: Awaited<Return
   return (
     <PageContainer>
       <header className="flex flex-col gap-4 border-b border-background-300 pb-7 sm:flex-row sm:items-start sm:justify-between">
-        <div><p className="eyebrow">Administração</p><h1 className="page-title mt-3">Configurações do estabelecimento</h1><p className="page-subtitle">Gerencie os dados cadastrais, a agenda e o estado operacional do estabelecimento.</p></div>
+        <div><p className="eyebrow">Administração</p><h1 className="page-title mt-2">Configurações do estabelecimento</h1><p className="page-subtitle">Gerencie os dados cadastrais, a agenda e o estado operacional do estabelecimento.</p></div>
         <div className="flex flex-wrap gap-2">
           <span className="status-pill bg-success-50 text-success-700">Ativo</span>
           {establishment.paused && <span className="status-pill bg-warning-100 text-warning-700">Pausado{establishment.pausedBySystem ? ' pelo sistema' : ''}</span>}
           {establishment.bookingsBlocked && <span className="status-pill bg-danger-50 text-danger-600">Agendamentos bloqueados{establishment.bookingsBlockedBySystem ? ' pelo sistema' : ''}</span>}
         </div>
       </header>
-      {message && <p role="status" className="mt-5 rounded-xl bg-success-50 px-4 py-3 text-sm text-success-600">{message}</p>}
-      {errorMessage && <p role="alert" className="mt-5 rounded-xl border border-danger-500/30 bg-danger-500/5 px-4 py-3 text-sm text-danger-600">{errorMessage}</p>}
       {(establishment.pausedBySystem || establishment.bookingsBlockedBySystem) && <p className="mt-5 rounded-xl border border-warning-500/30 bg-warning-100 px-4 py-3 text-sm text-warning-700">Uma ou mais restrições foram aplicadas pelo administrador do sistema e somente ele poderá removê-las.</p>}
 
       <div className="mt-7 grid gap-6 xl:grid-cols-[minmax(0,1fr)_18rem]">
         <form onSubmit={submit} className="space-y-5">
           <fieldset disabled={updateMutation.isPending || stateMutation.isPending} className="space-y-5">
             <section className="surface-card p-5 sm:p-6">
-              <SectionHeader icon={<Building2 size={20} />} title="Dados do estabelecimento" description="Informações usadas para identificar e entrar em contato com o estabelecimento." />
+              <EstablishmentSectionHeader icon={<Building2 size={20} />} title="Dados do estabelecimento" description="Informações usadas para identificar e entrar em contato com o estabelecimento." />
               <div className="mt-6 grid gap-5 sm:grid-cols-2">
                 <Field label="Nome do estabelecimento" value={form.name} onChange={(value) => updateField('name', value)} maxLength={150} required className="sm:col-span-2" />
                 <label className="block"><span className="text-sm font-medium text-text-800">CNPJ</span><input value={formatCnpj(establishment.cnpj)} readOnly className="mt-2 w-full rounded-xl border border-background-300 bg-background-100 px-3.5 py-3 text-text-700" /></label>
@@ -104,7 +106,7 @@ function EstablishmentContent({ establishment }: { establishment: Awaited<Return
             </section>
 
             <section className="surface-card p-5 sm:p-6">
-              <SectionHeader icon={<CalendarClock size={20} />} title="Política de agendamento" description="Defina com quanta antecedência os clientes podem reservar um horário." />
+              <EstablishmentSectionHeader icon={<CalendarClock size={20} />} title="Política de agendamento" description="Defina com quanta antecedência os clientes podem reservar um horário." />
               <div className="mt-6 grid gap-5 sm:grid-cols-2">
                 <label className="block"><span className="text-sm font-medium text-text-800">Antecedência mínima</span><div className="relative mt-2"><input type="number" min={0} max={168} required value={form.minimumAdvanceHours} onChange={(event) => setForm((current) => ({ ...current, minimumAdvanceHours: Number(event.target.value) }))} className="w-full rounded-xl border border-background-300 py-3 pl-3.5 pr-16 text-text-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" /><span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-text-600">horas</span></div><span className="mt-2 block text-xs text-text-600">Evita reservas muito próximas do horário atual.</span></label>
                 <label className="block"><span className="text-sm font-medium text-text-800">Antecedência máxima</span><div className="relative mt-2"><input type="number" min={1} max={365} required value={form.maximumAdvanceDays} onChange={(event) => setForm((current) => ({ ...current, maximumAdvanceDays: Number(event.target.value) }))} className="w-full rounded-xl border border-background-300 py-3 pl-3.5 pr-14 text-text-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" /><span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-text-600">dias</span></div><span className="mt-2 block text-xs text-text-600">Limita até quando a agenda fica aberta para reservas.</span></label>
@@ -113,18 +115,22 @@ function EstablishmentContent({ establishment }: { establishment: Awaited<Return
             </section>
 
             <section className="surface-card p-5 sm:p-6">
-              <SectionHeader icon={<CalendarClock size={20} />} title="Horários de funcionamento" description="Defina os horários de cada dia ou marque o estabelecimento como fechado." />
+              <EstablishmentSectionHeader icon={<CalendarClock size={20} />} title="Horários de funcionamento" description="Defina os horários de cada dia ou marque o estabelecimento como fechado." />
               <div className="mt-5 space-y-3">{form.businessHours.map((hour) => <BusinessHourRow key={hour.dayOfWeek} hour={hour} onChange={(changes) => updateBusinessHour(hour.dayOfWeek, changes)} />)}</div>
             </section>
           </fieldset>
 
+          {feedbackPlacement === 'form' && message && <p role="status" className="rounded-xl bg-success-50 px-4 py-3 text-sm text-success-600">{message}</p>}
+          {feedbackPlacement === 'form' && errorMessage && <p role="alert" className="rounded-xl border border-danger-500/30 bg-danger-500/5 px-4 py-3 text-sm text-danger-600">{errorMessage}</p>}
           <div className="surface-card flex justify-end p-4">
-            <button type="submit" disabled={updateMutation.isPending || stateMutation.isPending} className="primary-button disabled:cursor-not-allowed disabled:opacity-60"><Save size={18} /> {updateMutation.isPending ? 'Salvando...' : 'Salvar alterações'}</button>
+            <button type="submit" disabled={updateMutation.isPending || stateMutation.isPending} className="primary-button w-full justify-center disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"><Save size={18} /> {updateMutation.isPending ? 'Salvando...' : 'Salvar alterações'}</button>
           </div>
         </form>
 
         <aside className="surface-card h-fit p-5">
           <h2 className="text-lg font-semibold text-text-900">Informações</h2>
+          {feedbackPlacement === 'state' && message && <p role="status" className="mt-4 rounded-xl bg-success-50 px-4 py-3 text-sm text-success-600">{message}</p>}
+          {feedbackPlacement === 'state' && errorMessage && <p role="alert" className="mt-4 rounded-xl border border-danger-500/30 bg-danger-500/5 px-4 py-3 text-sm text-danger-600">{errorMessage}</p>}
           <dl className="mt-5 space-y-4 text-sm"><Info label="Funcionamento" value="Configuração semanal" icon={<CalendarClock size={16} />} /></dl>
           <div className="mt-6 space-y-6 border-t border-background-300 pt-5">
             <OperationalAction
@@ -156,7 +162,6 @@ function EstablishmentContent({ establishment }: { establishment: Awaited<Return
 
 function Field({ label, value, onChange, type = 'text', maxLength, required = false, className = '' }: { label: string; value: string; onChange: (value: string) => void; type?: string; maxLength?: number; required?: boolean; className?: string }) { return <label className={`block ${className}`}><span className="text-sm font-medium text-text-800">{label}</span><input type={type} value={value} maxLength={maxLength} required={required} onChange={(event) => onChange(event.target.value)} className="mt-2 w-full rounded-xl border border-background-300 px-3.5 py-3 text-text-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 disabled:bg-background-100" /></label> }
 function OperationalAction({ title, description, icon, disabled, onClick }: { title: string; description: string; icon: React.ReactNode; disabled: boolean; onClick: () => void }) { return <div><h3 className="font-semibold text-text-900">{title}</h3><p className="mt-1.5 text-sm leading-6 text-text-600">{description}</p><button type="button" disabled={disabled} onClick={onClick} className="mt-3 inline-flex items-center gap-2 rounded-xl border border-primary-300 px-4 py-2 text-sm font-semibold text-primary-700 hover:bg-primary-50 disabled:cursor-not-allowed disabled:opacity-45">{icon}{title}</button></div> }
-function SectionHeader({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) { return <div><div className="flex items-center gap-2 text-text-600">{icon}<h2 className="text-lg font-semibold text-text-900">{title}</h2></div><p className="mt-1 text-sm text-text-600">{description}</p></div> }
 function BusinessHourRow({ hour, onChange }: { hour: BusinessHour; onChange: (changes: Partial<BusinessHour>) => void }) { const label = WEEK_DAYS.find((day) => day.value === hour.dayOfWeek)?.label ?? hour.dayOfWeek; return <div className="grid items-center gap-3 rounded-xl bg-background-50 p-3 sm:grid-cols-[9rem_auto_1fr_1fr]"><span className="text-sm font-medium text-text-800">{label}</span><label className="flex items-center gap-2 text-sm text-text-600"><input type="checkbox" checked={hour.closed} onChange={(event) => onChange({ closed: event.target.checked, openingTime: event.target.checked ? null : '09:00', closingTime: event.target.checked ? null : '18:00' })} /> Fechado</label><input aria-label={`Abertura de ${label}`} type="time" required={!hour.closed} disabled={hour.closed} value={hour.openingTime?.slice(0, 5) ?? ''} onChange={(event) => onChange({ openingTime: event.target.value })} className="rounded-lg border border-background-300 px-3 py-2 disabled:bg-background-200" /><input aria-label={`Fechamento de ${label}`} type="time" required={!hour.closed} disabled={hour.closed} value={hour.closingTime?.slice(0, 5) ?? ''} onChange={(event) => onChange({ closingTime: event.target.value })} className="rounded-lg border border-background-300 px-3 py-2 disabled:bg-background-200" /></div> }
 function Info({ label, value, icon }: { label: string; value: string; icon?: React.ReactNode }) { return <div><dt className="text-text-600">{label}</dt><dd className="mt-1 flex items-center gap-2 font-semibold text-text-900">{icon}{value}</dd></div> }
 function PageContainer({ children }: { children: React.ReactNode }) { return <div className="page-shell">{children}</div> }

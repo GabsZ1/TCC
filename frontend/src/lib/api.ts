@@ -25,10 +25,13 @@ const PUBLIC_AUTH_PATHS = [
   '/auth/redefinir-senha',
 ]
 
+function isPublicAuthRequest(url?: string) {
+  return PUBLIC_AUTH_PATHS.some((path) => url === path || url?.startsWith(`${path}/`))
+}
+
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem(TOKEN_STORAGE_KEY)
-  const isPublicAuthPath = PUBLIC_AUTH_PATHS.some((path) => config.url?.startsWith(path))
-  if (token && !isPublicAuthPath) {
+  if (token && !isPublicAuthRequest(config.url)) {
     config.headers.Authorization = `Bearer ${token}`
   }
   return config
@@ -37,7 +40,7 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && !isPublicAuthRequest(error.config?.url)) {
       // Uma resposta atrasada de uma sessão anterior não pode apagar um token
       // que tenha sido salvo por um login mais recente.
       const requestAuthorization = error.config?.headers?.Authorization
