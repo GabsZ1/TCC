@@ -3,6 +3,7 @@ import { AtSign, Clock3, MapPin, MessageCircle, Phone, Scissors } from 'lucide-r
 import { useNavigate } from 'react-router-dom'
 import { Modal } from '@/components/ui/Modal'
 import { fetchEstablishmentProfile } from '@/features/appointments/appointmentsApi'
+import { EstablishmentPublicGallery } from '@/features/appointments/EstablishmentPublicGallery'
 import { EmployeeAvatar } from '@/features/employees/components/EmployeeAvatar'
 import { EstablishmentImage } from '@/features/establishment/EstablishmentImage'
 import { getApiErrorMessage } from '@/lib/apiError'
@@ -46,6 +47,8 @@ export function EstablishmentDetailsModal({ establishmentId, establishmentName, 
             <h3 className="text-base font-bold text-white">Quem somos</h3>
             <p className="mt-2 whitespace-pre-line text-sm leading-7 text-primary-50">{profile.aboutUs || 'Este estabelecimento ainda não adicionou uma apresentação.'}</p>
           </section>
+
+          <EstablishmentPublicGallery establishmentId={establishmentId} establishmentName={establishmentName} />
 
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
             <section className="rounded-2xl border border-background-300 p-5">

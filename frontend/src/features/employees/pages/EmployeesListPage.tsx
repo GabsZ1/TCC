@@ -152,6 +152,22 @@ export function EmployeesListPage() {
   const isChangingLifecycle = removeMutation.isPending || deactivateMutation.isPending || reactivateMutation.isPending
   const isSavingForm = createMutation.isPending || updateMutation.isPending
 
+  function employeeActions(employee: Employee, includeDetails = true) {
+    return <div className="flex flex-wrap justify-end gap-1">
+      {includeDetails && <ActionButton label="Detalhes" onClick={() => setDetailsEmployee(employee)}><Eye size={16} /></ActionButton>}
+      <ActionButton label="Serviços" onClick={() => setServicesEmployee(employee)}><Scissors size={16} /></ActionButton>
+      <ActionButton label="Gerenciar agenda" onClick={() => navigate(`/funcionarios/${employee.id}/agenda`)}><UsersRound size={16} /></ActionButton>
+      {!employee.passwordInitialized && <ActionButton label="Reenviar convite" disabled={resendMutation.isPending} onClick={() => resendMutation.mutate(employee.id)}><Copy size={16} /></ActionButton>}
+      <ActionButton label="Editar" onClick={() => { setRemovalMessage(null); setModalState({ mode: 'edit', employee }) }}><Pencil size={16} /></ActionButton>
+      {employee.active ? (
+        <ActionButton label="Desativar" danger disabled={isChangingLifecycle} onClick={() => { setDeleteError(null); setRemovalMessage(null); setEmployeeToDeactivate(employee) }}><Power size={16} /></ActionButton>
+      ) : (
+        <ActionButton label="Reativar" success disabled={isChangingLifecycle} onClick={() => { setDeleteError(null); setRemovalMessage(null); reactivateMutation.mutate(employee.id) }}><RotateCcw size={16} /></ActionButton>
+      )}
+      <ActionButton label="Excluir definitivamente" danger disabled={isChangingLifecycle} onClick={() => { setDeleteError(null); setRemovalMessage(null); setEmployeeToDelete(employee) }}><Trash2 size={16} /></ActionButton>
+    </div>
+  }
+
   return (
     <div className="page-shell">
       <header className="flex flex-col gap-5 border-b border-background-300 pb-7 sm:flex-row sm:items-end sm:justify-between">
@@ -186,7 +202,28 @@ export function EmployeesListPage() {
           <span className="rounded-full bg-background-200 px-2.5 py-1 text-xs font-semibold text-text-600">{sortedEmployees.length} registros</span>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="space-y-3 p-3 sm:hidden">
+          {isLoading && <p className="py-8 text-center text-sm text-text-500">Carregando funcionários...</p>}
+          {isError && !isLoading && <p role="alert" className="py-8 text-center text-sm text-danger-600">{getApiErrorMessage(error, 'Não foi possível carregar os funcionários.')}</p>}
+          {!isLoading && !isError && sortedEmployees.length === 0 && <p className="py-8 text-center text-sm text-text-500">Nenhum funcionário cadastrado ainda.</p>}
+          {!isLoading && !isError && sortedEmployees.map((employee) => <article key={employee.id} className="rounded-xl border border-background-300 bg-background-50 p-4">
+            <div className="flex items-start gap-3">
+              <EmployeeAvatar id={employee.id} name={employee.name} hasPhoto={employee.hasPhoto} />
+              <div className="min-w-0 flex-1">
+                <h3 className="break-words font-semibold text-text-900">{employee.name}</h3>
+                <p className="mt-0.5 break-all text-xs text-text-500">{employee.email}</p>
+              </div>
+              <span className={`status-pill shrink-0 ${employee.active ? 'bg-success-50 text-success-700' : 'bg-background-200 text-text-600'}`}>{employee.active ? 'Ativo' : 'Inativo'}</span>
+            </div>
+            <p className="mt-3 text-sm text-text-600">{employee.occupation || 'Ocupação não informada'}</p>
+            <div className="mt-4 flex items-center justify-between gap-2 border-t border-background-300 pt-3">
+              <button type="button" onClick={() => setDetailsEmployee(employee)} className="secondary-button min-h-11 justify-center"><Eye size={16} /> Detalhes</button>
+              {employeeActions(employee, false)}
+            </div>
+          </article>)}
+        </div>
+
+        <div className="hidden overflow-x-auto sm:block">
           <table className="w-full min-w-[52rem] text-left text-sm">
             <thead className="bg-background-100/75 text-[0.67rem] font-bold uppercase tracking-[0.11em] text-text-500">
               <tr>
@@ -220,19 +257,7 @@ export function EmployeesListPage() {
                     </span>
                   </td>
                   <td className="px-5 py-4">
-                    <div className="flex justify-end gap-1">
-                      <ActionButton label="Detalhes" onClick={() => setDetailsEmployee(employee)}><Eye size={16} /></ActionButton>
-                      <ActionButton label="Serviços" onClick={() => setServicesEmployee(employee)}><Scissors size={16} /></ActionButton>
-                      <ActionButton label="Gerenciar agenda" onClick={() => navigate(`/funcionarios/${employee.id}/agenda`)}><UsersRound size={16} /></ActionButton>
-                      {!employee.passwordInitialized && <ActionButton label="Reenviar convite" disabled={resendMutation.isPending} onClick={() => resendMutation.mutate(employee.id)}><Copy size={16} /></ActionButton>}
-                      <ActionButton label="Editar" onClick={() => { setRemovalMessage(null); setModalState({ mode: 'edit', employee }) }}><Pencil size={16} /></ActionButton>
-                      {employee.active ? (
-                        <ActionButton label="Desativar" danger disabled={isChangingLifecycle} onClick={() => { setDeleteError(null); setRemovalMessage(null); setEmployeeToDeactivate(employee) }}><Power size={16} /></ActionButton>
-                      ) : (
-                        <ActionButton label="Reativar" success disabled={isChangingLifecycle} onClick={() => { setDeleteError(null); setRemovalMessage(null); reactivateMutation.mutate(employee.id) }}><RotateCcw size={16} /></ActionButton>
-                      )}
-                      <ActionButton label="Excluir definitivamente" danger disabled={isChangingLifecycle} onClick={() => { setDeleteError(null); setRemovalMessage(null); setEmployeeToDelete(employee) }}><Trash2 size={16} /></ActionButton>
-                    </div>
+                    {employeeActions(employee)}
                   </td>
                 </tr>
               ))}
@@ -268,7 +293,7 @@ function MiniMetric({ icon, label, value, tone = 'primary', bordered = false }: 
 
 function ActionButton({ label, onClick, children, danger = false, success = false, disabled = false }: { label: string; onClick: () => void; children: React.ReactNode; danger?: boolean; success?: boolean; disabled?: boolean }) {
   const tone = danger ? 'hover:bg-danger-50 hover:text-danger-600' : success ? 'hover:bg-success-50 hover:text-success-700' : 'hover:bg-primary-50 hover:text-primary-700'
-  return <button type="button" disabled={disabled} onClick={onClick} className={`grid size-9 place-items-center rounded-xl text-text-500 ${tone} disabled:cursor-not-allowed disabled:opacity-40`} title={label} aria-label={label}>{children}</button>
+  return <button type="button" disabled={disabled} onClick={onClick} className={`grid size-11 place-items-center rounded-xl text-text-500 sm:size-9 ${tone} disabled:cursor-not-allowed disabled:opacity-40`} title={label} aria-label={label}>{children}</button>
 }
 
 function TableMessage({ children, error = false }: { children: React.ReactNode; error?: boolean }) {

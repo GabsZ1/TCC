@@ -7,6 +7,7 @@ import br.com.salonhub.entity.UserRole;
 import br.com.salonhub.repository.EstablishmentRepository;
 import br.com.salonhub.repository.EstablishmentServiceRepository;
 import br.com.salonhub.repository.EstablishmentProfileRepository;
+import br.com.salonhub.repository.EstablishmentGalleryPhotoRepository;
 import br.com.salonhub.repository.UserRepository;
 import br.com.salonhub.service.TokenService;
 import br.com.salonhub.service.geocoding.Coordinates;
@@ -49,6 +50,7 @@ class EstablishmentProfileControllerIntegrationTests {
     @Autowired private EstablishmentRepository establishmentRepository;
     @Autowired private EstablishmentServiceRepository serviceRepository;
     @Autowired private EstablishmentProfileRepository profileRepository;
+    @Autowired private EstablishmentGalleryPhotoRepository galleryRepository;
     @Autowired private UserRepository userRepository;
     @Autowired private TokenService tokenService;
     @MockitoBean private GeocodingService geocodingService;
@@ -148,6 +150,51 @@ class EstablishmentProfileControllerIntegrationTests {
                 .andExpect(jsonPath("$.postalCode").value("87000000"))
                 .andExpect(jsonPath("$.street").value("Avenida Brasil"))
                 .andExpect(jsonPath("$.locationAvailable").value(true));
+    }
+
+    @Test
+    void galleryEnforcesLimitOrderAndTenantAccess() throws Exception {
+        Establishment establishment = establishmentRepository.saveAndFlush(
+                Establishment.builder().name("Studio Galeria").cnpj("62345678000113").build());
+        Establishment other = establishmentRepository.saveAndFlush(
+                Establishment.builder().name("Outro Studio").cnpj("72345678000104").build());
+        User admin = user("Admin Galeria", "admin-gallery@salonhub.test", UserRole.ADMIN, establishment);
+        User otherAdmin = user("Outro Admin", "other-admin-gallery@salonhub.test", UserRole.ADMIN, other);
+        User client = user("Cliente Galeria", "client-gallery@salonhub.test", UserRole.CLIENT, null);
+        byte[] png = new byte[] {(byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a};
+
+        for (int index = 0; index < 15; index++) {
+            mockMvc.perform(multipart("/api/estabelecimentos/me/perfil/galeria")
+                    .file(new MockMultipartFile("file", "ambiente.png", "image/png", png))
+                    .header("Authorization", bearer(admin))).andExpect(status().isOk());
+        }
+        mockMvc.perform(multipart("/api/estabelecimentos/me/perfil/galeria")
+                .file(new MockMultipartFile("file", "extra.png", "image/png", png))
+                .header("Authorization", bearer(admin))).andExpect(status().isBadRequest());
+        mockMvc.perform(get("/api/estabelecimentos/{id}/perfil/galeria", establishment.getId())
+                .header("Authorization", bearer(client)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(15));
+
+        var saved = galleryRepository.findByEstablishmentIdOrderByDisplayOrderAscIdAsc(establishment.getId());
+        Long first = saved.get(0).getId();
+        Long last = saved.get(14).getId();
+        String reversed = saved.reversed().stream().map(photo -> photo.getId().toString())
+                .collect(java.util.stream.Collectors.joining(",", "{\"photoIds\":[", "]}"));
+        mockMvc.perform(put("/api/estabelecimentos/me/perfil/galeria/ordem")
+                .header("Authorization", bearer(admin)).contentType(MediaType.APPLICATION_JSON).content(reversed))
+                .andExpect(status().isOk()).andExpect(jsonPath("$[0].id").value(last));
+        mockMvc.perform(get("/api/estabelecimentos/{id}/perfil/galeria/{photoId}", establishment.getId(), first)
+                .header("Authorization", bearer(client))).andExpect(status().isOk());
+        mockMvc.perform(delete("/api/estabelecimentos/me/perfil/galeria/{photoId}", first)
+                .header("Authorization", bearer(otherAdmin))).andExpect(status().isNotFound());
+        mockMvc.perform(delete("/api/estabelecimentos/me/perfil/galeria/{photoId}", first)
+                .header("Authorization", bearer(admin))).andExpect(status().isNoContent());
+        mockMvc.perform(multipart("/api/estabelecimentos/me/perfil/galeria")
+                .file(new MockMultipartFile("file", "nova.png", "image/png", png))
+                .header("Authorization", bearer(admin))).andExpect(status().isOk());
+        mockMvc.perform(multipart("/api/estabelecimentos/me/perfil/galeria")
+                .file(new MockMultipartFile("file", "cliente.png", "image/png", png))
+                .header("Authorization", bearer(client))).andExpect(status().isForbidden());
     }
 
     @Test

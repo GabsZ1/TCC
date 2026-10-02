@@ -119,6 +119,8 @@ Para calcular latitude e longitude automaticamente, preencha CEP, rua, número, 
 
 Nos detalhes do perfil público, **Abrir no Google Maps** pesquisa o endereço completo cadastrado em outra aba, sem chave de API. O link usa rua, número, bairro, cidade, UF e CEP, em vez das coordenadas aproximadas do CEP. Confira o endereço cadastrado caso o serviço de mapas sugira outro local.
 
+O administrador pode incluir até 15 fotos JPG, PNG ou WEBP (2 MB por foto) na **Galeria de mídia** do perfil, alterar sua ordem por arrastar ou pelas setas e remover imagens. A galeria aparece nos detalhes públicos do estabelecimento com foto principal, navegação e miniaturas. Os arquivos usam o mesmo armazenamento S3 da logo e da capa; o banco guarda apenas referências e a ordem.
+
 ## 🧪 Qualidade e testes
 
 ```bash
