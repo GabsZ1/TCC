@@ -19,6 +19,19 @@ import java.util.Optional;
 
 public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
 
+    /** Agendamentos ainda sem lembrete que começam entre {@code from} (exclusivo) e {@code until}. */
+    @EntityGraph(attributePaths = {"establishment", "professional", "customer", "customer.user"})
+    @Query("""
+            select a from Appointment a
+            where a.status = :status and a.reminderSentAt is null
+              and a.startsAt > :from and a.startsAt <= :until
+              and a.establishment.active = true
+            order by a.startsAt
+            """)
+    List<Appointment> findPendingReminders(@Param("status") AppointmentStatus status,
+                                           @Param("from") LocalDateTime from,
+                                           @Param("until") LocalDateTime until);
+
     @Query("""
             select appointment.establishment.id
             from Appointment appointment

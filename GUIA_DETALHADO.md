@@ -107,7 +107,23 @@ Na raiz do projeto, inicie o PostgreSQL e o Mailpit (servidor de e-mail de desen
 docker compose up -d
 ```
 
-Todos os e-mails enviados pelo backend (primeiro acesso de funcionário e recuperação de senha) ficam visíveis na caixa de entrada do Mailpit em <http://localhost:8025>. Nenhum e-mail sai para a internet.
+Todos os e-mails enviados pelo backend (primeiro acesso de funcionário, recuperação de senha e avisos de agendamento) ficam visíveis na caixa de entrada do Mailpit em <http://localhost:8025>. Nenhum e-mail sai para a internet.
+
+### Notificações por e-mail
+
+| Situação | Cliente | Profissional |
+| --- | --- | --- |
+| Agendamento criado (online ou de balcão) | confirmação com serviço, profissional, data, duração, valor e endereço | "Novo agendamento" |
+| Remarcação (pelo cliente ou pelo admin) | novo horário e horário anterior | "Agendamento remarcado"; se trocou de profissional, o antigo recebe "Agendamento transferido" e o novo, "Novo agendamento" |
+| Cliente cancela | — | "Agendamento cancelado", com o horário liberado |
+| Estabelecimento cancela | aviso com o motivo | aviso com o motivo |
+| 24 h antes do horário | lembrete | — |
+
+- **Destinatário do cliente:** cliente com conta usa o e-mail da conta e recebe o botão "Ver meus agendamentos"; cliente de balcão usa o e-mail do cadastro e recebe o telefone/WhatsApp do salão para remarcar. Sem e-mail, não recebe nada. Contas desativadas ou excluídas não recebem.
+- **Profissional:** não é avisado do que ele mesmo fez (ex.: agendamento de balcão na própria agenda).
+- **Lembrete:** a tarefa `AppointmentReminderJob` roda a cada 10 min e envia um lembrete por agendamento confirmado que comece nas próximas 24 h (coluna `appointments.reminder_sent_at`, migration V41). Agendamentos marcados com menos de 24 h de antecedência não recebem lembrete, porque o cliente acabou de receber a confirmação. Remarcar para outro horário libera um novo lembrete. A tarefa fica desligada nos testes e no seed (`app.notifications.reminders.enabled=false`).
+- **Envio:** os textos são montados dentro da transação e enviados depois do commit, em segundo plano (`MailDispatcher`); falha no servidor de e-mail não afeta o agendamento. Cada e-mail vai em HTML e em texto puro, com o modelo do `EmailLayout`. O nome do produto nos e-mails vem de `app.mail.brand-name` (variável `MAIL_BRAND_NAME`).
+- **Testes:** `AppointmentNotificationsIntegrationTests` substitui o `MailDispatcher` por um mock e confere destinatários, assuntos e conteúdo de cada situação.
 
 O mesmo comando sobe o **SeaweedFS** (container `salonhub-storage`), o armazenamento de imagens compatível com S3:
 

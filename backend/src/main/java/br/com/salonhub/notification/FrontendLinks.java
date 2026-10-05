@@ -26,6 +26,16 @@ public class FrontendLinks {
         return frontendUrl + "/redefinir-senha?token=" + encode(token);
     }
 
+    /** "Meus agendamentos" do cliente. */
+    public String clientAppointments() {
+        return frontendUrl + "/agendamentos";
+    }
+
+    /** "Minha agenda" do profissional. */
+    public String professionalAgenda() {
+        return frontendUrl + "/minha-agenda";
+    }
+
     private static String encode(String value) {
         return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }

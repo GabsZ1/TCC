@@ -13,6 +13,7 @@ import br.com.salonhub.entity.User;
 import br.com.salonhub.entity.UserRole;
 import br.com.salonhub.exception.ConflictException;
 import br.com.salonhub.exception.ResourceNotFoundException;
+import br.com.salonhub.notification.AppointmentNotifier;
 import org.springframework.security.access.AccessDeniedException;
 import br.com.salonhub.repository.AppointmentRepository;
 import br.com.salonhub.repository.CustomerRepository;
@@ -42,6 +43,7 @@ public class AppointmentCommandService {
     private final UserRepository userRepository;
     private final TenantAuthorizationService tenantAuthorizationService;
     private final ProfessionalAvailabilityService professionalAvailabilityService;
+    private final AppointmentNotifier notifier;
     private final Clock clock;
 
     @Transactional
@@ -59,7 +61,9 @@ public class AppointmentCommandService {
 
         Appointment appointment = Appointment.schedule(establishment, customer, professional, service, startsAt);
         appointment.recordCreation(AppointmentSource.CLIENT_ONLINE, client);
-        return AppointmentResponse.fromEntity(appointmentRepository.save(appointment));
+        Appointment saved = appointmentRepository.save(appointment);
+        notifier.booked(saved, client);
+        return AppointmentResponse.fromEntity(saved);
     }
 
     @Transactional
@@ -85,7 +89,9 @@ public class AppointmentCommandService {
         Appointment appointment = Appointment.schedule(establishment, customer, professional, service, startsAt);
         appointment.recordCreation(administrator.getRole() == UserRole.ADMIN
                 ? AppointmentSource.ADMIN : AppointmentSource.PROFESSIONAL, administrator);
-        return AppointmentResponse.fromEntity(appointmentRepository.save(appointment));
+        Appointment saved = appointmentRepository.save(appointment);
+        notifier.booked(saved, administrator);
+        return AppointmentResponse.fromEntity(saved);
     }
 
     @Transactional
@@ -118,11 +124,13 @@ public class AppointmentCommandService {
         LocalDateTime endsAt = startsAt.plusMinutes(durationMinutes);
         validateSchedule(establishment, professional, appointment.getCustomer(), startsAt, endsAt, appointment.getId(), true);
 
+        AppointmentNotifier.PreviousSchedule before = AppointmentNotifier.PreviousSchedule.of(appointment);
         if (changesService) {
             appointment.update(service, professional, startsAt);
         } else {
             appointment.reschedule(professional, startsAt);
         }
+        notifier.rescheduled(appointment, before, client);
         return AppointmentResponse.fromEntity(appointment);
     }
 
@@ -159,11 +167,13 @@ public class AppointmentCommandService {
         validateSchedule(establishment, professional, appointment.getCustomer(), startsAt,
                 startsAt.plusMinutes(durationMinutes), appointment.getId(), false);
 
+        AppointmentNotifier.PreviousSchedule before = AppointmentNotifier.PreviousSchedule.of(appointment);
         if (changesService) {
             appointment.update(service, professional, startsAt);
         } else {
             appointment.reschedule(professional, startsAt);
         }
+        notifier.rescheduled(appointment, before, administrator);
         return AppointmentResponse.fromEntity(appointment);
     }
 
@@ -177,6 +187,7 @@ public class AppointmentCommandService {
             throw new ConflictException("O agendamento não pode ser cancelado.");
         }
         appointment.cancel(client, LocalDateTime.now(clock));
+        notifier.cancelledByClient(appointment);
         return AppointmentResponse.fromEntity(appointment);
     }
 
@@ -190,6 +201,7 @@ public class AppointmentCommandService {
             throw new ConflictException("Apenas agendamentos confirmados podem ser cancelados.");
         }
         appointment.cancelByAdministrator(reason.trim(), administrator, LocalDateTime.now(clock));
+        notifier.cancelledByEstablishment(appointment, administrator);
         return AppointmentResponse.fromEntity(appointment);
     }
     @Transactional

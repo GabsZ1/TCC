@@ -117,6 +117,10 @@ public class Appointment {
     @JoinColumn(name = "cancelled_by_user_id")
     private User cancelledBy;
 
+    /** Quando o lembrete por e-mail foi enviado (ver AppointmentReminderService); remarcar zera. */
+    @Column(name = "reminder_sent_at")
+    private LocalDateTime reminderSentAt;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
@@ -203,12 +207,18 @@ public class Appointment {
 
     /** Muda horário e/ou profissional mantendo o serviço e os valores combinados (snapshot). */
     public void reschedule(User professional, LocalDateTime startsAt) {
+        if (!startsAt.equals(this.startsAt)) this.reminderSentAt = null;
         this.professional = professional;
         this.startsAt = startsAt;
         this.endsAt = startsAt.plusMinutes(durationMinutes);
     }
 
+    public void markReminderSent(LocalDateTime sentAt) {
+        this.reminderSentAt = sentAt;
+    }
+
     public void update(EstablishmentService service, User professional, LocalDateTime startsAt) {
+        if (!startsAt.equals(this.startsAt)) this.reminderSentAt = null;
         this.service = service;
         snapshotService(service);
         this.professional = professional;

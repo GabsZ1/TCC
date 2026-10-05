@@ -107,6 +107,8 @@ Os padrões locais permitem iniciar o projeto sem criar um `.env`. Para alterar 
 | `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` | Conexão PostgreSQL | `localhost:5433`, `salonhub_user`, `salonhub_pass` |
 | `JWT_SECRET` | Assinatura dos tokens | Consulte a configuração do perfil local |
 | `MAIL_HOST`, `MAIL_PORT`, `MAIL_FROM` | Envio de e-mail | Mailpit em `localhost:1025` |
+| `MAIL_BRAND_NAME` | Nome do produto nos e-mails | `Meu Espaço` |
+| `REMINDERS_ENABLED`, `REMINDERS_INTERVAL_MS` | Lembrete por e-mail 24 h antes do agendamento ([detalhes](GUIA_DETALHADO.md#notificações-por-e-mail)) | Ligado, verificado a cada 10 min |
 | `FRONTEND_URL` | Links enviados por e-mail | `http://localhost:5173` |
 | `STORAGE_TYPE`, `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET` | Armazenamento de imagens | SeaweedFS em `localhost:8333` |
 | `SYSTEM_ADMIN_NAME`, `SYSTEM_ADMIN_EMAIL`, `SYSTEM_ADMIN_PASSWORD` | Criação inicial do administrador da plataforma | Não definido |
