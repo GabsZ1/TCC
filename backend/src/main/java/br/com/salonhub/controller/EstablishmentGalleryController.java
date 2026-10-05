@@ -1,5 +1,8 @@
 package br.com.salonhub.controller;
 
+import br.com.salonhub.security.AccessRules;
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import br.com.salonhub.dto.establishment.GalleryPhotoResponse;
 import br.com.salonhub.dto.establishment.GalleryReorderRequest;
 import br.com.salonhub.service.EstablishmentGalleryService;
@@ -14,17 +17,20 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
+@PreAuthorize(AccessRules.ADMIN)
 @RestController
 @RequestMapping("/api/estabelecimentos")
 @RequiredArgsConstructor
 public class EstablishmentGalleryController {
     private final EstablishmentGalleryService gallery;
 
+    @PreAuthorize(AccessRules.AUTHENTICATED)
     @GetMapping("/{establishmentId}/perfil/galeria")
     public List<GalleryPhotoResponse> publicPhotos(@PathVariable Long establishmentId) {
         return gallery.findPublic(establishmentId);
     }
 
+    @PreAuthorize(AccessRules.AUTHENTICATED)
     @GetMapping("/{establishmentId}/perfil/galeria/{photoId}")
     public ResponseEntity<byte[]> publicImage(@PathVariable Long establishmentId, @PathVariable Long photoId) {
         var image = gallery.findPublicImage(establishmentId, photoId);

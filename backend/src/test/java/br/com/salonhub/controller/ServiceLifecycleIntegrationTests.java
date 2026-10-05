@@ -1,5 +1,6 @@
 package br.com.salonhub.controller;
 
+import br.com.salonhub.support.TestJwt;
 import br.com.salonhub.entity.*;
 import br.com.salonhub.repository.*;
 import com.jayway.jsonpath.JsonPath;
@@ -20,7 +21,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -239,7 +239,7 @@ class ServiceLifecycleIntegrationTests {
     }
 
     private RequestPostProcessor as(User user) {
-        return jwt().jwt(token -> token.subject(user.getId().toString()));
+        return TestJwt.as(user);
     }
 
     private long create(User user, String name) throws Exception {

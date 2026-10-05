@@ -251,6 +251,25 @@ Com o backend executando:
 
 As rotas do Swagger, cadastro e login são públicas. As demais rotas exigem autenticação.
 
+### Autorização por perfil
+
+A autorização tem duas camadas:
+
+1. **Perfil no endpoint:** o claim `role` do JWT vira a authority `ROLE_<perfil>` e cada endpoint declara quem pode usá-lo com `@PreAuthorize`, usando as regras de `security/AccessRules`. Um perfil sem acesso recebe `403` com a mensagem "Seu perfil não tem permissão para acessar este recurso.", antes de qualquer regra de negócio rodar.
+2. **Usuário e estabelecimento nos services:** o `TenantAuthorizationService` confere no banco se o usuário continua ativo, o perfil e se os dados pertencem ao estabelecimento dele (nenhum ID enviado pelo front atravessa estabelecimentos).
+
+| Perfil | Rotas |
+| --- | --- |
+| Público | cadastro de estabelecimento e de cliente, login, primeiro acesso, recuperação e redefinição de senha |
+| Qualquer perfil logado | sessão (`/api/auth/me`, `/renovar`, `/senha`), lista e busca por proximidade de estabelecimentos, perfil público, galeria, logo/capa e catálogo de serviços e profissionais |
+| `CLIENT` | agendar, remarcar e cancelar os próprios agendamentos, consultar horários livres, "Meus agendamentos" e "Meu perfil" (`/api/clientes/me`) |
+| `PROFESSIONAL` | própria agenda, horários e bloqueios (`/api/profissionais/me/...`), atendimentos realizados, próprio perfil, foto e serviços (`/api/funcionarios/me/...`) |
+| `ADMIN` ou `PROFESSIONAL` | clientes do estabelecimento (listar, cadastrar, editar, histórico), agendamento de balcão, concluir, marcar falta, pendentes de fechamento e foto de funcionário |
+| `ADMIN` | equipe, serviços, estabelecimento, perfil público, galeria, fechamentos, agenda da equipe e de cada profissional, cancelamento administrativo, remarcação, invalidação, mesclagem de clientes, dashboard e relatórios |
+| `SYSTEM_ADMIN` | gestão de estabelecimentos da plataforma (`/api/admin-sistema/...`) |
+
+O `EndpointAccessRulesTests` falha se algum endpoint for criado sem `@PreAuthorize`. Nos testes com `MockMvc`, use `support/TestJwt.as(usuario)` para autenticar com o perfil do usuário.
+
 ## Autenticação
 
 Login:

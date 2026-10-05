@@ -1,5 +1,8 @@
 package br.com.salonhub.controller;
 
+import br.com.salonhub.security.AccessRules;
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import br.com.salonhub.dto.professionalagenda.*;
 import br.com.salonhub.service.professionalagenda.ProfessionalAgendaService;
 import jakarta.validation.Valid;
@@ -14,6 +17,7 @@ import java.time.LocalDateTime;
 import java.time.Clock;
 import java.util.List;
 
+@PreAuthorize(AccessRules.PROFESSIONAL)
 @RestController
 @RequestMapping("/api/profissionais/me/agenda")
 @RequiredArgsConstructor

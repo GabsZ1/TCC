@@ -1,5 +1,8 @@
 package br.com.salonhub.controller;
 
+import br.com.salonhub.security.AccessRules;
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import br.com.salonhub.dto.employee.EmployeeCreateRequest;
 import br.com.salonhub.dto.employee.EmployeeCreationResponse;
 import br.com.salonhub.dto.employee.EmployeeRemovalResponse;
@@ -23,6 +26,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
+@PreAuthorize(AccessRules.ADMIN)
 @RestController
 @RequestMapping("/api/funcionarios")
 @RequiredArgsConstructor
@@ -62,6 +66,7 @@ public class EmployeeController {
         return employeeService.updateServices(currentUserId(jwt), id, request);
     }
 
+    @PreAuthorize(AccessRules.PROFESSIONAL)
     @GetMapping("/me/servicos")
     public ProfessionalServicesResponse findMyServices(@AuthenticationPrincipal Jwt jwt) {
         return employeeService.findMyServices(currentUserId(jwt));
@@ -95,11 +100,13 @@ public class EmployeeController {
     }
 
     /** Perfil do próprio funcionário (PROFISSIONAL). */
+    @PreAuthorize(AccessRules.PROFESSIONAL)
     @GetMapping("/me/perfil")
     public EmployeeResponse findMyProfile(@AuthenticationPrincipal Jwt jwt) {
         return employeeService.findMyProfile(currentUserId(jwt));
     }
 
+    @PreAuthorize(AccessRules.PROFESSIONAL)
     @PutMapping("/me/perfil")
     public EmployeeResponse updateMyProfile(
             @AuthenticationPrincipal Jwt jwt,
@@ -108,12 +115,14 @@ public class EmployeeController {
     }
 
     /** Foto: só o próprio funcionário envia (multipart, campo "file") ou remove. */
+    @PreAuthorize(AccessRules.PROFESSIONAL)
     @PutMapping(value = "/me/foto", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void uploadMyPhoto(@AuthenticationPrincipal Jwt jwt, @RequestPart("file") MultipartFile file) {
         employeePhotoService.uploadOwn(currentUserId(jwt), file);
     }
 
+    @PreAuthorize(AccessRules.PROFESSIONAL)
     @DeleteMapping("/me/foto")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteMyPhoto(@AuthenticationPrincipal Jwt jwt) {
@@ -121,6 +130,7 @@ public class EmployeeController {
     }
 
     /** Administrador do estabelecimento ou o próprio profissional. */
+    @PreAuthorize(AccessRules.ESTABLISHMENT_STAFF)
     @GetMapping("/{id}/foto")
     public ResponseEntity<byte[]> findPhoto(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
         EmployeePhotoService.StoredPhoto photo = employeePhotoService.find(currentUserId(jwt), id);

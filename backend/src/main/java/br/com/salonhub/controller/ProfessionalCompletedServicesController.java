@@ -1,5 +1,8 @@
 package br.com.salonhub.controller;
 
+import br.com.salonhub.security.AccessRules;
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import br.com.salonhub.dto.professionalearnings.ProfessionalCompletedServicesResponse;
 import br.com.salonhub.service.professionalagenda.ProfessionalCompletedServicesService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -16,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 
+@PreAuthorize(AccessRules.PROFESSIONAL)
 @RestController
 @RequestMapping("/api/profissionais/me/atendimentos-realizados")
 @Tag(name = "Profissional", description = "Consultas do próprio profissional autenticado")

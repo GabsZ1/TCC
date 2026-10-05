@@ -1,5 +1,8 @@
 package br.com.salonhub.controller;
 
+import br.com.salonhub.security.AccessRules;
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import br.com.salonhub.dto.establishment.EstablishmentProfileRequest;
 import br.com.salonhub.dto.establishment.EstablishmentProfileResponse;
 import br.com.salonhub.service.EstablishmentProfileService;
@@ -14,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@PreAuthorize(AccessRules.ADMIN)
 @RestController
 @RequestMapping("/api/estabelecimentos")
 @RequiredArgsConstructor
@@ -21,6 +25,7 @@ public class EstablishmentProfileController {
 
     private final EstablishmentProfileService profileService;
 
+    @PreAuthorize(AccessRules.AUTHENTICATED)
     @GetMapping("/{establishmentId}/perfil")
     public EstablishmentProfileResponse findPublic(@PathVariable Long establishmentId) {
         return profileService.findPublic(establishmentId);

@@ -1,5 +1,8 @@
 package br.com.salonhub.controller;
 
+import br.com.salonhub.security.AccessRules;
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import br.com.salonhub.service.EstablishmentImageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -9,6 +12,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+@PreAuthorize(AccessRules.ADMIN)
 @RestController
 @RequestMapping("/api/estabelecimentos")
 @RequiredArgsConstructor
@@ -34,6 +38,7 @@ public class EstablishmentImageController {
         return ResponseEntity.ok().contentType(MediaType.parseMediaType(image.contentType())).body(image.data());
     }
 
+    @PreAuthorize(AccessRules.AUTHENTICATED)
     @GetMapping("/{establishmentId}/perfil/imagens/{kind}")
     public ResponseEntity<byte[]> publicImage(@PathVariable Long establishmentId, @PathVariable String kind) {
         var image = images.findPublic(establishmentId, kind);

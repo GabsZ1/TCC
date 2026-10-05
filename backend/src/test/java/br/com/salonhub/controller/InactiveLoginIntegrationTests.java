@@ -1,5 +1,6 @@
 package br.com.salonhub.controller;
 
+import br.com.salonhub.support.TestJwt;
 import br.com.salonhub.entity.Establishment;
 import br.com.salonhub.entity.User;
 import br.com.salonhub.entity.UserRole;
@@ -17,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -41,7 +41,7 @@ class InactiveLoginIntegrationTests {
         Fixture fixture = fixture();
 
         mockMvc.perform(patch("/api/funcionarios/{id}/desativacao", fixture.professional().getId())
-                        .with(jwt().jwt(token -> token.subject(fixture.administrator().getId().toString()))))
+                        .with(TestJwt.as(fixture.administrator())))
                 .andExpect(status().isOk());
 
         login(fixture.professional().getEmail(), PASSWORD)
@@ -56,13 +56,12 @@ class InactiveLoginIntegrationTests {
     @Test
     void shouldLetTheEmployeeLoginAgainAfterReactivation() throws Exception {
         Fixture fixture = fixture();
-        String adminId = fixture.administrator().getId().toString();
 
         mockMvc.perform(patch("/api/funcionarios/{id}/desativacao", fixture.professional().getId())
-                        .with(jwt().jwt(token -> token.subject(adminId))))
+                        .with(TestJwt.as(fixture.administrator())))
                 .andExpect(status().isOk());
         mockMvc.perform(patch("/api/funcionarios/{id}/ativacao", fixture.professional().getId())
-                        .with(jwt().jwt(token -> token.subject(adminId))))
+                        .with(TestJwt.as(fixture.administrator())))
                 .andExpect(status().isOk());
 
         login(fixture.professional().getEmail(), PASSWORD).andExpect(status().isOk());

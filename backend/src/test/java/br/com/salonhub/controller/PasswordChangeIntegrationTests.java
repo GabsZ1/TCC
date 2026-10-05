@@ -1,5 +1,6 @@
 package br.com.salonhub.controller;
 
+import br.com.salonhub.support.TestJwt;
 import br.com.salonhub.entity.Establishment;
 import br.com.salonhub.entity.User;
 import br.com.salonhub.entity.UserRole;
@@ -18,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -154,7 +154,7 @@ class PasswordChangeIntegrationTests {
 
     private ResultActions changePassword(User user, String current, String next, String confirmation) throws Exception {
         return mockMvc.perform(patch("/api/auth/senha")
-                .with(jwt().jwt(token -> token.subject(user.getId().toString())))
+                .with(TestJwt.as(user))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body(current, next, confirmation)));
     }

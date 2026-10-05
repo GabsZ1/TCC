@@ -1,5 +1,8 @@
 package br.com.salonhub.controller;
 
+import br.com.salonhub.security.AccessRules;
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import br.com.salonhub.dto.commission.CommissionReportResponse;
 import br.com.salonhub.dto.dashboard.DashboardSummaryResponse;
 import br.com.salonhub.dto.establishment.EstablishmentResponse;
@@ -33,6 +36,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+@PreAuthorize(AccessRules.ADMIN)
 @RestController
 @RequestMapping("/api/estabelecimentos/me")
 @RequiredArgsConstructor

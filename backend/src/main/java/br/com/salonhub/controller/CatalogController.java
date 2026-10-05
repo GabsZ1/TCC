@@ -1,5 +1,8 @@
 package br.com.salonhub.controller;
 
+import br.com.salonhub.security.AccessRules;
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import br.com.salonhub.dto.catalog.CatalogProfessionalResponse;
 import br.com.salonhub.dto.catalog.CatalogServiceResponse;
 import br.com.salonhub.service.CatalogService;
@@ -16,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
+@PreAuthorize(AccessRules.AUTHENTICATED)
 @RestController
 @RequestMapping("/api/estabelecimentos/{establishmentId}/catalogo")
 @RequiredArgsConstructor

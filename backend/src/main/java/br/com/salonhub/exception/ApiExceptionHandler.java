@@ -18,6 +18,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -91,6 +92,13 @@ public class ApiExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
                 new ApiError(401, exception.getMessage(), Map.of(), OffsetDateTime.now())
         );
+    }
+
+    /** Recusa do @PreAuthorize (perfil sem acesso ao endpoint): a mensagem padrão do Spring é em inglês. */
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    public ResponseEntity<ApiError> handleAuthorizationDenied(AuthorizationDeniedException exception) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ApiError(
+                403, "Seu perfil não tem permissão para acessar este recurso.", Map.of(), OffsetDateTime.now()));
     }
 
     @ExceptionHandler(AccessDeniedException.class)

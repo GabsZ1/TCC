@@ -1,5 +1,8 @@
 package br.com.salonhub.controller;
 
+import br.com.salonhub.security.AccessRules;
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import br.com.salonhub.dto.auth.InitialRegistrationRequest;
 import br.com.salonhub.dto.auth.InitialRegistrationResponse;
 import br.com.salonhub.dto.auth.LoginRequest;
@@ -35,6 +38,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+@PreAuthorize(AccessRules.AUTHENTICATED)
 @RestController
 @RequestMapping("/api/auth")
 @Tag(name = "Autenticação", description = "Cadastro, login e sessão do usuário")
@@ -46,6 +50,7 @@ public class AuthController {
     private final PasswordRecoveryService passwordRecoveryService;
     private final AuthenticationRateLimiter rateLimiter;
 
+    @PreAuthorize(AccessRules.PUBLIC)
     @PostMapping("/cadastro")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(
@@ -63,6 +68,7 @@ public class AuthController {
         return registrationService.registerEstablishment(request);
     }
 
+    @PreAuthorize(AccessRules.PUBLIC)
     @PostMapping("/clientes")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Cadastrar cliente", description = "Cria uma conta de cliente independente de estabelecimento.")
@@ -77,6 +83,7 @@ public class AuthController {
         return registrationService.registerClient(request);
     }
 
+    @PreAuthorize(AccessRules.PUBLIC)
     @PostMapping("/login")
     @Operation(summary = "Entrar", description = "Autentica com e-mail e senha e devolve um JWT.")
     @ApiResponse(responseCode = "200", description = "Login realizado")
@@ -87,6 +94,7 @@ public class AuthController {
         return authenticationService.authenticate(request, httpRequest.getRemoteAddr());
     }
 
+    @PreAuthorize(AccessRules.PUBLIC)
     @PostMapping("/primeiro-acesso")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Definir senha no primeiro acesso")
@@ -97,6 +105,7 @@ public class AuthController {
         authenticationService.completeFirstAccess(request);
     }
 
+    @PreAuthorize(AccessRules.PUBLIC)
     @PostMapping("/recuperar-senha")
     @ResponseStatus(HttpStatus.ACCEPTED)
     @Operation(summary = "Solicitar recuperação de senha", description = "Envia por e-mail um link de redefinição, único e temporário.")
@@ -110,6 +119,7 @@ public class AuthController {
         return passwordRecoveryService.requestReset(request);
     }
 
+    @PreAuthorize(AccessRules.PUBLIC)
     @GetMapping("/redefinir-senha")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Validar link de redefinição", description = "Informa se o link ainda pode ser usado.")
@@ -120,6 +130,7 @@ public class AuthController {
         passwordRecoveryService.validateToken(token);
     }
 
+    @PreAuthorize(AccessRules.PUBLIC)
     @PostMapping("/redefinir-senha")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Redefinir senha", description = "Define uma nova senha usando o link recebido por e-mail.")
