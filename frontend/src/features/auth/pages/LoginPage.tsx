@@ -1,16 +1,19 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from 'lucide-react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import axios from 'axios'
 import { AuthShell } from '@/features/auth/components/AuthShell'
 import { useAuth } from '@/hooks/useAuth'
 import { getApiErrorMessage } from '@/lib/apiError'
 import { postLoginPath } from '@/features/auth/postLoginPath'
+import { REDIRECT_PARAM, SESSION_ENDED_PARAM, SESSION_ENDED_VALUE } from '@/lib/session'
 
 export function LoginPage() {
   const { login } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const [searchParams] = useSearchParams()
+  const sessionEnded = searchParams.get(SESSION_ENDED_PARAM) === SESSION_ENDED_VALUE
   const emailRef = useRef<HTMLInputElement>(null)
 
   const [email, setEmail] = useState('')
@@ -31,6 +34,8 @@ export function LoginPage() {
     try {
       const user = await login({ email, password })
       const requestedPath = (location.state as { from?: Location })?.from?.pathname
+        ?? searchParams.get(REDIRECT_PARAM)
+        ?? undefined
       navigate(postLoginPath(user.role, requestedPath), { replace: true })
     } catch (err) {
       setError(axios.isAxiosError(err) && err.response?.status === 401
@@ -48,6 +53,11 @@ export function LoginPage() {
       subtitle="Acesse o painel do seu estabelecimento, sua agenda profissional ou seus agendamentos como cliente."
       maxWidth="sm"
     >
+      {sessionEnded && !(location.state as { message?: string } | null)?.message && (
+        <p role="status" className="mb-5 rounded-xl border border-warning-500/20 bg-warning-50 px-4 py-3 text-sm font-medium text-warning-700">
+          Sua sessão expirou ou foi encerrada. Entre novamente para continuar de onde parou.
+        </p>
+      )}
       {(location.state as { message?: string } | null)?.message && (
         <p className="mb-5 rounded-xl border border-success-500/20 bg-success-50 px-4 py-3 text-sm font-medium text-success-700">
           {(location.state as { message: string }).message}

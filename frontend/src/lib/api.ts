@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { loginPathAfterSessionEnded } from '@/lib/session'
 
 /**
  * Cliente HTTP central da aplicação.
@@ -50,7 +51,9 @@ api.interceptors.response.use(
       if (!currentAuthorization || requestAuthorization === currentAuthorization) {
         localStorage.removeItem(TOKEN_STORAGE_KEY)
         if (window.location.pathname !== '/login') {
-          window.location.href = '/login'
+          // Sessão expirada ou encerrada (ex.: senha trocada em outro dispositivo):
+          // depois do login, o usuário volta para a página em que estava.
+          window.location.href = loginPathAfterSessionEnded(window.location.pathname)
         }
       }
     }

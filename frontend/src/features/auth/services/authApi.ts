@@ -1,5 +1,5 @@
 import { api } from '@/lib/api'
-import type { AuthenticatedUser } from '@/types/auth'
+import type { AuthenticatedUser, LoginResponse } from '@/types/auth'
 
 export interface InitialRegistrationInput {
   ownerName: string
@@ -45,8 +45,9 @@ export interface PasswordChangeInput {
   newPasswordConfirmation: string
 }
 
+/** Troca a senha; a resposta traz um token novo, porque a troca encerra todas as sessões. */
 export function changePassword(input: PasswordChangeInput) {
-  return api.patch<void>('/auth/senha', input)
+  return api.patch<LoginResponse>('/auth/senha', input).then((res) => res.data)
 }
 
 export interface PasswordRecoveryResponse {

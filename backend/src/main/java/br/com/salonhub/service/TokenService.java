@@ -1,6 +1,7 @@
 package br.com.salonhub.service;
 
 import br.com.salonhub.entity.User;
+import br.com.salonhub.security.SessionVersionValidator;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
@@ -50,7 +51,8 @@ public class TokenService {
                 .subject(user.getId().toString())
                 .claim("userId", user.getId())
                 .claim("role", user.getRole().name())
-                .claim("email", user.getEmail());
+                .claim("email", user.getEmail())
+                .claim(SessionVersionValidator.CLAIM, user.getSessionVersion());
 
         if (user.getEstablishment() != null) {
             claimsBuilder.claim("establishmentId", user.getEstablishment().getId());

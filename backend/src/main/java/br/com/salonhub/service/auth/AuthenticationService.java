@@ -51,12 +51,7 @@ public class AuthenticationService {
         }
         requireEstablishmentLoginAllowed(user);
 
-        TokenService.GeneratedToken token = tokenService.generate(user);
-        return new LoginResponse(
-                token.value(),
-                "Bearer",
-                token.expiresAt(),
-                AuthenticatedUserResponse.fromEntity(user));
+        return issueSession(user);
     }
 
     @Transactional
@@ -80,9 +75,12 @@ public class AuthenticationService {
      * US 2.19 — o próprio usuário autenticado troca a senha informando a atual.
      * Erros de validação respondem 400 (e não 401) para que o front não
      * interprete uma senha atual errada como sessão expirada.
+     * <p>
+     * A troca encerra todas as sessões abertas (inclusive em outros dispositivos) e devolve um
+     * token novo, para que o usuário continue conectado no dispositivo em que trocou a senha.
      */
     @Transactional
-    public void changePassword(Long userId, PasswordChangeRequest request) {
+    public LoginResponse changePassword(Long userId, PasswordChangeRequest request) {
         User user = userRepository.findByIdForUpdate(userId)
                 .filter(User::isActive)
                 .orElseThrow(() -> new UnauthorizedException("Usuário inválido ou inativo"));
@@ -99,6 +97,21 @@ public class AuthenticationService {
         }
 
         user.changePassword(passwordEncoder.encode(request.newPassword()));
+        return issueSession(user);
+    }
+
+    /**
+     * Renova o token de uma sessão ainda válida, para quem está usando o sistema não ser
+     * desconectado quando o token expira. A sessão continua sendo encerrada pelo front após
+     * 30 min de inatividade e por troca ou redefinição de senha.
+     */
+    @Transactional(readOnly = true)
+    public LoginResponse renewSession(Long userId) {
+        User user = userRepository.findById(userId)
+                .filter(User::isActive)
+                .orElseThrow(() -> new UnauthorizedException("Usuário inválido ou inativo"));
+        requireEstablishmentLoginAllowed(user);
+        return issueSession(user);
     }
 
     @Transactional(readOnly = true)
@@ -108,6 +121,15 @@ public class AuthenticationService {
                 .orElseThrow(() -> new UnauthorizedException("Usuário inválido ou inativo"));
         requireEstablishmentLoginAllowed(user);
         return AuthenticatedUserResponse.fromEntity(user);
+    }
+
+    private LoginResponse issueSession(User user) {
+        TokenService.GeneratedToken token = tokenService.generate(user);
+        return new LoginResponse(
+                token.value(),
+                "Bearer",
+                token.expiresAt(),
+                AuthenticatedUserResponse.fromEntity(user));
     }
 
     private void requireEstablishmentLoginAllowed(User user) {

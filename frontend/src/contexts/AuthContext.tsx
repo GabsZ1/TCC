@@ -3,15 +3,19 @@ import { useQueryClient } from '@tanstack/react-query'
 import { api, clearStoredToken, getStoredToken, setStoredToken } from '@/lib/api'
 import type { AuthenticatedUser, LoginCredentials, LoginResponse } from '@/types/auth'
 import { AuthContext } from '@/contexts/authStore'
+import { shouldRenewToken } from '@/lib/session'
 
 // RNF.05.01 (User Story Logout): expira a sessão após 30 min de inatividade.
 const INACTIVITY_LIMIT_MS = 30 * 60 * 1000
+// Intervalo mínimo entre tentativas de renovar o token (evita repetir em caso de falha de rede).
+const RENEW_RETRY_MS = 60 * 1000
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
   const [user, setUser] = useState<AuthenticatedUser | null>(null)
   const [isLoading, setIsLoading] = useState(() => !!getStoredToken())
   const sessionRequestRef = useRef<AbortController | null>(null)
+  const lastRenewAttemptRef = useRef(0)
 
   const logout = useCallback(() => {
     sessionRequestRef.current?.abort()
@@ -32,6 +36,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false)
     return data.user
   }, [queryClient])
+
+  // Quem está usando o sistema não é desconectado quando o token expira: perto do fim da
+  // validade, qualquer atividade renova o token. Inatividade continua encerrando a sessão.
+  const renewSessionIfNeeded = useCallback(() => {
+    const token = getStoredToken()
+    const now = Date.now()
+    if (!token || !shouldRenewToken(token, now) || now - lastRenewAttemptRef.current < RENEW_RETRY_MS) return
+    lastRenewAttemptRef.current = now
+    api
+      .post<LoginResponse>('/auth/renovar')
+      .then(({ data }) => {
+        if (getStoredToken() === token) setStoredToken(data.token)
+      })
+      .catch(() => {
+        // 401 já é tratado pelo interceptor do api.ts; outros erros: nova tentativa na próxima atividade.
+      })
+  }, [])
 
   const refreshUser = useCallback(async () => {
     const token = getStoredToken()
@@ -71,6 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const resetTimer = () => {
       clearTimeout(timeoutId)
       timeoutId = setTimeout(logout, INACTIVITY_LIMIT_MS)
+      renewSessionIfNeeded()
     }
 
     const activityEvents = ['mousedown', 'keydown', 'scroll', 'touchstart']
@@ -81,7 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearTimeout(timeoutId)
       activityEvents.forEach((event) => window.removeEventListener(event, resetTimer))
     }
-  }, [user, logout])
+  }, [user, logout, renewSessionIfNeeded])
 
   const value = useMemo(
     () => ({ user, isAuthenticated: !!user, isLoading, login, logout, refreshUser }),

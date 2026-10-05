@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query'
 import { CheckCircle2, KeyRound, ShieldCheck } from 'lucide-react'
 import { changePassword } from '@/features/auth/services/authApi'
 import { getApiErrorMessage } from '@/lib/apiError'
+import { setStoredToken } from '@/lib/api'
 import { CriterionItem, PasswordField } from '@/features/auth/components/PasswordFields'
 import {
   PASSWORD_MAX_LENGTH as MAX_LENGTH,
@@ -24,8 +25,10 @@ export function ChangePasswordPage() {
 
   const mutation = useMutation({
     mutationFn: changePassword,
-    onSuccess: () => {
-      setSuccessMessage('Senha alterada com sucesso')
+    onSuccess: (session) => {
+      // A troca encerra todas as sessões; este dispositivo continua com o token novo.
+      setStoredToken(session.token)
+      setSuccessMessage('Senha alterada com sucesso. Por segurança, você foi desconectado dos outros dispositivos.')
       setCurrentPassword('')
       setNewPassword('')
       setConfirmation('')

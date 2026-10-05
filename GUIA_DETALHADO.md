@@ -316,7 +316,15 @@ Content-Type: application/json
 }
 ```
 
-Respostas: `204` senha alterada; `400` senha atual incorreta, confirmação divergente, nova senha igual à atual ou fora da política (8 a 72 caracteres); `401` sessão inválida ou usuário inativo. No frontend, a tela fica em `/alterar-senha`, no grupo "Conta" do menu.
+Respostas: `200` senha alterada, com um token novo no mesmo formato do login (a troca encerra todas as sessões, ver abaixo); `400` senha atual incorreta, confirmação divergente, nova senha igual à atual ou fora da política (8 a 72 caracteres); `401` sessão inválida ou usuário inativo. No frontend, a tela fica em `/alterar-senha`, no grupo "Conta" do menu.
+
+### Encerramento e renovação de sessão
+
+- **Versão da sessão:** a coluna `users.session_version` (migration V40) vai no JWT (claim `sessionVersion`) e é conferida a cada requisição pelo `SessionVersionValidator`. Trocar a senha, redefinir a senha pelo link do e-mail e excluir a conta incrementam a versão: todos os tokens emitidos antes passam a receber `401`, em qualquer dispositivo.
+- **Troca de senha:** o dispositivo em que a senha foi trocada recebe um token novo na resposta e continua conectado; os outros voltam para o login.
+- **Tokens antigos:** tokens emitidos antes desta regra (sem o claim) valem enquanto a versão do usuário for 0 e expiram normalmente.
+- **Renovação:** `POST /api/auth/renovar` (autenticado) devolve um token novo no formato do login, sem pedir a senha. O frontend chama essa rota quando faltam 30 minutos ou menos para o token expirar e o usuário está ativo; quem fica 30 minutos sem usar o sistema continua sendo desconectado.
+- **Volta para a página:** quando a API recusa a sessão, o frontend leva para `/login?sessao=encerrada&redirect=<página>`, mostra o aviso "Sua sessão expirou ou foi encerrada" e, depois do login, volta para a página em que o usuário estava (se o perfil tiver acesso a ela).
 
 Recuperação de senha (rotas públicas, US 2.20):
 
@@ -542,6 +550,6 @@ Cada feature reúne suas próprias `pages`, `components`, `services` (chamadas �
 
 ### Autenticação no frontend
 
-O `AuthContext` mantém o usuário autenticado em memória, chamando `POST /api/auth/login` e `GET /api/auth/me` do backend. O token JWT recebido é salvo no `localStorage` e enviado automaticamente no cabeçalho `Authorization` de toda requisição pelo interceptor do Axios. Uma resposta `401` limpa o token e redireciona para `/login`; a sessão também expira automaticamente após 30 minutos de inatividade do usuário.
+O `AuthContext` mantém o usuário autenticado em memória, chamando `POST /api/auth/login` e `GET /api/auth/me` do backend. O token JWT recebido é salvo no `localStorage` e enviado automaticamente no cabeçalho `Authorization` de toda requisição pelo interceptor do Axios. Uma resposta `401` limpa o token e redireciona para `/login`, guardando a página atual para voltar depois do login; a sessão também expira automaticamente após 30 minutos de inatividade do usuário, e o token é renovado enquanto o usuário está ativo (ver "Encerramento e renovação de sessão").
 
 O acesso às rotas é restrito por perfil (`ADMIN` ou `PROFESSIONAL`) por meio do componente `ProtectedRoute`, refletindo as mesmas regras de autorização já aplicadas no backend.

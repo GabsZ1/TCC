@@ -45,7 +45,9 @@ class PasswordChangeIntegrationTests {
         User administrator = createUser(UserRole.ADMIN);
 
         changePassword(administrator, CURRENT_PASSWORD, NEW_PASSWORD, NEW_PASSWORD)
-                .andExpect(status().isNoContent());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").isNotEmpty())
+                .andExpect(jsonPath("$.user.id").value(administrator.getId()));
 
         userRepository.flush();
         login(administrator.getEmail(), CURRENT_PASSWORD)
@@ -61,9 +63,9 @@ class PasswordChangeIntegrationTests {
         User client = createUser(UserRole.CLIENT);
 
         changePassword(professional, CURRENT_PASSWORD, NEW_PASSWORD, NEW_PASSWORD)
-                .andExpect(status().isNoContent());
+                .andExpect(status().isOk());
         changePassword(client, CURRENT_PASSWORD, NEW_PASSWORD, NEW_PASSWORD)
-                .andExpect(status().isNoContent());
+                .andExpect(status().isOk());
 
         userRepository.flush();
         assertPassword(professional, NEW_PASSWORD);

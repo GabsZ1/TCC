@@ -75,6 +75,11 @@ public class User {
 
     public void renewFirstAccess() { this.firstAccessVersion++; }
 
+    /** Vai no JWT; incrementar encerra todas as sessões abertas (ver SessionVersionValidator). */
+    @Column(name = "session_version", nullable = false)
+    @Builder.Default
+    private int sessionVersion = 0;
+
     @Column(name = "password_initialized", nullable = false)
     @Builder.Default
     private boolean passwordInitialized = true;
@@ -110,8 +115,14 @@ public class User {
         this.passwordInitialized = true;
     }
 
+    /** Troca a senha e encerra todas as sessões abertas com a senha antiga. */
     public void changePassword(String encodedPassword) {
         this.password = encodedPassword;
+        endAllSessions();
+    }
+
+    public void endAllSessions() {
+        this.sessionVersion++;
     }
 
     public void replacePhoto(Media photo) {
@@ -161,6 +172,7 @@ public class User {
         this.password = unusablePasswordHash;
         this.active = false;
         this.deletedAt = closedAt;
+        endAllSessions();
     }
 
     public Set<EstablishmentService> getOfferedServices() {
