@@ -25,17 +25,23 @@ public class AuthenticationService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
+    private final AuthenticationRateLimiter rateLimiter;
 
     @Transactional(readOnly = true)
-    public LoginResponse authenticate(LoginRequest request) {
+    public LoginResponse authenticate(LoginRequest request, String clientIp) {
         String email = request.email().trim().toLowerCase(Locale.ROOT);
+        // Bloqueio temporário após tentativas repetidas (força bruta). Vale também para
+        // e-mails sem cadastro, para não revelar quais contas existem.
+        rateLimiter.checkLoginAllowed(email, clientIp);
         User user = userRepository.findByEmailIgnoreCase(email)
                 .filter(User::isPasswordInitialized)
-                .orElseThrow(() -> new UnauthorizedException("E-mail ou senha inválidos"));
+                .orElse(null);
 
-        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+        if (user == null || !passwordEncoder.matches(request.password(), user.getPassword())) {
+            rateLimiter.registerLoginFailure(email, clientIp);
             throw new UnauthorizedException("E-mail ou senha inválidos");
         }
+        rateLimiter.registerLoginSuccess(email);
         // US 2.4 CT04 / 2.17 CT06: o motivo específico só aparece depois de a senha
         // conferir, para não revelar a terceiros quais e-mails existem ou estão inativos.
         if (!user.isActive()) {

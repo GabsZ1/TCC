@@ -14,6 +14,7 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -68,7 +69,12 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(TooManyRequestsException.class)
     public ResponseEntity<ApiError> handleTooManyRequests(TooManyRequestsException exception) {
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(
+        ResponseEntity.BodyBuilder response = ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS);
+        if (exception.getRetryAfter() != null) {
+            response.header(HttpHeaders.RETRY_AFTER,
+                    String.valueOf(Math.max(1, exception.getRetryAfter().toSeconds())));
+        }
+        return response.body(
                 new ApiError(429, exception.getMessage(), Map.of(), OffsetDateTime.now())
         );
     }

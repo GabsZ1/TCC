@@ -282,6 +282,24 @@ Authorization: Bearer SEU_TOKEN
 
 O JWT contém o identificador do usuário, o perfil, o e-mail e, quando aplicável, o identificador do estabelecimento. A rota `/me` também consulta o banco para confirmar que o usuário continua ativo.
 
+### Proteção contra tentativas repetidas
+
+O `AuthenticationRateLimiter` protege o login contra força bruta e os formulários públicos contra abuso:
+
+| Regra | Padrão | Resposta |
+| --- | --- | --- |
+| Senhas erradas para o mesmo e-mail | 5 em 15 min bloqueiam o e-mail por 15 min | `429` "Muitas tentativas de login. Tente novamente em N minuto(s)." |
+| Senhas erradas a partir do mesmo IP (qualquer e-mail) | 20 em 15 min bloqueiam o IP por 15 min | igual à anterior |
+| Cadastro de estabelecimento, cadastro de cliente e recuperação de senha | 10 pedidos por IP e por formulário a cada 60 min | `429` "Muitas solicitações feitas a partir desta rede. Tente novamente em N minuto(s)." |
+
+- A tentativa que atinge o limite já recebe o `429`, e durante o bloqueio nem a senha certa entra.
+- E-mails sem cadastro são contados da mesma forma, para que o bloqueio não revele quais contas existem.
+- Login certo zera o contador do e-mail, mas não o do IP.
+- Senha certa de conta desativada não conta como falha.
+- As respostas `429` trazem o cabeçalho `Retry-After` (em segundos).
+- Os contadores ficam em memória: zeram quando a API reinicia e valem para uma instância. Atrás de proxy reverso, configure `server.forward-headers-strategy` para que o IP real do cliente seja usado.
+- Os limites são configuráveis (`app.security.*` no `application.properties`). Nos testes a proteção fica desligada por `src/test/resources/config/application.properties`; o `LoginRateLimitIntegrationTests` a liga com limites menores.
+
 Alteração de senha (qualquer perfil autenticado):
 
 ```http

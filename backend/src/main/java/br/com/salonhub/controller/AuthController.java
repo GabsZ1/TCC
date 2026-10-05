@@ -11,6 +11,8 @@ import br.com.salonhub.dto.auth.PasswordChangeRequest;
 import br.com.salonhub.dto.auth.PasswordRecoveryRequest;
 import br.com.salonhub.dto.auth.PasswordRecoveryResponse;
 import br.com.salonhub.dto.auth.PasswordResetRequest;
+import br.com.salonhub.service.auth.AuthenticationRateLimiter;
+import br.com.salonhub.service.auth.AuthenticationRateLimiter.PublicForm;
 import br.com.salonhub.service.auth.AuthenticationService;
 import br.com.salonhub.service.auth.PasswordRecoveryService;
 import br.com.salonhub.service.auth.RegistrationService;
@@ -18,6 +20,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -41,6 +44,7 @@ public class AuthController {
     private final RegistrationService registrationService;
     private final AuthenticationService authenticationService;
     private final PasswordRecoveryService passwordRecoveryService;
+    private final AuthenticationRateLimiter rateLimiter;
 
     @PostMapping("/cadastro")
     @ResponseStatus(HttpStatus.CREATED)
@@ -51,8 +55,11 @@ public class AuthController {
     @ApiResponse(responseCode = "201", description = "Cadastro realizado")
     @ApiResponse(responseCode = "400", description = "Dados inválidos")
     @ApiResponse(responseCode = "409", description = "CNPJ ou e-mail já cadastrado")
+    @ApiResponse(responseCode = "429", description = "Muitos cadastros a partir do mesmo IP")
     @SecurityRequirements
-    public InitialRegistrationResponse register(@Valid @RequestBody InitialRegistrationRequest request) {
+    public InitialRegistrationResponse register(@Valid @RequestBody InitialRegistrationRequest request,
+                                                HttpServletRequest httpRequest) {
+        rateLimiter.checkPublicForm(PublicForm.ESTABLISHMENT_REGISTRATION, httpRequest.getRemoteAddr());
         return registrationService.registerEstablishment(request);
     }
 
@@ -62,8 +69,11 @@ public class AuthController {
     @ApiResponse(responseCode = "201", description = "Cliente cadastrado")
     @ApiResponse(responseCode = "400", description = "Dados inválidos")
     @ApiResponse(responseCode = "409", description = "E-mail já cadastrado")
+    @ApiResponse(responseCode = "429", description = "Muitos cadastros a partir do mesmo IP")
     @SecurityRequirements
-    public AuthenticatedUserResponse registerClient(@Valid @RequestBody ClientRegistrationRequest request) {
+    public AuthenticatedUserResponse registerClient(@Valid @RequestBody ClientRegistrationRequest request,
+                                                    HttpServletRequest httpRequest) {
+        rateLimiter.checkPublicForm(PublicForm.CLIENT_REGISTRATION, httpRequest.getRemoteAddr());
         return registrationService.registerClient(request);
     }
 
@@ -71,9 +81,10 @@ public class AuthController {
     @Operation(summary = "Entrar", description = "Autentica com e-mail e senha e devolve um JWT.")
     @ApiResponse(responseCode = "200", description = "Login realizado")
     @ApiResponse(responseCode = "401", description = "Credenciais inválidas")
+    @ApiResponse(responseCode = "429", description = "Login bloqueado temporariamente após tentativas repetidas")
     @SecurityRequirements
-    public LoginResponse login(@Valid @RequestBody LoginRequest request) {
-        return authenticationService.authenticate(request);
+    public LoginResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
+        return authenticationService.authenticate(request, httpRequest.getRemoteAddr());
     }
 
     @PostMapping("/primeiro-acesso")
@@ -91,8 +102,11 @@ public class AuthController {
     @Operation(summary = "Solicitar recuperação de senha", description = "Envia por e-mail um link de redefinição, único e temporário.")
     @ApiResponse(responseCode = "202", description = "Solicitação recebida sem revelar a existência ou estado da conta")
     @ApiResponse(responseCode = "400", description = "Formato de e-mail inválido")
+    @ApiResponse(responseCode = "429", description = "Muitos pedidos a partir do mesmo IP")
     @SecurityRequirements
-    public PasswordRecoveryResponse requestPasswordReset(@Valid @RequestBody PasswordRecoveryRequest request) {
+    public PasswordRecoveryResponse requestPasswordReset(@Valid @RequestBody PasswordRecoveryRequest request,
+                                                         HttpServletRequest httpRequest) {
+        rateLimiter.checkPublicForm(PublicForm.PASSWORD_RECOVERY, httpRequest.getRemoteAddr());
         return passwordRecoveryService.requestReset(request);
     }
 

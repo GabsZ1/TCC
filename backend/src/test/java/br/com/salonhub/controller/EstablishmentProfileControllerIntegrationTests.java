@@ -25,7 +25,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+import com.jayway.jsonpath.JsonPath;
+
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.anyString;
@@ -205,23 +208,34 @@ class EstablishmentProfileControllerIntegrationTests {
                 Establishment.builder().name("Studio Sem Ponto").cnpj("42345678000131").build());
         User admin = user("Admin Próximo", "admin-nearby@salonhub.test", UserRole.ADMIN, close);
         User client = user("Cliente Próximo", "client-nearby@salonhub.test", UserRole.CLIENT, null);
+        // Ponto que o seed não usa: o banco local pode ter estabelecimentos de demonstração
+        // em Maringá, e eles empatariam em distância zero com o estabelecimento do teste.
         when(geocodingService.geocode(anyString())).thenReturn(Optional.of(
-                new Coordinates(new BigDecimal("-23.420999"), new BigDecimal("-51.933056"))));
+                new Coordinates(new BigDecimal("-9.876543"), new BigDecimal("-35.123456"))));
 
         mockMvc.perform(put("/api/estabelecimentos/me/perfil")
                         .header("Authorization", bearer(admin))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"street\":\"Avenida Brasil\",\"streetNumber\":\"100\",\"city\":\"Maringá\",\"state\":\"PR\"}"))
                 .andExpect(status().isOk());
-        mockMvc.perform(post("/api/estabelecimentos/proximos")
+        String body = mockMvc.perform(post("/api/estabelecimentos/proximos")
                         .header("Authorization", bearer(client))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"latitude\":-23.420999,\"longitude\":-51.933056}"))
+                        .content("{\"latitude\":-9.876543,\"longitude\":-35.123456}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(close.getId()))
                 .andExpect(jsonPath("$[0].distanceKm").value(0.0))
-                .andExpect(jsonPath("$[1].id").value(unknown.getId()))
-                .andExpect(jsonPath("$[1].distanceKm").isEmpty());
+                .andReturn().getResponse().getContentAsString();
+
+        // Outros estabelecimentos do banco podem aparecer na lista; o que importa é que os
+        // sem localização fiquem todos no fim, e o do teste entre eles.
+        List<Long> ids = JsonPath.<List<Number>>read(body, "$[*].id").stream()
+                .map(Number::longValue).toList();
+        List<Object> distances = JsonPath.read(body, "$[*].distanceKm");
+        int unknownIndex = ids.indexOf(unknown.getId());
+        org.assertj.core.api.Assertions.assertThat(unknownIndex).isPositive();
+        org.assertj.core.api.Assertions.assertThat(distances.subList(unknownIndex, distances.size()))
+                .containsOnlyNulls();
     }
 
     @Test
