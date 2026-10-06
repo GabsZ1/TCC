@@ -3,6 +3,10 @@
 /.idea/
 .m2/
 
+# Logs gerados ao rodar o backend ou os testes
+*.log
+logs/
+
 # Arquivos de sistema (macOS / Windows)
 .DS_Store
 Thumbs.db

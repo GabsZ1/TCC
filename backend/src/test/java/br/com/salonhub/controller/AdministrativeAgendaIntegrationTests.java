@@ -1,5 +1,6 @@
 package br.com.salonhub.controller;
 
+import br.com.salonhub.support.TestJwt;
 import br.com.salonhub.entity.*;
 import br.com.salonhub.repository.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -21,7 +22,6 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -82,7 +82,7 @@ class AdministrativeAgendaIntegrationTests {
     })
     void shouldApplyOptionalFiltersAndKeepDescendingOrderAndTenantIsolation(
             boolean date, boolean filterProfessional, boolean status, String expected) throws Exception {
-        var request = get(ENDPOINT).with(jwt().jwt(token -> token.subject(admin.getId().toString())));
+        var request = get(ENDPOINT).with(TestJwt.as(admin));
         if (date) request.param("date", DATE.toString());
         if (filterProfessional) request.param("professionalId", professional.getId().toString());
         if (status) request.param("status", "CONFIRMED");
@@ -96,7 +96,7 @@ class AdministrativeAgendaIntegrationTests {
 
     @Test
     void shouldFilterCancelledAppointmentsWithoutDateOrProfessional() throws Exception {
-        mvc.perform(get(ENDPOINT).with(jwt().jwt(token -> token.subject(admin.getId().toString())))
+        mvc.perform(get(ENDPOINT).with(TestJwt.as(admin))
                         .param("status", "CANCELLED"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.content[0].id").value(ids.get("cancelled")));
@@ -104,10 +104,10 @@ class AdministrativeAgendaIntegrationTests {
 
     @Test
     void shouldReturnEmptyForDateWithoutAppointmentsOrProfessionalFromAnotherEstablishment() throws Exception {
-        mvc.perform(get(ENDPOINT).with(jwt().jwt(token -> token.subject(admin.getId().toString())))
+        mvc.perform(get(ENDPOINT).with(TestJwt.as(admin))
                         .param("date", DATE.plusDays(2).toString()))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(0));
-        mvc.perform(get(ENDPOINT).with(jwt().jwt(token -> token.subject(admin.getId().toString())))
+        mvc.perform(get(ENDPOINT).with(TestJwt.as(admin))
                         .param("professionalId", otherProfessional.getId().toString()))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(0));
     }
@@ -123,7 +123,7 @@ class AdministrativeAgendaIntegrationTests {
                 DATE.atTime(11, 0), DATE.atTime(12, 0), false));
 
         mvc.perform(get(ENDPOINT + "/disponibilidade-equipe")
-                        .with(jwt().jwt(token -> token.subject(admin.getId().toString())))
+                        .with(TestJwt.as(admin))
                         .param("date", DATE.toString())
                         .param("professionalId", professional.getId().toString()))
                 .andExpect(status().isOk())
@@ -156,7 +156,7 @@ class AdministrativeAgendaIntegrationTests {
                 DATE.atTime(13, 0), DATE.atTime(14, 0), false));
 
         String body = mvc.perform(get(ENDPOINT + "/disponibilidade-equipe")
-                        .with(jwt().jwt(token -> token.subject(admin.getId().toString())))
+                        .with(TestJwt.as(admin))
                         .param("date", DATE.toString()))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
@@ -179,7 +179,7 @@ class AdministrativeAgendaIntegrationTests {
     @Test
     void shouldRejectForeignProfessionalInTeamAvailability() throws Exception {
         mvc.perform(get(ENDPOINT + "/disponibilidade-equipe")
-                        .with(jwt().jwt(token -> token.subject(admin.getId().toString())))
+                        .with(TestJwt.as(admin))
                         .param("date", DATE.toString())
                         .param("professionalId", otherProfessional.getId().toString()))
                 .andExpect(status().isNotFound());

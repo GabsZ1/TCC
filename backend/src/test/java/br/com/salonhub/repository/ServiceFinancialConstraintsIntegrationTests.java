@@ -1,5 +1,6 @@
 package br.com.salonhub.repository;
 
+import br.com.salonhub.support.TestJwt;
 import br.com.salonhub.entity.Establishment;
 import br.com.salonhub.entity.EstablishmentService;
 import br.com.salonhub.entity.User;
@@ -22,7 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -74,7 +74,7 @@ class ServiceFinancialConstraintsIntegrationTests {
     void shouldKeepJavaValidationReturningBadRequest(BigDecimal price, BigDecimal commission) throws Exception {
         User admin = users.saveAndFlush(User.builder().name("Admin").email("financial@tests.test")
                 .password("test").role(UserRole.ADMIN).establishment(establishment).build());
-        mvc.perform(post("/api/servicos").with(jwt().jwt(token -> token.subject(admin.getId().toString())))
+        mvc.perform(post("/api/servicos").with(TestJwt.as(admin))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"name":"Corte","price":%s,"commissionPercentage":%s,"durationMinutes":30}

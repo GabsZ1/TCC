@@ -1,6 +1,8 @@
 package br.com.salonhub.seed;
 
 import br.com.salonhub.entity.Appointment;
+import br.com.salonhub.entity.AppointmentSource;
+import br.com.salonhub.entity.AppointmentStatus;
 import br.com.salonhub.entity.Customer;
 import br.com.salonhub.entity.Establishment;
 import br.com.salonhub.entity.EstablishmentBusinessHour;
@@ -32,8 +34,12 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
+import java.util.function.Predicate;
 
 /**
  * Dados de demonstração para ver o sistema funcionando: estabelecimentos (7 aceitando
@@ -287,8 +293,54 @@ public class DemoDataSeeder {
                 }
             }
         }
+        if (seeded.slug().equals("studiobella")) {
+            assignCounterCustomers(seeded, created, administrator, today);
+        }
         appointmentRepository.saveAll(created);
         return created.size();
+    }
+
+    /**
+     * Clientes de balcão (cadastrados pelo salão, sem conta) no Studio Bella, para demonstrar os
+     * e-mails de agendamento: Carla tem e-mail e recebe os avisos com o telefone do salão (sem o
+     * botão "Ver meus agendamentos"); Dora não tem e-mail e não recebe nada. Reaproveita
+     * agendamentos já sorteados, cada um num dia diferente, para não criar conflito de horário.
+     */
+    private void assignCounterCustomers(SeededEstablishment seeded, List<Appointment> created,
+                                        User administrator, LocalDate today) {
+        Customer carla = customerRepository.save(Customer.create(
+                seeded.establishment(), "Carla Nunes", "44991240001", "carla@balcao.demo"));
+        Customer dora = customerRepository.save(Customer.create(
+                seeded.establishment(), "Dora Pereira", "44991240002", null));
+        // Os próximos agendamentos confirmados e os atendimentos concluídos mais recentes.
+        assignTo(pickOnePerDay(created,
+                appointment -> appointment.getStatus() == AppointmentStatus.CONFIRMED
+                        && appointment.getStartsAt().toLocalDate().isAfter(today),
+                Comparator.comparing(Appointment::getStartsAt), 3), carla, dora, administrator);
+        assignTo(pickOnePerDay(created,
+                appointment -> appointment.getStatus() == AppointmentStatus.COMPLETED,
+                Comparator.comparing(Appointment::getStartsAt).reversed(), 3), carla, dora, administrator);
+    }
+
+    private static List<Appointment> pickOnePerDay(List<Appointment> created, Predicate<Appointment> filter,
+                                                   Comparator<Appointment> order, int count) {
+        List<Appointment> picked = new ArrayList<>();
+        Set<LocalDate> days = new HashSet<>();
+        created.stream().filter(filter).sorted(order).forEach(appointment -> {
+            if (picked.size() < count && days.add(appointment.getStartsAt().toLocalDate())) {
+                picked.add(appointment);
+            }
+        });
+        return picked;
+    }
+
+    /** O último da lista fica com a Dora; os demais, com a Carla. Todos marcados pelo admin. */
+    private static void assignTo(List<Appointment> appointments, Customer carla, Customer dora, User administrator) {
+        for (int index = 0; index < appointments.size(); index++) {
+            Appointment appointment = appointments.get(index);
+            appointment.reassignCustomer(index == appointments.size() - 1 ? dora : carla);
+            appointment.recordCreation(AppointmentSource.ADMIN, administrator);
+        }
     }
 
     private void applyStatus(Appointment appointment, int dayOffset, User administrator) {

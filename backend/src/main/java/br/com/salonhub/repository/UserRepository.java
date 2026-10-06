@@ -39,6 +39,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("select u from User u where u.id = :id")
     Optional<User> findByIdForUpdate(@Param("id") Long id);
 
+    /** Usado a cada requisição autenticada para conferir se a sessão do token ainda vale. */
+    @Query("select u.sessionVersion from User u where u.id = :id")
+    Optional<Integer> findSessionVersionById(@Param("id") Long id);
+
     @Query("""
             select distinct u from User u left join u.offeredServices s
             where u.establishment.id = :establishmentId

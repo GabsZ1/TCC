@@ -1,10 +1,14 @@
 package br.com.salonhub.controller;
+
+import br.com.salonhub.security.AccessRules;
+import org.springframework.security.access.prepost.PreAuthorize;
 import br.com.salonhub.dto.establishment.*;
 import br.com.salonhub.service.ActiveEstablishmentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+@PreAuthorize(AccessRules.AUTHENTICATED)
 @RestController @RequestMapping("/api/estabelecimentos") @RequiredArgsConstructor
 public class ActiveEstablishmentController {
     private final ActiveEstablishmentService activeEstablishmentService;

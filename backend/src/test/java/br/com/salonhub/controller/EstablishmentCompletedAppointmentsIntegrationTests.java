@@ -1,5 +1,6 @@
 package br.com.salonhub.controller;
 
+import br.com.salonhub.support.TestJwt;
 import br.com.salonhub.entity.Appointment;
 import br.com.salonhub.entity.Customer;
 import br.com.salonhub.repository.CustomerRepository;
@@ -25,7 +26,6 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.contains;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -176,7 +176,7 @@ class EstablishmentCompletedAppointmentsIntegrationTests {
     }
 
     private ResultActions perform(User user, MockHttpServletRequestBuilder request) throws Exception {
-        return mockMvc.perform(request.with(jwt().jwt(token -> token.subject(user.getId().toString()))));
+        return mockMvc.perform(request.with(TestJwt.as(user)));
     }
 
     private Long completed(Fixture fixture, User professional, EstablishmentService service, LocalDateTime completedAt) {

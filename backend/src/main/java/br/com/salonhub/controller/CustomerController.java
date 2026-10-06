@@ -1,5 +1,8 @@
 package br.com.salonhub.controller;
 
+import br.com.salonhub.security.AccessRules;
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import br.com.salonhub.dto.customer.CustomerRequest;
 import br.com.salonhub.dto.PagedResponse;
 import br.com.salonhub.dto.customer.CustomerResponse;
@@ -14,6 +17,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
+@PreAuthorize(AccessRules.ESTABLISHMENT_STAFF)
 @RestController
 @RequestMapping("/api/clientes/estabelecimento/me")
 @RequiredArgsConstructor
@@ -27,16 +31,19 @@ public class CustomerController {
         return duplicates.suggestionsForNew(userId(jwt), phone, email);
     }
 
+    @PreAuthorize(AccessRules.ADMIN)
     @GetMapping("/{id}/possiveis-duplicados")
     public List<CustomerDuplicateService.Candidate> duplicates(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
         return duplicates.candidates(userId(jwt), id);
     }
 
+    @PreAuthorize(AccessRules.ADMIN)
     @PatchMapping("/{id}/mesclar/{otherId}")
     public CustomerResponse merge(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id, @PathVariable Long otherId) {
         return CustomerResponse.fromEntity(duplicates.merge(userId(jwt), id, otherId));
     }
 
+    @PreAuthorize(AccessRules.ADMIN)
     @PatchMapping("/{id}/manter-separados/{otherId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void keepSeparate(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id, @PathVariable Long otherId) {

@@ -1,5 +1,6 @@
 package br.com.salonhub.controller;
 
+import br.com.salonhub.support.TestJwt;
 import br.com.salonhub.support.TestDocuments;
 
 import br.com.salonhub.entity.User;
@@ -14,7 +15,6 @@ import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import br.com.salonhub.entity.UserRole;
 import br.com.salonhub.repository.UserRepository;
 import com.jayway.jsonpath.JsonPath;
@@ -366,11 +366,11 @@ class EmployeeRemovalIntegrationTests {
         for (User actor : List.of(employee, client)) {
             for (String action : List.of("desativacao", "ativacao")) {
                 mockMvc.perform(patch("/api/funcionarios/{id}/" + action, employee.getId())
-                                .with(jwt().jwt(jwt -> jwt.subject(actor.getId().toString()))))
+                                .with(TestJwt.as(actor)))
                         .andExpect(status().isForbidden());
             }
             mockMvc.perform(delete("/api/funcionarios/{id}", employee.getId())
-                            .with(jwt().jwt(jwt -> jwt.subject(actor.getId().toString()))))
+                            .with(TestJwt.as(actor)))
                     .andExpect(status().isForbidden());
         }
         assertThat(employee.isActive()).isTrue();

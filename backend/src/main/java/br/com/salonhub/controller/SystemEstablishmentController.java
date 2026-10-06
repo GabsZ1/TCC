@@ -1,5 +1,8 @@
 package br.com.salonhub.controller;
 
+import br.com.salonhub.security.AccessRules;
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import br.com.salonhub.dto.establishment.SystemEstablishmentDetailsResponse;
 import br.com.salonhub.dto.establishment.SystemEstablishmentResponse;
 import br.com.salonhub.service.SystemEstablishmentService;
@@ -16,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+@PreAuthorize(AccessRules.SYSTEM_ADMIN)
 @RestController
 @RequestMapping("/api/admin-sistema/estabelecimentos")
 @RequiredArgsConstructor

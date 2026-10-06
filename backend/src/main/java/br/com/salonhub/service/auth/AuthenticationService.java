@@ -25,17 +25,23 @@ public class AuthenticationService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
+    private final AuthenticationRateLimiter rateLimiter;
 
     @Transactional(readOnly = true)
-    public LoginResponse authenticate(LoginRequest request) {
+    public LoginResponse authenticate(LoginRequest request, String clientIp) {
         String email = request.email().trim().toLowerCase(Locale.ROOT);
+        // Bloqueio temporário após tentativas repetidas (força bruta). Vale também para
+        // e-mails sem cadastro, para não revelar quais contas existem.
+        rateLimiter.checkLoginAllowed(email, clientIp);
         User user = userRepository.findByEmailIgnoreCase(email)
                 .filter(User::isPasswordInitialized)
-                .orElseThrow(() -> new UnauthorizedException("E-mail ou senha inválidos"));
+                .orElse(null);
 
-        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+        if (user == null || !passwordEncoder.matches(request.password(), user.getPassword())) {
+            rateLimiter.registerLoginFailure(email, clientIp);
             throw new UnauthorizedException("E-mail ou senha inválidos");
         }
+        rateLimiter.registerLoginSuccess(email);
         // US 2.4 CT04 / 2.17 CT06: o motivo específico só aparece depois de a senha
         // conferir, para não revelar a terceiros quais e-mails existem ou estão inativos.
         if (!user.isActive()) {
@@ -45,12 +51,7 @@ public class AuthenticationService {
         }
         requireEstablishmentLoginAllowed(user);
 
-        TokenService.GeneratedToken token = tokenService.generate(user);
-        return new LoginResponse(
-                token.value(),
-                "Bearer",
-                token.expiresAt(),
-                AuthenticatedUserResponse.fromEntity(user));
+        return issueSession(user);
     }
 
     @Transactional
@@ -74,9 +75,12 @@ public class AuthenticationService {
      * US 2.19 — o próprio usuário autenticado troca a senha informando a atual.
      * Erros de validação respondem 400 (e não 401) para que o front não
      * interprete uma senha atual errada como sessão expirada.
+     * <p>
+     * A troca encerra todas as sessões abertas (inclusive em outros dispositivos) e devolve um
+     * token novo, para que o usuário continue conectado no dispositivo em que trocou a senha.
      */
     @Transactional
-    public void changePassword(Long userId, PasswordChangeRequest request) {
+    public LoginResponse changePassword(Long userId, PasswordChangeRequest request) {
         User user = userRepository.findByIdForUpdate(userId)
                 .filter(User::isActive)
                 .orElseThrow(() -> new UnauthorizedException("Usuário inválido ou inativo"));
@@ -93,6 +97,21 @@ public class AuthenticationService {
         }
 
         user.changePassword(passwordEncoder.encode(request.newPassword()));
+        return issueSession(user);
+    }
+
+    /**
+     * Renova o token de uma sessão ainda válida, para quem está usando o sistema não ser
+     * desconectado quando o token expira. A sessão continua sendo encerrada pelo front após
+     * 30 min de inatividade e por troca ou redefinição de senha.
+     */
+    @Transactional(readOnly = true)
+    public LoginResponse renewSession(Long userId) {
+        User user = userRepository.findById(userId)
+                .filter(User::isActive)
+                .orElseThrow(() -> new UnauthorizedException("Usuário inválido ou inativo"));
+        requireEstablishmentLoginAllowed(user);
+        return issueSession(user);
     }
 
     @Transactional(readOnly = true)
@@ -102,6 +121,15 @@ public class AuthenticationService {
                 .orElseThrow(() -> new UnauthorizedException("Usuário inválido ou inativo"));
         requireEstablishmentLoginAllowed(user);
         return AuthenticatedUserResponse.fromEntity(user);
+    }
+
+    private LoginResponse issueSession(User user) {
+        TokenService.GeneratedToken token = tokenService.generate(user);
+        return new LoginResponse(
+                token.value(),
+                "Bearer",
+                token.expiresAt(),
+                AuthenticatedUserResponse.fromEntity(user));
     }
 
     private void requireEstablishmentLoginAllowed(User user) {

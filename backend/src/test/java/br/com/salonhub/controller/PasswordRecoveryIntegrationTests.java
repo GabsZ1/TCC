@@ -1,5 +1,6 @@
 package br.com.salonhub.controller;
 
+import br.com.salonhub.support.TestJwt;
 import br.com.salonhub.support.TestDocuments;
 
 import br.com.salonhub.entity.Establishment;
@@ -41,7 +42,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -246,7 +246,7 @@ class PasswordRecoveryIntegrationTests {
         String employeeEmail = "convite-" + UUID.randomUUID().toString().substring(0, 8) + "@recuperacao.test";
 
         String body = mockMvc.perform(post("/api/funcionarios")
-                        .with(jwt().jwt(token -> token.subject(administrator.getId().toString())))
+                        .with(TestJwt.as(administrator))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"name":"Funcionária Convite","email":"%s","occupation":"Cabeleireiro(a)","cpf":"%s","hireDate":"2025-01-02"}

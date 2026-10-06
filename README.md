@@ -107,10 +107,13 @@ Os padrões locais permitem iniciar o projeto sem criar um `.env`. Para alterar 
 | `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` | Conexão PostgreSQL | `localhost:5433`, `salonhub_user`, `salonhub_pass` |
 | `JWT_SECRET` | Assinatura dos tokens | Consulte a configuração do perfil local |
 | `MAIL_HOST`, `MAIL_PORT`, `MAIL_FROM` | Envio de e-mail | Mailpit em `localhost:1025` |
+| `MAIL_BRAND_NAME` | Nome do produto nos e-mails | `Meu Espaço` |
+| `REMINDERS_ENABLED`, `REMINDERS_INTERVAL_MS` | Lembrete por e-mail 24 h antes do agendamento ([detalhes](GUIA_DETALHADO.md#notificações-por-e-mail)) | Ligado, verificado a cada 10 min |
 | `FRONTEND_URL` | Links enviados por e-mail | `http://localhost:5173` |
 | `STORAGE_TYPE`, `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET` | Armazenamento de imagens | SeaweedFS em `localhost:8333` |
 | `SYSTEM_ADMIN_NAME`, `SYSTEM_ADMIN_EMAIL`, `SYSTEM_ADMIN_PASSWORD` | Criação inicial do administrador da plataforma | Não definido |
 | `CORS_ALLOWED_ORIGINS` | Origens permitidas pelo backend; no perfil local, `localhost:5173` e `127.0.0.1:5173` já são aceitos | Padrão local |
+| `RATE_LIMIT_ENABLED`, `LOGIN_MAX_FAILURES_PER_EMAIL`, `LOGIN_MAX_FAILURES_PER_IP`, `LOGIN_BLOCK_MINUTES`, `PUBLIC_FORMS_MAX_REQUESTS_PER_IP` | Proteção contra tentativas repetidas no login e nos formulários públicos ([detalhes](GUIA_DETALHADO.md#proteção-contra-tentativas-repetidas)) | Ligada: 5 erros por e-mail, 20 por IP, bloqueio de 15 min, 10 cadastros/hora por IP |
 | `GEOAPIFY_API_KEY` | Opcional: localiza pelo endereço completo antes de consultar as coordenadas do CEP | Não definido |
 
 As opções completas estão em [`application.properties`](backend/src/main/resources/application.properties), nos arquivos de perfil em `backend/src/main/resources` e no [guia detalhado](GUIA_DETALHADO.md#como-executar). O frontend inclui um [exemplo de ambiente](frontend/.env.example); ele é opcional para o fluxo local com proxy do Vite.

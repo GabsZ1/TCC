@@ -48,6 +48,11 @@ public class DemoDataReset {
         }
         MapSqlParameterSource ids = params(establishments, users);
 
+        // Galeria, logo e capa apontam para media: soltam as referências antes de apagar as imagens.
+        jdbc.update("DELETE FROM establishment_gallery_photos WHERE establishment_id IN (:establishments)", ids);
+        jdbc.update("UPDATE establishment_profiles SET logo_id = NULL, cover_id = NULL "
+                + "WHERE establishment_id IN (:establishments)", ids);
+
         // Fotos: apaga o registro em media e, depois do commit, o arquivo no armazenamento.
         List<Long> mediaIds = jdbc.queryForList("""
                 SELECT id FROM media WHERE establishment_id IN (:establishments)
@@ -56,10 +61,13 @@ public class DemoDataReset {
         mediaRepository.findAllById(mediaIds).forEach(mediaService::delete);
         entityManager.flush();
 
-        jdbc.update("""
-                UPDATE appointments SET cancelled_by_user_id = NULL
-                WHERE cancelled_by_user_id IN (:users) AND establishment_id NOT IN (:establishments)
-                """, ids);
+        // Agendamentos de estabelecimentos reais continuam; só perdem a referência aos usuários de
+        // demonstração nos campos de auditoria (quem criou, cancelou, concluiu, marcou falta ou invalidou).
+        for (String column : List.of("cancelled_by_user_id", "created_by_user_id", "completed_by_user_id",
+                "no_show_by_user_id", "invalidated_by_user_id")) {
+            jdbc.update("UPDATE appointments SET " + column + " = NULL WHERE " + column
+                    + " IN (:users) AND establishment_id NOT IN (:establishments)", ids);
+        }
         int appointments = jdbc.update(
                 "DELETE FROM appointments WHERE establishment_id IN (:establishments) OR professional_id IN (:users)", ids);
         jdbc.update("""
@@ -71,10 +79,11 @@ public class DemoDataReset {
                 DELETE FROM professional_calendar_events
                 WHERE establishment_id IN (:establishments) OR professional_id IN (:users)
                 """, ids);
+        jdbc.update("DELETE FROM establishment_calendar_blocks WHERE establishment_id IN (:establishments)", ids);
         jdbc.update("DELETE FROM salon_services WHERE establishment_id IN (:establishments)", ids);
         jdbc.update("DELETE FROM establishment_business_hours WHERE establishment_id IN (:establishments)", ids);
         // professional_services, professional_business_hours e password_reset_tokens saem em cascata com o usuário;
-        // establishment_profiles, com o estabelecimento.
+        // establishment_profiles, com o estabelecimento; customer_duplicate_ignores, com os clientes.
         int deletedUsers = jdbc.update("DELETE FROM users WHERE id IN (:users)", ids);
         int deletedEstablishments = jdbc.update("DELETE FROM establishments WHERE id IN (:establishments)", ids);
         entityManager.clear();

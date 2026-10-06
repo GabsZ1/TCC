@@ -107,7 +107,23 @@ Na raiz do projeto, inicie o PostgreSQL e o Mailpit (servidor de e-mail de desen
 docker compose up -d
 ```
 
-Todos os e-mails enviados pelo backend (primeiro acesso de funcionário e recuperação de senha) ficam visíveis na caixa de entrada do Mailpit em <http://localhost:8025>. Nenhum e-mail sai para a internet.
+Todos os e-mails enviados pelo backend (primeiro acesso de funcionário, recuperação de senha e avisos de agendamento) ficam visíveis na caixa de entrada do Mailpit em <http://localhost:8025>. Nenhum e-mail sai para a internet.
+
+### Notificações por e-mail
+
+| Situação | Cliente | Profissional |
+| --- | --- | --- |
+| Agendamento criado (online ou de balcão) | confirmação com serviço, profissional, data, duração, valor e endereço | "Novo agendamento" |
+| Remarcação (pelo cliente ou pelo admin) | novo horário e horário anterior | "Agendamento remarcado"; se trocou de profissional, o antigo recebe "Agendamento transferido" e o novo, "Novo agendamento" |
+| Cliente cancela | — | "Agendamento cancelado", com o horário liberado |
+| Estabelecimento cancela | aviso com o motivo | aviso com o motivo |
+| 24 h antes do horário | lembrete | — |
+
+- **Destinatário do cliente:** cliente com conta usa o e-mail da conta e recebe o botão "Ver meus agendamentos"; cliente de balcão usa o e-mail do cadastro e recebe o telefone/WhatsApp do salão para remarcar. Sem e-mail, não recebe nada. Contas desativadas ou excluídas não recebem.
+- **Profissional:** não é avisado do que ele mesmo fez (ex.: agendamento de balcão na própria agenda).
+- **Lembrete:** a tarefa `AppointmentReminderJob` roda a cada 10 min e envia um lembrete por agendamento confirmado que comece nas próximas 24 h (coluna `appointments.reminder_sent_at`, migration V41). Agendamentos marcados com menos de 24 h de antecedência não recebem lembrete, porque o cliente acabou de receber a confirmação. Remarcar para outro horário libera um novo lembrete. A tarefa fica desligada nos testes e no seed (`app.notifications.reminders.enabled=false`).
+- **Envio:** os textos são montados dentro da transação e enviados depois do commit, em segundo plano (`MailDispatcher`); falha no servidor de e-mail não afeta o agendamento. Cada e-mail vai em HTML e em texto puro, com o modelo do `EmailLayout`. O nome do produto nos e-mails vem de `app.mail.brand-name` (variável `MAIL_BRAND_NAME`).
+- **Testes:** `AppointmentNotificationsIntegrationTests` substitui o `MailDispatcher` por um mock e confere destinatários, assuntos e conteúdo de cada situação.
 
 O mesmo comando sobe o **SeaweedFS** (container `salonhub-storage`), o armazenamento de imagens compatível com S3:
 
@@ -207,6 +223,7 @@ O que é criado:
 - 8 estabelecimentos: 7 aceitando agendamentos (para a paginação de 6 aparecer na tela do cliente) e o "Studio Aurora", pausado, que não aparece para clientes. Todos com perfil público, endereço e horário (seg–sex 9h–18h, sáb 9h–14h, domingo fechado).
 - Serviços em cada estabelecimento (um deles inativo no Studio Bella).
 - Funcionários com CPF, admissão, ocupação e contatos; alguns atendem só parte dos serviços, e há um funcionário desativado.
+- 2 clientes de balcão no Studio Bella, sem conta: Carla Nunes (`carla@balcao.demo`), que recebe os e-mails de agendamento com o telefone do salão em vez do botão "Ver meus agendamentos", e Dora Pereira, sem e-mail, que não recebe nada. Cada uma tem agendamentos futuros e atendimentos concluídos marcados pelo administrador.
 - 10 clientes e agendamentos dos últimos 60 dias e dos próximos 14: concluídos, cancelados, invalidados, faltas (`NO_SHOW`), confirmados e alguns recentes pendentes de fechamento (alimentam relatórios, comissões, dashboard e agendas).
 - Na agenda da Camila, horário próprio (quintas só à tarde) e um evento de dia inteiro ("Curso de coloração").
 - As fotos dos funcionários não são criadas; cada um pode enviar a sua em "Meu perfil".
@@ -251,6 +268,25 @@ Com o backend executando:
 
 As rotas do Swagger, cadastro e login são públicas. As demais rotas exigem autenticação.
 
+### Autorização por perfil
+
+A autorização tem duas camadas:
+
+1. **Perfil no endpoint:** o claim `role` do JWT vira a authority `ROLE_<perfil>` e cada endpoint declara quem pode usá-lo com `@PreAuthorize`, usando as regras de `security/AccessRules`. Um perfil sem acesso recebe `403` com a mensagem "Seu perfil não tem permissão para acessar este recurso.", antes de qualquer regra de negócio rodar.
+2. **Usuário e estabelecimento nos services:** o `TenantAuthorizationService` confere no banco se o usuário continua ativo, o perfil e se os dados pertencem ao estabelecimento dele (nenhum ID enviado pelo front atravessa estabelecimentos).
+
+| Perfil | Rotas |
+| --- | --- |
+| Público | cadastro de estabelecimento e de cliente, login, primeiro acesso, recuperação e redefinição de senha |
+| Qualquer perfil logado | sessão (`/api/auth/me`, `/renovar`, `/senha`), lista e busca por proximidade de estabelecimentos, perfil público, galeria, logo/capa e catálogo de serviços e profissionais |
+| `CLIENT` | agendar, remarcar e cancelar os próprios agendamentos, consultar horários livres, "Meus agendamentos" e "Meu perfil" (`/api/clientes/me`) |
+| `PROFESSIONAL` | própria agenda, horários e bloqueios (`/api/profissionais/me/...`), atendimentos realizados, próprio perfil, foto e serviços (`/api/funcionarios/me/...`) |
+| `ADMIN` ou `PROFESSIONAL` | clientes do estabelecimento (listar, cadastrar, editar, histórico), agendamento de balcão, concluir, marcar falta, pendentes de fechamento e foto de funcionário |
+| `ADMIN` | equipe, serviços, estabelecimento, perfil público, galeria, fechamentos, agenda da equipe e de cada profissional, cancelamento administrativo, remarcação, invalidação, mesclagem de clientes, dashboard e relatórios |
+| `SYSTEM_ADMIN` | gestão de estabelecimentos da plataforma (`/api/admin-sistema/...`) |
+
+O `EndpointAccessRulesTests` falha se algum endpoint for criado sem `@PreAuthorize`. Nos testes com `MockMvc`, use `support/TestJwt.as(usuario)` para autenticar com o perfil do usuário.
+
 ## Autenticação
 
 Login:
@@ -282,6 +318,24 @@ Authorization: Bearer SEU_TOKEN
 
 O JWT contém o identificador do usuário, o perfil, o e-mail e, quando aplicável, o identificador do estabelecimento. A rota `/me` também consulta o banco para confirmar que o usuário continua ativo.
 
+### Proteção contra tentativas repetidas
+
+O `AuthenticationRateLimiter` protege o login contra força bruta e os formulários públicos contra abuso:
+
+| Regra | Padrão | Resposta |
+| --- | --- | --- |
+| Senhas erradas para o mesmo e-mail | 5 em 15 min bloqueiam o e-mail por 15 min | `429` "Muitas tentativas de login. Tente novamente em N minuto(s)." |
+| Senhas erradas a partir do mesmo IP (qualquer e-mail) | 20 em 15 min bloqueiam o IP por 15 min | igual à anterior |
+| Cadastro de estabelecimento, cadastro de cliente e recuperação de senha | 10 pedidos por IP e por formulário a cada 60 min | `429` "Muitas solicitações feitas a partir desta rede. Tente novamente em N minuto(s)." |
+
+- A tentativa que atinge o limite já recebe o `429`, e durante o bloqueio nem a senha certa entra.
+- E-mails sem cadastro são contados da mesma forma, para que o bloqueio não revele quais contas existem.
+- Login certo zera o contador do e-mail, mas não o do IP.
+- Senha certa de conta desativada não conta como falha.
+- As respostas `429` trazem o cabeçalho `Retry-After` (em segundos).
+- Os contadores ficam em memória: zeram quando a API reinicia e valem para uma instância. Atrás de proxy reverso, configure `server.forward-headers-strategy` para que o IP real do cliente seja usado.
+- Os limites são configuráveis (`app.security.*` no `application.properties`). Nos testes a proteção fica desligada por `src/test/resources/config/application.properties`; o `LoginRateLimitIntegrationTests` a liga com limites menores.
+
 Alteração de senha (qualquer perfil autenticado):
 
 ```http
@@ -298,7 +352,15 @@ Content-Type: application/json
 }
 ```
 
-Respostas: `204` senha alterada; `400` senha atual incorreta, confirmação divergente, nova senha igual à atual ou fora da política (8 a 72 caracteres); `401` sessão inválida ou usuário inativo. No frontend, a tela fica em `/alterar-senha`, no grupo "Conta" do menu.
+Respostas: `200` senha alterada, com um token novo no mesmo formato do login (a troca encerra todas as sessões, ver abaixo); `400` senha atual incorreta, confirmação divergente, nova senha igual à atual ou fora da política (8 a 72 caracteres); `401` sessão inválida ou usuário inativo. No frontend, a tela fica em `/alterar-senha`, no grupo "Conta" do menu.
+
+### Encerramento e renovação de sessão
+
+- **Versão da sessão:** a coluna `users.session_version` (migration V40) vai no JWT (claim `sessionVersion`) e é conferida a cada requisição pelo `SessionVersionValidator`. Trocar a senha, redefinir a senha pelo link do e-mail e excluir a conta incrementam a versão: todos os tokens emitidos antes passam a receber `401`, em qualquer dispositivo.
+- **Troca de senha:** o dispositivo em que a senha foi trocada recebe um token novo na resposta e continua conectado; os outros voltam para o login.
+- **Tokens antigos:** tokens emitidos antes desta regra (sem o claim) valem enquanto a versão do usuário for 0 e expiram normalmente.
+- **Renovação:** `POST /api/auth/renovar` (autenticado) devolve um token novo no formato do login, sem pedir a senha. O frontend chama essa rota quando faltam 30 minutos ou menos para o token expirar e o usuário está ativo; quem fica 30 minutos sem usar o sistema continua sendo desconectado.
+- **Volta para a página:** quando a API recusa a sessão, o frontend leva para `/login?sessao=encerrada&redirect=<página>`, mostra o aviso "Sua sessão expirou ou foi encerrada" e, depois do login, volta para a página em que o usuário estava (se o perfil tiver acesso a ela).
 
 Recuperação de senha (rotas públicas, US 2.20):
 
@@ -524,6 +586,6 @@ Cada feature reúne suas próprias `pages`, `components`, `services` (chamadas �
 
 ### Autenticação no frontend
 
-O `AuthContext` mantém o usuário autenticado em memória, chamando `POST /api/auth/login` e `GET /api/auth/me` do backend. O token JWT recebido é salvo no `localStorage` e enviado automaticamente no cabeçalho `Authorization` de toda requisição pelo interceptor do Axios. Uma resposta `401` limpa o token e redireciona para `/login`; a sessão também expira automaticamente após 30 minutos de inatividade do usuário.
+O `AuthContext` mantém o usuário autenticado em memória, chamando `POST /api/auth/login` e `GET /api/auth/me` do backend. O token JWT recebido é salvo no `localStorage` e enviado automaticamente no cabeçalho `Authorization` de toda requisição pelo interceptor do Axios. Uma resposta `401` limpa o token e redireciona para `/login`, guardando a página atual para voltar depois do login; a sessão também expira automaticamente após 30 minutos de inatividade do usuário, e o token é renovado enquanto o usuário está ativo (ver "Encerramento e renovação de sessão").
 
 O acesso às rotas é restrito por perfil (`ADMIN` ou `PROFESSIONAL`) por meio do componente `ProtectedRoute`, refletindo as mesmas regras de autorização já aplicadas no backend.

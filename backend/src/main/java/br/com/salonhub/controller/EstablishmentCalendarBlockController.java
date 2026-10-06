@@ -1,5 +1,8 @@
 package br.com.salonhub.controller;
 
+import br.com.salonhub.security.AccessRules;
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import br.com.salonhub.service.EstablishmentCalendarBlockService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -11,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@PreAuthorize(AccessRules.ADMIN)
 @RestController
 @RequestMapping("/api/estabelecimentos/me/bloqueios")
 @RequiredArgsConstructor

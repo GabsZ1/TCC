@@ -1,5 +1,6 @@
 package br.com.salonhub.security;
 
+import br.com.salonhub.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -61,7 +62,7 @@ public class JwtConfig {
 
     @Bean("authenticationJwtDecoder")
     @Primary
-    JwtDecoder authenticationJwtDecoder(SecretKey secretKey, Clock clock) {
+    JwtDecoder authenticationJwtDecoder(SecretKey secretKey, Clock clock, UserRepository userRepository) {
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(secretKey)
                 .macAlgorithm(MacAlgorithm.HS256)
                 .build();
@@ -69,6 +70,7 @@ public class JwtConfig {
         timestampValidator.setClock(clock);
         decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
                 timestampValidator,
+                new SessionVersionValidator(userRepository),
                 jwt -> jwt.hasClaim("purpose")
                         ? OAuth2TokenValidatorResult.failure(new OAuth2Error(
                                 "invalid_token", "Token não pode autenticar requisições", null))

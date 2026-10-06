@@ -1,5 +1,6 @@
 package br.com.salonhub.controller;
 
+import br.com.salonhub.support.TestJwt;
 import br.com.salonhub.support.TestDocuments;
 
 import br.com.salonhub.entity.Establishment;
@@ -20,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -48,7 +48,7 @@ class EmployeeFirstAccessIntegrationTests extends FirstAccessIntegrationSupport 
         String employeeEmail = "employee-" + unique + "@test.local";
 
         String creationBody = mockMvc.perform(post("/api/funcionarios")
-                        .with(jwt().jwt(token -> token.subject(administrator.getId().toString())))
+                        .with(TestJwt.as(administrator))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"name":"Funcionário","email":"%s","occupation":"Cabeleireiro(a)","cpf":"%s","hireDate":"2025-01-02"}
@@ -105,7 +105,7 @@ class EmployeeFirstAccessIntegrationTests extends FirstAccessIntegrationSupport 
         User outsider = userRepository.saveAndFlush(User.builder().name("Admin B").email("admin-b-" + unique + "@test.local")
                 .password(passwordEncoder.encode("senha-admin")).role(UserRole.ADMIN).establishment(second).build());
         String creation = mockMvc.perform(post("/api/funcionarios")
-                .with(jwt().jwt(token -> token.subject(admin.getId().toString())))
+                .with(TestJwt.as(admin))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         {"name":"Convidado","email":"guest-%s@test.local","occupation":"Cabeleireiro(a)","cpf":"%s","hireDate":"2025-01-02"}
@@ -115,15 +115,15 @@ class EmployeeFirstAccessIntegrationTests extends FirstAccessIntegrationSupport 
         String oldToken = firstAccessToken(creation);
 
         mockMvc.perform(post("/api/funcionarios/{id}/reenviar-convite", id)
-                .with(jwt().jwt(token -> token.subject(outsider.getId().toString()))))
+                .with(TestJwt.as(outsider)))
                 .andExpect(status().isNotFound());
         String resent = mockMvc.perform(post("/api/funcionarios/{id}/reenviar-convite", id)
-                .with(jwt().jwt(token -> token.subject(admin.getId().toString()))))
+                .with(TestJwt.as(admin)))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         String newToken = firstAccessToken(resent);
         assertThat(newToken).isNotEqualTo(oldToken);
         String secondResend = mockMvc.perform(post("/api/funcionarios/{id}/reenviar-convite", id)
-                .with(jwt().jwt(token -> token.subject(admin.getId().toString()))))
+                .with(TestJwt.as(admin)))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         String latestToken = firstAccessToken(secondResend);
         assertThat(latestToken).isNotEqualTo(newToken);
@@ -144,7 +144,7 @@ class EmployeeFirstAccessIntegrationTests extends FirstAccessIntegrationSupport 
                 .content("{\"token\":\"%s\",\"password\":\"outra-senha\"}".formatted(latestToken)))
                 .andExpect(status().isBadRequest());
         mockMvc.perform(post("/api/funcionarios/{id}/reenviar-convite", id)
-                .with(jwt().jwt(token -> token.subject(admin.getId().toString()))))
+                .with(TestJwt.as(admin)))
                 .andExpect(status().isConflict());
     }
 

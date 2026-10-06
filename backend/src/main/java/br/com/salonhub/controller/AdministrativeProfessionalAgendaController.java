@@ -1,5 +1,8 @@
 package br.com.salonhub.controller;
 
+import br.com.salonhub.security.AccessRules;
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import br.com.salonhub.dto.professionalagenda.*;
 import br.com.salonhub.entity.UserRole;
 import br.com.salonhub.exception.ResourceNotFoundException;
@@ -18,6 +21,7 @@ import java.time.LocalDateTime;
 import java.time.Clock;
 import java.util.List;
 
+@PreAuthorize(AccessRules.ADMIN)
 @RestController
 @RequestMapping("/api/funcionarios/{professionalId}/agenda")
 @RequiredArgsConstructor

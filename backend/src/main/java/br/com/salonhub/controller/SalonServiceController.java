@@ -1,5 +1,8 @@
 package br.com.salonhub.controller;
 
+import br.com.salonhub.security.AccessRules;
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import br.com.salonhub.dto.service.EstablishmentServiceRequest;
 import br.com.salonhub.dto.service.EstablishmentServiceResponse;
 import br.com.salonhub.dto.service.ServiceCountsResponse;
@@ -13,6 +16,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+@PreAuthorize(AccessRules.ADMIN)
 @RestController
 @RequestMapping("/api/servicos")
 @RequiredArgsConstructor

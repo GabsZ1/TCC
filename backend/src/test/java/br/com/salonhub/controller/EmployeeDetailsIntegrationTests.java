@@ -1,5 +1,6 @@
 package br.com.salonhub.controller;
 
+import br.com.salonhub.support.TestJwt;
 import br.com.salonhub.entity.Establishment;
 import br.com.salonhub.entity.User;
 import br.com.salonhub.entity.UserRole;
@@ -30,7 +31,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -372,12 +372,12 @@ class EmployeeDetailsIntegrationTests {
     }
 
     private ResultActions perform(User user, MockHttpServletRequestBuilder request) throws Exception {
-        return mockMvc.perform(request.with(jwt().jwt(token -> token.subject(user.getId().toString()))));
+        return mockMvc.perform(request.with(TestJwt.as(user)));
     }
 
     /** No Spring 7 o builder de multipart não herda de MockHttpServletRequestBuilder. */
     private ResultActions perform(User user, MockMultipartHttpServletRequestBuilder request) throws Exception {
-        return mockMvc.perform(request.with(jwt().jwt(token -> token.subject(user.getId().toString()))));
+        return mockMvc.perform(request.with(TestJwt.as(user)));
     }
 
     private Long idOf(ResultActions result) throws Exception {
