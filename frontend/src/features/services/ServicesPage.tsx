@@ -31,9 +31,13 @@ export function ServicesPage() {
     return () => window.clearTimeout(timeout)
   }, [searchInput])
 
-  useEffect(() => {
-    if (servicesQuery.data && page >= servicesQuery.data.totalPages && page > 0) setPage(Math.max(0, servicesQuery.data.totalPages - 1))
-  }, [page, servicesQuery.data])
+  // Se a página atual deixou de existir (ex.: o último serviço dela foi desativado com filtro de
+  // ativos), volta para a última página. Ajustar o estado durante a renderização evita o
+  // useEffect e a renderização extra com a página vazia.
+  const totalPages = servicesQuery.data?.totalPages
+  if (totalPages !== undefined && page > 0 && page >= totalPages) {
+    setPage(Math.max(0, totalPages - 1))
+  }
 
   const saveMutation = useMutation({
     mutationFn: (input: SalonServiceInput) => editing === 'new' ? createService(input) : updateService((editing as SalonService).id, input),
