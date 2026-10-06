@@ -223,6 +223,7 @@ O que é criado:
 - 8 estabelecimentos: 7 aceitando agendamentos (para a paginação de 6 aparecer na tela do cliente) e o "Studio Aurora", pausado, que não aparece para clientes. Todos com perfil público, endereço e horário (seg–sex 9h–18h, sáb 9h–14h, domingo fechado).
 - Serviços em cada estabelecimento (um deles inativo no Studio Bella).
 - Funcionários com CPF, admissão, ocupação e contatos; alguns atendem só parte dos serviços, e há um funcionário desativado.
+- 2 clientes de balcão no Studio Bella, sem conta: Carla Nunes (`carla@balcao.demo`), que recebe os e-mails de agendamento com o telefone do salão em vez do botão "Ver meus agendamentos", e Dora Pereira, sem e-mail, que não recebe nada. Cada uma tem agendamentos futuros e atendimentos concluídos marcados pelo administrador.
 - 10 clientes e agendamentos dos últimos 60 dias e dos próximos 14: concluídos, cancelados, invalidados, faltas (`NO_SHOW`), confirmados e alguns recentes pendentes de fechamento (alimentam relatórios, comissões, dashboard e agendas).
 - Na agenda da Camila, horário próprio (quintas só à tarde) e um evento de dia inteiro ("Curso de coloração").
 - As fotos dos funcionários não são criadas; cada um pode enviar a sua em "Meu perfil".
