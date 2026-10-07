@@ -31,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.verify;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -219,6 +220,35 @@ class AppointmentNotificationsIntegrationTests extends FirstAccessIntegrationSup
         assertThat(sent()).noneMatch(email -> email.to().equals(COUNTER_CUSTOMER_EMAIL));
     }
 
+    @Test
+    void closingAccountCancelsFutureAppointmentsAndNotifiesOnlyTheirProfessionals() throws Exception {
+        mvc.perform(post("/api/auth/clientes").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Marina Online\",\"email\":\"%s\",\"phone\":\"44988887777\",\"password\":\"%s\",\"passwordConfirmation\":\"%s\"}"
+                                .formatted(ONLINE_CLIENT_EMAIL, PASSWORD, PASSWORD)))
+                .andExpect(status().isCreated());
+        String client = login(ONLINE_CLIENT_EMAIL);
+        long first = ((Number) JsonPath.read(mvc.perform(post("/api/estabelecimentos/{id}/agendamentos", establishmentId)
+                        .header("Authorization", client).contentType(MediaType.APPLICATION_JSON)
+                        .content(body(service, ana, day + "T11:00:00")))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString(), "$.id")).longValue();
+        long second = ((Number) JsonPath.read(mvc.perform(post("/api/estabelecimentos/{id}/agendamentos", establishmentId)
+                        .header("Authorization", client).contentType(MediaType.APPLICATION_JSON)
+                        .content(body(service, bruno, day + "T13:00:00")))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString(), "$.id")).longValue();
+
+        clearInvocations(dispatcher);
+        mvc.perform(delete("/api/clientes/me").header("Authorization", client)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"password\":\"senha123\"}"))
+                .andExpect(status().isNoContent());
+
+        assertThat(sent()).extracting(Sent::to).containsExactlyInAnyOrder(ANA_EMAIL, BRUNO_EMAIL);
+        entityManager.flush();
+        entityManager.clear();
+        assertThat(jdbc.queryForObject("select status from appointments where id = ?", String.class, first))
+                .isEqualTo("CANCELLED");
+        assertThat(jdbc.queryForObject("select status from appointments where id = ?", String.class, second))
+                .isEqualTo("CANCELLED");
+    }
     private void moveTo(long appointmentId, LocalDateTime startsAt, OffsetDateTime createdAt) {
         jdbc.update("update appointments set starts_at = ?, ends_at = ?, created_at = ? where id = ?",
                 Timestamp.valueOf(startsAt), Timestamp.valueOf(startsAt.plusHours(1)), createdAt, appointmentId);

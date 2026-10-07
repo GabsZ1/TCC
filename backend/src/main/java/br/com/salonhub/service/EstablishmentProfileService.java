@@ -17,6 +17,7 @@ import br.com.salonhub.repository.EstablishmentBusinessHourRepository;
 import br.com.salonhub.repository.EstablishmentRepository;
 import br.com.salonhub.repository.EstablishmentServiceRepository;
 import br.com.salonhub.repository.UserRepository;
+import br.com.salonhub.validation.PhoneNumbers;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -119,8 +120,12 @@ public class EstablishmentProfileService {
     private String normalizePhone(String value) {
         String normalized = normalize(value);
         if (normalized == null) return null;
-        String phone = normalized.replaceAll("[^0-9+]", "");
-        return phone.isBlank() ? null : phone;
+        if (!PhoneNumbers.hasOnlyPhoneFormattingCharacters(normalized)) {
+            throw new br.com.salonhub.exception.InvalidRequestException("Informe um telefone válido!");
+        }
+        String phone = PhoneNumbers.normalize(normalized);
+        if (phone == null) throw new br.com.salonhub.exception.InvalidRequestException("Informe um telefone vÃ¡lido!");
+        return phone;
     }
 
     private String digits(String value) {
