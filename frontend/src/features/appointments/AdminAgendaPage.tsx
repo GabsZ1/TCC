@@ -10,6 +10,7 @@ import { fetchEmployees } from '@/features/employees/services/employeesApi'
 import { getApiErrorMessage } from '@/lib/apiError'
 import { canMarkNoShow } from '@/features/appointments/noShowPolicy'
 import { PendingClosurePanel } from '@/features/appointments/PendingClosurePanel'
+import { businessToday, formatBusinessDate, hasBusinessLocalDateTimeStarted } from '@/lib/dateTime'
 
 type StatusFilter = '' | Appointment['status']
 
@@ -17,7 +18,7 @@ const AGENDA_QUERY_KEY = 'establishment-agenda'
 
 export function AdminAgendaPage() {
   const queryClient = useQueryClient()
-  const [date, setDate] = useState(today())
+  const [date, setDate] = useState(businessToday())
   const [professionalId, setProfessionalId] = useState('')
   const [status, setStatus] = useState<StatusFilter>('')
   const [page, setPage] = useState(0)
@@ -259,9 +260,8 @@ function StatusBadge({ status }: { status: Appointment['status'] }) {
   return <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${styles[status]}`}>{labels[status]}</span>
 }
 function StateCard({ children, error = false }: { children: React.ReactNode; error?: boolean }) { return <div className={`rounded-2xl border bg-background-50 p-8 text-center ${error ? 'border-danger-500/30 text-danger-600' : 'border-background-300 text-text-600'}`}>{children}</div> }
-function today() { const date = new Date(); const offset = date.getTimezoneOffset(); return new Date(date.getTime() - offset * 60000).toISOString().slice(0, 10) }
-function hasStarted(appointment: Appointment) { return new Date(appointment.startsAt).getTime() <= Date.now() }
-function formatDate(value: string) { return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' }).format(new Date(value)) }
+function hasStarted(appointment: Appointment) { return hasBusinessLocalDateTimeStarted(appointment.startsAt) }
+function formatDate(value: string) { return formatBusinessDate(value, 'long') }
 function formatTime(value: string) { return value.slice(11, 16) }
 function formatTimeOnly(value: string | null) { return value?.slice(0, 5) ?? '--:--' }
 function formatMoney(value: number) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value) }

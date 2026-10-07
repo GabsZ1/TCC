@@ -1,4 +1,6 @@
 /** Tolerância de atraso antes de permitir registrar a falta (igual ao backend). */
+import { addMinutesToBusinessLocalDateTime, businessNowLocalDateTime, normalizeBusinessLocalDateTime } from '@/lib/dateTime'
+
 export const NO_SHOW_TOLERANCE_MINUTES = 15
 
 /**
@@ -6,6 +8,6 @@ export const NO_SHOW_TOLERANCE_MINUTES = 15
  * estabelecimento como texto ("AAAA-MM-DDTHH:mm:ss"), comparada no mesmo formato de startsAt.
  */
 export function canMarkNoShow(startsAt: string, now: Date | string = new Date()) {
-  const nowMs = typeof now === 'string' ? new Date(now).getTime() : now.getTime()
-  return new Date(startsAt).getTime() + NO_SHOW_TOLERANCE_MINUTES * 60_000 <= nowMs
+  const nowValue = typeof now === 'string' ? normalizeBusinessLocalDateTime(now) : businessNowLocalDateTime(now)
+  return addMinutesToBusinessLocalDateTime(startsAt, NO_SHOW_TOLERANCE_MINUTES) <= nowValue
 }
