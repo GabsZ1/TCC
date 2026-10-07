@@ -93,6 +93,13 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             LocalDateTime requestedStart
     );
 
+    boolean existsByCustomerUserIdAndStatusAndStartsAtLessThanAndEndsAtGreaterThan(
+            Long clientId,
+            AppointmentStatus status,
+            LocalDateTime requestedEnd,
+            LocalDateTime requestedStart
+    );
+
     boolean existsByProfessionalIdAndStatusAndIdNotAndStartsAtLessThanAndEndsAtGreaterThan(
             Long professionalId,
             AppointmentStatus status,
@@ -102,6 +109,14 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     );
 
     boolean existsByCustomerIdAndStatusAndIdNotAndStartsAtLessThanAndEndsAtGreaterThan(
+            Long clientId,
+            AppointmentStatus status,
+            Long appointmentId,
+            LocalDateTime requestedEnd,
+            LocalDateTime requestedStart
+    );
+
+    boolean existsByCustomerUserIdAndStatusAndIdNotAndStartsAtLessThanAndEndsAtGreaterThan(
             Long clientId,
             AppointmentStatus status,
             Long appointmentId,

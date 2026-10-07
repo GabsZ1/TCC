@@ -9,6 +9,7 @@ import br.com.salonhub.exception.ResourceNotFoundException;
 import br.com.salonhub.repository.AppointmentRepository;
 import br.com.salonhub.repository.EstablishmentBusinessHourRepository;
 import br.com.salonhub.repository.EstablishmentRepository;
+import br.com.salonhub.notification.AppointmentNotifier;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +25,7 @@ public class EstablishmentOperationService {
     private final EstablishmentBusinessHourRepository businessHourRepository;
     private final AppointmentRepository appointmentRepository;
     private final TenantAuthorizationService authorizationService;
+    private final AppointmentNotifier appointmentNotifier;
     private final Clock clock;
 
     @Transactional
@@ -100,8 +102,10 @@ public class EstablishmentOperationService {
         LocalDateTime now = LocalDateTime.now(clock);
         appointmentRepository.findByEstablishmentIdAndStatusForUpdate(
                         establishmentId, AppointmentStatus.CONFIRMED)
-                .forEach(appointment -> appointment.cancelByAdministrator(
-                        "Site desativado", systemAdministrator, now));
+                .forEach(appointment -> {
+                    appointment.cancelByAdministrator("Site desativado", systemAdministrator, now);
+                    appointmentNotifier.cancelledByEstablishment(appointment, systemAdministrator);
+                });
         establishment.deactivate();
     }
 

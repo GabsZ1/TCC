@@ -32,6 +32,7 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
     List<Customer> findDuplicateMatches(@Param("establishmentId") Long establishmentId,
                                         @Param("phone") String phone, @Param("email") String email);
     Optional<Customer> findByEstablishmentIdAndUserId(Long establishmentId, Long userId);
+    List<Customer> findByUserId(Long userId);
     Optional<Customer> findByIdAndEstablishmentId(Long id, Long establishmentId);
     List<Customer> findByEstablishmentIdAndNameContainingIgnoreCaseOrderByNameAsc(Long establishmentId, String name);
     List<Customer> findByEstablishmentIdAndPhoneContainingOrderByNameAsc(Long establishmentId, String phone);

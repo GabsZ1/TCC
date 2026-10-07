@@ -16,6 +16,7 @@ import { canMarkNoShow } from '@/features/appointments/noShowPolicy'
 import { PendingClosurePanel } from '@/features/appointments/PendingClosurePanel'
 import { createCalendarEvent, deleteCalendarEvent, fetchProfessionalAgenda, fetchProfessionalAgendaConfiguration, fetchProfessionalSchedule, updateCalendarEvent, updateProfessionalSchedule, type CalendarEventInput, type ProfessionalAgendaItem, type ProfessionalHour, type ProfessionalHourInput } from '@/features/appointments/professionalAgendaApi'
 import { filterAgendaItems, findAgendaConflict, normalizeEventInput, rangeAfterStartChange, type AgendaFilter } from '@/features/appointments/professionalAgendaUtils'
+import { BUSINESS_TIME_ZONE, addBusinessDays, addMinutesToBusinessLocalDateTime, businessLocalDateTimeDifferenceMs, calendarDateToBusinessLocalDateTime, formatBusinessDate } from '@/lib/dateTime'
 
 const AGENDA_KEY = ['professional-agenda']
 interface VisibleRange { startsAt: string; endsAt: string }
@@ -38,7 +39,7 @@ export function ProfessionalAgendaPage() {
   const agenda = useQuery({ queryKey: [...AGENDA_KEY, professionalId, range?.startsAt, range?.endsAt], queryFn: () => fetchProfessionalAgenda(range!.startsAt, range!.endsAt, professionalId), enabled: Boolean(range), refetchInterval: 30_000 })
   const schedule = useQuery({ queryKey: ['professional-schedule', professionalId], queryFn: () => fetchProfessionalSchedule(professionalId), staleTime: 60_000, refetchInterval: 5 * 60_000 })
   const configuration = useQuery({ queryKey: ['professional-agenda-configuration', professionalId], queryFn: () => fetchProfessionalAgendaConfiguration(professionalId), staleTime: Infinity })
-  const agendaTimeZone = configuration.data?.timeZone ?? currentTimeZone()
+  const agendaTimeZone = configuration.data?.timeZone ?? BUSINESS_TIME_ZONE
   const filteredItems = useMemo(() => filterAgendaItems(agenda.data ?? [], filter), [agenda.data, filter])
   const events = useMemo(() => filteredItems.map((item) => toCalendarEvent(item, view)), [filteredItems, view])
   const visibleHours = useMemo(() => calendarVisibleHours(agenda.data ?? [], schedule.data ?? []), [agenda.data, schedule.data])
@@ -66,7 +67,7 @@ export function ProfessionalAgendaPage() {
     </div>
     {agenda.isError && <div role="alert" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-danger-500/30 bg-danger-500/5 px-4 py-3 text-sm text-danger-600"><span>{getApiErrorMessage(agenda.error, 'Não foi possível carregar sua agenda.')}</span><button type="button" onClick={() => agenda.refetch()} className="inline-flex items-center gap-1 font-semibold"><RefreshCw size={15} /> Tentar novamente</button></div>}
     <section className={`professional-calendar surface-card relative p-3 sm:p-5 ${agenda.isLoading ? 'min-h-96 animate-pulse opacity-60' : ''}`} aria-busy={agenda.isLoading}>
-      <FullCalendar ref={calendarRef} plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]} initialView={viewName(view)} locale={ptBrLocale} firstDay={1} headerToolbar={{ left: 'prev,next today', center: 'title', right: '' }} buttonText={{ today: 'Hoje' }} height="auto" dayMaxEvents={3} nowIndicator selectable selectMirror select={handleSelect} dateClick={handleDateClick} eventClick={handleEventClick} datesSet={(info: DatesSetArg) => setRange({ startsAt: toLocalDateTime(info.start), endsAt: toLocalDateTime(info.end) })} events={events} eventContent={renderEventContent} businessHours={businessHours} eventTimeFormat={{ hour: '2-digit', minute: '2-digit', hour12: false }} slotLabelFormat={{ hour: '2-digit', minute: '2-digit', hour12: false }} slotMinTime={visibleHours.min} slotMaxTime={visibleHours.max} scrollTime={visibleHours.scroll} allDaySlot={false} noEventsText="Nenhum item" />
+      <FullCalendar ref={calendarRef} plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]} initialView={viewName(view)} locale={ptBrLocale} timeZone={agendaTimeZone} firstDay={1} headerToolbar={{ left: 'prev,next today', center: 'title', right: '' }} buttonText={{ today: 'Hoje' }} height="auto" dayMaxEvents={3} nowIndicator selectable selectMirror select={handleSelect} dateClick={handleDateClick} eventClick={handleEventClick} datesSet={(info: DatesSetArg) => setRange({ startsAt: toLocalDateTime(info.start), endsAt: toLocalDateTime(info.end) })} events={events} eventContent={renderEventContent} businessHours={businessHours} eventTimeFormat={{ hour: '2-digit', minute: '2-digit', hour12: false }} slotLabelFormat={{ hour: '2-digit', minute: '2-digit', hour12: false }} slotMinTime={visibleHours.min} slotMaxTime={visibleHours.max} scrollTime={visibleHours.scroll} allDaySlot={false} noEventsText="Nenhum item" />
       {agenda.isFetching && !agenda.isLoading && <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-background-50/95 px-2 py-1 text-xs text-text-600 shadow"><RefreshCw className="animate-spin" size={13} /> Atualizando</span>}
     </section>
     <p className="mt-2 text-xs text-text-600">As áreas sombreadas ficam fora da sua jornada. Fuso da agenda: {agendaTimeZone}.</p>
@@ -107,9 +108,9 @@ function EventEditor({ professionalId, initial, agendaItems, timeZone, onClose, 
     } else {
       const sameDate = timedRange.current.startsAt.slice(0, 10) === startsAt.slice(0, 10)
       const restoredStart = sameDate ? timedRange.current.startsAt : `${startsAt.slice(0, 10)}T09:00`
-      const restoredDuration = Math.max(60 * 60_000, new Date(timedRange.current.endsAt).getTime() - new Date(timedRange.current.startsAt).getTime())
+      const restoredDuration = Math.max(60 * 60_000, businessLocalDateTimeDifferenceMs(timedRange.current.startsAt, timedRange.current.endsAt))
       setStartsAt(restoredStart)
-      setEndsAt(toLocalInput(new Date(new Date(restoredStart).getTime() + restoredDuration)))
+      setEndsAt(addMinutesToBusinessLocalDateTime(restoredStart, restoredDuration / 60_000).slice(0, 16))
     }
   }
   function submit(event: React.FormEvent) { event.preventDefault(); mutation.mutate(normalizeEventInput({ title, description: description || null, startsAt, endsAt, allDay })) }
@@ -334,17 +335,16 @@ function TimeSelect({ label, value, min, onChange }: { label: string; value: str
   </div>
 }
 function Legend({ color, label }: { color: string; label: string }) { return <span className="inline-flex items-center gap-2"><span className={`h-3 w-3 rounded ${color}`} /> {label}</span> }
-function toLocalInput(date: Date) { return toLocalDateTime(date).slice(0, 16) }
-function toLocalDateTime(date: Date) { const offset = date.getTimezoneOffset() * 60000; return new Date(date.getTime() - offset).toISOString().slice(0, 19) }
+function toLocalInput(date: Date) { return calendarDateToBusinessLocalDateTime(date).slice(0, 16) }
+function toLocalDateTime(date: Date) { return calendarDateToBusinessLocalDateTime(date) }
 function roundToNextHour(date: Date) { const result = new Date(date); result.setMinutes(0, 0, 0); result.setHours(result.getHours() + 1); return result }
 function addHours(date: Date, hours: number) { return new Date(date.getTime() + hours * 60 * 60 * 1000) }
-function addDaysToDate(value: string, days: number) { const date = new Date(`${value}T12:00:00`); date.setDate(date.getDate() + days); return toLocalDateTime(date).slice(0, 10) }
+function addDaysToDate(value: string, days: number) { return addBusinessDays(value, days) }
 function minimumEndValue(startsAt: string, allDay: boolean) {
   if (!startsAt) return ''
   if (allDay) return `${addDaysToDate(startsAt.slice(0, 10), 1)}T00:00`
-  return toLocalInput(addMinutesFromLocalInput(startsAt, 5))
+  return addMinutesToBusinessLocalDateTime(startsAt, 5).slice(0, 16)
 }
-function addMinutesFromLocalInput(value: string, minutes: number) { const date = new Date(value); date.setMinutes(date.getMinutes() + minutes); return date }
 function addMinutesToTime(time: string, amount: number) {
   const [hours, minutes] = time.split(':').map(Number)
   const total = Math.min(hours * 60 + minutes + amount, 1440)
@@ -388,7 +388,7 @@ function calendarVisibleHours(items: ProfessionalAgendaItem[], hours: Profession
 }
 function timeToMinutes(value: string) { const [hour, minute] = value.split(':').map(Number); return hour * 60 + minute }
 function minutesToCalendarTime(value: number) { if (value >= 1440) return '24:00:00'; return `${String(Math.floor(value / 60)).padStart(2, '0')}:${String(value % 60).padStart(2, '0')}:00` }
-function formatDate(value: string) { return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' }).format(new Date(value)) }
+function formatDate(value: string) { return formatBusinessDate(value, 'long') }
 function formatTime(value: string) { return value.slice(11, 16) }
 function formatMoney(value: number) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value) }
 function formatDuration(minutes: number) { const hours = Math.floor(minutes / 60); const rest = minutes % 60; return [hours ? `${hours}h` : '', rest ? `${rest}min` : ''].filter(Boolean).join(' ') }
@@ -406,7 +406,6 @@ function contextualEventStart(calendarDate: Date | undefined, hours: Professiona
   const opening = hours.find((hour) => hour.dayOfWeek === day && !hour.closed)?.openingTime?.slice(0, 5) ?? '09:00'
   return new Date(`${selectedDate}T${opening}:00`)
 }
-function currentTimeZone() { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'local' }
 function localDateTimeInZone(timeZone: string, refreshToken = 0) {
   void refreshToken
   const parts = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).formatToParts(new Date())

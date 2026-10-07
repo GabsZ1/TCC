@@ -4,6 +4,7 @@ import { Modal } from '@/components/ui/Modal'
 import { getApiErrorMessage } from '@/lib/apiError'
 import { fetchBookingOptions, fetchInternalAvailability } from '@/features/customers/customersApi'
 import { rescheduleAppointment, type Appointment } from '@/features/appointments/appointmentsApi'
+import { businessToday } from '@/lib/dateTime'
 
 interface Props { appointment: Appointment; onRescheduled: () => void; onClose: () => void }
 
@@ -12,10 +13,7 @@ export function RescheduleAppointmentModal({ appointment, onRescheduled, onClose
   const [professionalId, setProfessionalId] = useState('')
   const [date, setDate] = useState('')
   const [time, setTime] = useState('')
-  const [minDate] = useState(() => {
-    const now = new Date()
-    return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
-  })
+  const [minDate] = useState(businessToday)
   const options = useQuery({ queryKey: ['customer-booking-options', serviceId],
     queryFn: () => fetchBookingOptions(Number(serviceId)), enabled: !!serviceId })
   const availability = useQuery({ queryKey: ['reschedule-availability', appointment.id, serviceId, professionalId, date],

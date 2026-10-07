@@ -55,15 +55,12 @@ public class RegistrationService {
                         .email(normalizeOptionalText(request.establishmentEmail()))
                         .build());
 
-        String establishmentPhone = normalizeOptionalText(request.establishmentPhone());
+        String establishmentPhone = normalizePhone(request.establishmentPhone());
         if (establishmentPhone != null) {
-            String normalizedPhone = establishmentPhone.replaceAll("[^0-9+]", "");
-            if (!normalizedPhone.isBlank()) {
                 profileRepository.save(EstablishmentProfile.builder()
                         .establishment(establishment)
-                        .phone(normalizedPhone)
+                        .phone(establishmentPhone)
                         .build());
-            }
         }
 
         createDefaultBusinessHours(establishment);
@@ -132,5 +129,16 @@ public class RegistrationService {
 
     private String normalizeOptionalText(String value) {
         return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private String normalizePhone(String value) {
+        String phone = normalizeOptionalText(value);
+        if (phone == null) return null;
+        if (!PhoneNumbers.hasOnlyPhoneFormattingCharacters(phone)) {
+            throw new InvalidRequestException("Informe um telefone válido!");
+        }
+        String normalized = PhoneNumbers.normalize(phone);
+        if (normalized == null) throw new InvalidRequestException("Informe um telefone vÃ¡lido!");
+        return normalized;
     }
 }

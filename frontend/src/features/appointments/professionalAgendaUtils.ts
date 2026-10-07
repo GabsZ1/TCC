@@ -1,4 +1,5 @@
 import type { CalendarEventInput, ProfessionalAgendaItem } from './professionalAgendaApi'
+import { addBusinessDays, addMinutesToBusinessLocalDateTime, businessLocalDateTimeDifferenceMs } from '@/lib/dateTime'
 
 export type AgendaFilter = 'active' | 'all' | 'finished'
 
@@ -6,7 +7,7 @@ export function normalizeEventInput(input: CalendarEventInput): CalendarEventInp
   if (!input.allDay) return { ...input, startsAt: ensureSeconds(input.startsAt), endsAt: ensureSeconds(input.endsAt) }
   const startDate = input.startsAt.slice(0, 10)
   const selectedEndDate = input.endsAt.slice(0, 10)
-  const endDate = selectedEndDate > startDate ? selectedEndDate : addDaysToDate(startDate, 1)
+  const endDate = selectedEndDate > startDate ? selectedEndDate : addBusinessDays(startDate, 1)
   return { ...input, startsAt: `${startDate}T00:00:00`, endsAt: `${endDate}T00:00:00` }
 }
 
@@ -28,15 +29,13 @@ export function findAgendaConflict(items: ProfessionalAgendaItem[], startsAt: st
 export function rangeAfterStartChange(currentStart: string, currentEnd: string, nextStart: string, allDay: boolean) {
   if (!currentEnd) return { startsAt: nextStart, endsAt: minimumEndValue(nextStart, allDay) }
   const minimumDuration = allDay ? 24 * 60 * 60_000 : 5 * 60_000
-  const duration = Math.max(minimumDuration, new Date(currentEnd).getTime() - new Date(currentStart).getTime())
-  return { startsAt: nextStart, endsAt: toLocalInput(new Date(new Date(nextStart).getTime() + duration)) }
+  const duration = Math.max(minimumDuration, businessLocalDateTimeDifferenceMs(currentStart, currentEnd))
+  return { startsAt: nextStart, endsAt: addMinutesToBusinessLocalDateTime(nextStart, duration / 60_000).slice(0, 16) }
 }
 
 function ensureSeconds(value: string) { return value.length === 16 ? `${value}:00` : value }
-function toLocalInput(date: Date) { const offset = date.getTimezoneOffset() * 60000; return new Date(date.getTime() - offset).toISOString().slice(0, 16) }
 function minimumEndValue(startsAt: string, allDay: boolean) {
   if (!startsAt) return ''
-  if (allDay) return `${addDaysToDate(startsAt.slice(0, 10), 1)}T00:00`
-  const date = new Date(startsAt); date.setMinutes(date.getMinutes() + 5); return toLocalInput(date)
+  if (allDay) return `${addBusinessDays(startsAt.slice(0, 10), 1)}T00:00`
+  return addMinutesToBusinessLocalDateTime(startsAt, 5).slice(0, 16)
 }
-function addDaysToDate(value: string, days: number) { const date = new Date(`${value}T12:00:00`); date.setDate(date.getDate() + days); return toLocalInput(date).slice(0, 10) }

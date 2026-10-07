@@ -280,6 +280,35 @@ class EstablishmentProfileControllerIntegrationTests {
                 .andExpect(status().isForbidden());
     }
 
+    @Test
+    void shouldValidateOptionalPhonesOnProfileUpdate() throws Exception {
+        Establishment establishment = establishmentRepository.saveAndFlush(
+                Establishment.builder().name("Studio Telefone").cnpj("82345678000195").build());
+        User admin = user("Admin Telefone", "admin-profile-phone@salonhub.test", UserRole.ADMIN, establishment);
+
+        for (String phone : List.of("abc44999999999", "123", "449999999999", "---")) {
+            mockMvc.perform(put("/api/estabelecimentos/me/perfil").header("Authorization", bearer(admin))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"phone\":\"%s\"}".formatted(phone)))
+                    .andExpect(status().isBadRequest());
+            mockMvc.perform(put("/api/estabelecimentos/me/perfil").header("Authorization", bearer(admin))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"whatsapp\":\"%s\"}".formatted(phone)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        mockMvc.perform(put("/api/estabelecimentos/me/perfil").header("Authorization", bearer(admin))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"phone\":\"(44) 3333-3333\",\"whatsapp\":\"(44) 99999-9999\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.phone").value("4433333333"))
+                .andExpect(jsonPath("$.whatsapp").value("44999999999"));
+        mockMvc.perform(put("/api/estabelecimentos/me/perfil").header("Authorization", bearer(admin))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"phone\":\"\",\"whatsapp\":null}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.phone").isEmpty())
+                .andExpect(jsonPath("$.whatsapp").isEmpty());
+    }
     private User user(String name, String email, UserRole role, Establishment establishment) {
         return userRepository.saveAndFlush(User.builder().name(name).email(email)
                 .password("senha-de-teste").role(role).establishment(establishment).active(true).build());

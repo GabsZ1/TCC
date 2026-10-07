@@ -5,11 +5,14 @@ import br.com.salonhub.dto.client.ClientProfileResponse;
 import br.com.salonhub.dto.client.ClientProfileUpdateRequest;
 import br.com.salonhub.entity.Appointment;
 import br.com.salonhub.entity.AppointmentStatus;
+import br.com.salonhub.entity.Customer;
 import br.com.salonhub.entity.User;
 import br.com.salonhub.exception.ConflictException;
 import br.com.salonhub.exception.InvalidRequestException;
 import br.com.salonhub.repository.AppointmentRepository;
+import br.com.salonhub.repository.CustomerRepository;
 import br.com.salonhub.repository.UserRepository;
+import br.com.salonhub.notification.AppointmentNotifier;
 import br.com.salonhub.service.auth.SecureTokens;
 import br.com.salonhub.validation.PhoneNumbers;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +37,8 @@ public class ClientAccountService {
     private final TenantAuthorizationService tenantAuthorizationService;
     private final UserRepository userRepository;
     private final AppointmentRepository appointmentRepository;
+    private final CustomerRepository customerRepository;
+    private final AppointmentNotifier appointmentNotifier;
     private final PasswordEncoder passwordEncoder;
     private final Clock clock;
 
@@ -57,6 +62,7 @@ public class ClientAccountService {
         }
 
         client.updateClientProfile(request.name().trim(), email, phone);
+        customerRepository.findByUserId(client.getId()).forEach(customer -> customer.synchronizeFrom(client));
         return ClientProfileResponse.fromEntity(client);
     }
 
@@ -78,7 +84,10 @@ public class ClientAccountService {
         for (Appointment appointment : appointmentRepository.findByCustomerUserIdAndStatusAndStartsAtGreaterThanOrderByStartsAtAsc(
                 client.getId(), AppointmentStatus.CONFIRMED, now)) {
             appointment.cancelBecauseClientAccountWasClosed(now);
+            appointmentNotifier.cancelledByClient(appointment);
         }
+
+        customerRepository.findByUserId(client.getId()).forEach(Customer::anonymizeClosedAccount);
 
         client.closeClientAccount(
                 "conta-excluida-" + client.getId() + "-" + SecureTokens.generate().substring(0, 8).toLowerCase(Locale.ROOT)

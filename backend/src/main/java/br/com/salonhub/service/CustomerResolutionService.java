@@ -18,6 +18,7 @@ public class CustomerResolutionService {
         Customer linked = customers.findByEstablishmentIdAndUserId(establishmentId, client.getId()).orElse(null);
         if (linked != null) {
             if (!linked.isActive()) throw new ConflictException("Cliente inativo neste estabelecimento.");
+            linked.synchronizeFrom(client);
             return linked;
         }
         Customer created = Customer.create(establishment, client.getName(), client.getPhone(), client.getEmail());

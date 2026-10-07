@@ -8,6 +8,7 @@ import { EstablishmentDetailsModal } from '@/features/appointments/Establishment
 import { cancelAppointment, fetchActiveEstablishments, fetchNearbyEstablishments, fetchMyAppointmentPage, type ActiveEstablishment, type Appointment } from '@/features/appointments/appointmentsApi'
 import { getApiErrorMessage } from '@/lib/apiError'
 import { EstablishmentImage } from '@/features/establishment/EstablishmentImage'
+import { formatBusinessDate, formatBusinessDayNumber, formatBusinessMonthShort, formatBusinessWeekday, isBusinessLocalDateTimeFuture } from '@/lib/dateTime'
 
 const QUERY_KEY = ['my-appointments']
 const ESTABLISHMENTS_PER_PAGE = 6
@@ -202,14 +203,14 @@ function StatusBadge({ status }: { status: Appointment['status'] }) {
   const styles: Record<Appointment['status'], string> = { CONFIRMED: 'bg-primary-100 text-primary-800', CANCELLED: 'bg-danger-50 text-danger-600', COMPLETED: 'bg-success-50 text-success-700', INVALIDATED: 'bg-warning-100 text-warning-700', NO_SHOW: 'bg-warning-100 text-warning-700' }
   return <span className={`status-pill ${styles[status]}`}>{labels[status]}</span>
 }
-function isFuture(value: string) { return new Date(value).getTime() > Date.now() }
+function isFuture(value: string) { return isBusinessLocalDateTimeFuture(value) }
 function EmptyState({ children, error = false }: { children: React.ReactNode; error?: boolean }) { return <div className={`surface-card p-10 text-center text-sm ${error ? 'text-danger-600' : 'text-text-500'}`}>{children}</div> }
-function formatDate(value: string) { return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' }).format(new Date(value)) }
+function formatDate(value: string) { return formatBusinessDate(value, 'long') }
 function formatTime(value: string) { return value.slice(11, 16) }
 function formatMoney(value: number) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value) }
-function weekday(value: string) { return new Intl.DateTimeFormat('pt-BR', { weekday: 'short' }).format(new Date(value)).replace('.', '') }
-function dayNumber(value: string) { return new Intl.DateTimeFormat('pt-BR', { day: '2-digit' }).format(new Date(value)) }
-function monthShort(value: string) { return new Intl.DateTimeFormat('pt-BR', { month: 'short' }).format(new Date(value)).replace('.', '') }
+function weekday(value: string) { return formatBusinessWeekday(value) }
+function dayNumber(value: string) { return formatBusinessDayNumber(value) }
+function monthShort(value: string) { return formatBusinessMonthShort(value) }
 
 /** Compara nomes ignorando maiúsculas, acentos e espaços extras. */
 function normalizeText(value: string) {

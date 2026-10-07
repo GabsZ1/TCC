@@ -1,6 +1,7 @@
 package br.com.salonhub.controller;
 
 import br.com.salonhub.entity.Establishment;
+import br.com.salonhub.notification.MailDispatcher;
 import br.com.salonhub.entity.EstablishmentService;
 import br.com.salonhub.entity.Appointment;
 import br.com.salonhub.entity.Customer;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +26,9 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.hamcrest.Matchers.contains;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -44,6 +49,7 @@ class SystemEstablishmentControllerIntegrationTests {
     @Autowired private EstablishmentServiceRepository serviceRepository;
     @Autowired private AppointmentRepository appointmentRepository;
     @Autowired private TokenService tokenService;
+    @MockitoBean private MailDispatcher dispatcher;
 
     @Test
     void systemAdministratorShouldControlAllStatesAndKeepCancellationsAfterReactivation() throws Exception {
@@ -181,6 +187,45 @@ class SystemEstablishmentControllerIntegrationTests {
         assertThat(establishmentRepository.findById(establishment.getId()).orElseThrow().isActive()).isTrue();
     }
 
+    @Test
+    void deactivationNotifiesEachAffectedCustomerAndProfessionalOnce() throws Exception {
+        Establishment establishment = establishmentRepository.saveAndFlush(Establishment.builder()
+                .name("Avisos na desativação").cnpj("82345678000195").build());
+        User systemAdministrator = userRepository.saveAndFlush(user(
+                "Administrador Sistema", "deactivation-system@salonhub.test", UserRole.SYSTEM_ADMIN, null));
+        User professional = userRepository.saveAndFlush(user(
+                "Profissional", "deactivation-professional@salonhub.test", UserRole.PROFESSIONAL, establishment));
+        User client = userRepository.saveAndFlush(user(
+                "Cliente", "deactivation-client@salonhub.test", UserRole.CLIENT, null));
+        EstablishmentService service = serviceRepository.saveAndFlush(EstablishmentService.builder()
+                .establishment(establishment).name("Corte").price(new BigDecimal("50.00"))
+                .commissionPercentage(BigDecimal.ZERO).durationMinutes(30).active(true).build());
+        Appointment first = appointmentRepository.saveAndFlush(schedule(
+                establishment, client, professional, service, LocalDateTime.now().plusDays(1).withHour(10)));
+        Appointment second = appointmentRepository.saveAndFlush(schedule(
+                establishment, client, professional, service, LocalDateTime.now().plusDays(1).withHour(11)));
+        Appointment alreadyCancelled = schedule(
+                establishment, client, professional, service, LocalDateTime.now().plusDays(1).withHour(12));
+        alreadyCancelled.cancelByAdministrator("Cancelado antes", systemAdministrator, LocalDateTime.now());
+        appointmentRepository.saveAndFlush(alreadyCancelled);
+
+        clearInvocations(dispatcher);
+        mockMvc.perform(delete(ENDPOINT + "/{id}", establishment.getId())
+                        .header("Authorization", bearer(systemAdministrator)))
+                .andExpect(status().isNoContent());
+
+        org.mockito.ArgumentCaptor<String> recipients = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(dispatcher, times(4)).send(recipients.capture(), org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.any());
+        assertThat(recipients.getAllValues()).containsExactlyInAnyOrder(
+                client.getEmail(), client.getEmail(), professional.getEmail(), professional.getEmail());
+        assertThat(appointmentRepository.findById(first.getId()).orElseThrow().getStatus())
+                .isEqualTo(AppointmentStatus.CANCELLED);
+        assertThat(appointmentRepository.findById(second.getId()).orElseThrow().getStatus())
+                .isEqualTo(AppointmentStatus.CANCELLED);
+        assertThat(appointmentRepository.findById(alreadyCancelled.getId()).orElseThrow().getStatus())
+                .isEqualTo(AppointmentStatus.CANCELLED);
+    }
     private User user(String name, String email, UserRole role, Establishment establishment) {
         return User.builder().name(name).email(email).password("senha-de-teste")
                 .role(role).establishment(establishment).active(true).build();

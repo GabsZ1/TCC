@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { IMaskInput } from 'react-imask'
 import { useAuth } from '@/hooks/useAuth'
 import { formatDateTime } from '@/lib/format'
+import { businessToday } from '@/lib/dateTime'
 import { APPOINTMENT_STATUS_LABELS, APPOINTMENT_STATUS_STYLES } from '@/features/appointments/appointmentStatus'
 import { getApiErrorMessage } from '@/lib/apiError'
 import { formatPhone, isValidPhone, PHONE_MASK } from '@/lib/phone'
@@ -29,10 +30,7 @@ export function CustomersPage() {
   const debouncedSearch = useDebouncedValue(search)
   const debouncedPhone = useDebouncedValue(phone)
   const debouncedEmail = useDebouncedValue(email)
-  const [minBookingDate] = useState(() => {
-    const now = new Date()
-    return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
-  })
+  const [minBookingDate] = useState(businessToday)
   const customers = useQuery({ queryKey: ['customers', debouncedSearch, customerPage, activeFilter], queryFn: () => fetchCustomers(debouncedSearch, customerPage, activeFilter === 'all' ? undefined : activeFilter === 'active') })
   const suggestions = useQuery({
     queryKey: ['customer-suggestions', debouncedPhone, debouncedEmail],

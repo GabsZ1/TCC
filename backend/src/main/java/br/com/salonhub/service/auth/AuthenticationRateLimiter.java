@@ -24,8 +24,8 @@ import java.util.concurrent.ConcurrentHashMap;
  *       a cada {@code window-minutes}.</li>
  * </ul>
  * Os contadores ficam em memória: são zerados quando a API reinicia e valem para uma única instância.
- * Atrás de um proxy reverso, configure {@code server.forward-headers-strategy} para que o IP real do
- * cliente seja usado.
+ * Atrás de um proxy reverso confiável, configure {@code FORWARD_HEADERS_STRATEGY=native} e
+ * {@code TRUSTED_PROXY_IPS}; o Tomcat então atualiza {@code getRemoteAddr()} antes do controller.
  */
 @Component
 public class AuthenticationRateLimiter {

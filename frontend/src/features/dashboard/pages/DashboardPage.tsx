@@ -14,6 +14,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { fetchDashboardSummary } from '@/features/dashboard/dashboardApi'
 import { getApiErrorMessage } from '@/lib/apiError'
 import { fetchNextClientAppointment, fetchProfessionalToday, type Appointment } from '@/features/appointments/appointmentsApi'
+import { businessToday, formatBusinessDateWithWeekday } from '@/lib/dateTime'
 
 export function DashboardPage() {
   const { user } = useAuth()
@@ -22,8 +23,8 @@ export function DashboardPage() {
   const professionalToday = useQuery({ queryKey: ['professional-today'], queryFn: fetchProfessionalToday, enabled: user?.role === 'PROFESSIONAL' })
 
   if (user?.role === 'SYSTEM_ADMIN') return <SystemAdministratorHome name={user.name} />
-  if (user?.role === 'CLIENT') return <ClientHome name={user.name} next={clientNext.data ?? null} isLoading={clientNext.isLoading} />
-  if (user?.role === 'PROFESSIONAL') return <ProfessionalHome name={user.name} establishmentName={user.establishmentName} today={professionalToday.data} isLoading={professionalToday.isLoading} />
+  if (user?.role === 'CLIENT') return <ClientHome name={user.name} next={clientNext.data ?? null} isLoading={clientNext.isLoading} error={clientNext.isError ? clientNext.error : null} />
+  if (user?.role === 'PROFESSIONAL') return <ProfessionalHome name={user.name} establishmentName={user.establishmentName} today={professionalToday.data} isLoading={professionalToday.isLoading} error={professionalToday.isError ? professionalToday.error : null} />
 
   const firstName = user?.name?.split(' ')[0] ?? 'Olá'
 
@@ -68,7 +69,7 @@ export function DashboardPage() {
   )
 }
 
-function ClientHome({ name, next, isLoading }: { name: string; next: Appointment | null; isLoading: boolean }) {
+function ClientHome({ name, next, isLoading, error }: { name: string; next: Appointment | null; isLoading: boolean; error: unknown }) {
 
   return (
     <RoleHomeHeader eyebrow="Área do cliente" name={name} subtitle="Seus próximos horários, sem complicação.">
@@ -76,7 +77,7 @@ function ClientHome({ name, next, isLoading }: { name: string; next: Appointment
         <section className="relative overflow-hidden rounded-[1rem] bg-secondary-700 p-6 text-white shadow-[var(--shadow-lifted)] sm:p-8">
           <div className="absolute left-0 top-0 h-full w-[5px] bg-primary-500" />
           <p className="text-[0.62rem] font-extrabold uppercase tracking-[0.18em] text-primary-300">Próximo compromisso</p>
-          {isLoading ? <p className="mt-6 text-[#c3cde0]">Carregando sua agenda...</p> : next ? (
+          {isLoading ? <p className="mt-6 text-[#c3cde0]">Carregando sua agenda...</p> : error ? <p role="alert" className="mt-6 text-danger-200">{getApiErrorMessage(error, 'Não foi possível carregar sua agenda.')}</p> : next ? (
             <>
               <h2 className="mt-5 text-3xl font-extrabold tracking-[-0.04em] text-white">{next.serviceName}</h2>
               <p className="mt-2 text-sm text-[#c3cde0]">{next.establishmentName} · com {next.professionalName}</p>
@@ -97,11 +98,12 @@ function ClientHome({ name, next, isLoading }: { name: string; next: Appointment
   )
 }
 
-function ProfessionalHome({ name, establishmentName, today, isLoading }: { name: string; establishmentName: string | null; today?: { confirmedCount: number; next: Appointment | null }; isLoading: boolean }) {
+function ProfessionalHome({ name, establishmentName, today, isLoading, error }: { name: string; establishmentName: string | null; today?: { confirmedCount: number; next: Appointment | null }; isLoading: boolean; error: unknown }) {
   const next = today?.next
 
   return (
     <RoleHomeHeader eyebrow="Área do profissional" name={name} subtitle={`Seu dia${establishmentName ? ` no ${establishmentName}` : ''}, direto ao ponto.`}>
+      {Boolean(error) && <p role="alert" className="mt-6 rounded-[0.8rem] border border-danger-500/25 bg-danger-50 px-4 py-3 text-sm font-semibold text-danger-600">{getApiErrorMessage(error, 'Não foi possível carregar sua agenda.')}</p>}
       <section className="surface-card mt-8 grid overflow-hidden md:grid-cols-3">
         <MetricLine icon={CalendarCheck} label="Atendimentos hoje" helper="confirmados na agenda" value={isLoading ? '—' : String(today?.confirmedCount ?? 0)} />
         <MetricLine icon={Clock3} label="Próximo horário" helper={next?.clientName ?? 'nenhum cliente aguardando'} value={next ? next.startsAt.slice(11, 16) : 'Livre'} bordered />
@@ -151,5 +153,5 @@ function ActionRow({ to, icon: Icon, eyebrow, title, description }: { to: string
 }
 
 function formatMoney(value: number) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value) }
-function formatToday() { return new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' }).format(new Date()) }
-function formatAppointmentDate(value: string) { return new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' }).format(new Date(value)) }
+function formatToday() { return formatBusinessDateWithWeekday(businessToday()) }
+function formatAppointmentDate(value: string) { return formatBusinessDateWithWeekday(value.slice(0, 10)) }

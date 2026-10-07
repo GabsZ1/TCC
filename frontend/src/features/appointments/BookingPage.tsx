@@ -6,6 +6,7 @@ import { createAppointment, fetchActiveEstablishments, fetchAvailability, fetchC
 import { EmployeeAvatar } from '@/features/employees/components/EmployeeAvatar'
 import { EstablishmentImage } from '@/features/establishment/EstablishmentImage'
 import { getApiErrorMessage } from '@/lib/apiError'
+import { addBusinessDays, businessToday, formatBusinessDate } from '@/lib/dateTime'
 
 export function BookingPage() {
   const { establishmentId: rawId } = useParams()
@@ -94,7 +95,7 @@ export function BookingPage() {
           </BookingStep>
 
           <BookingStep number="03" title="Data e horário" subtitle="Escolha uma data e depois um dos horários livres.">
-            <input type="date" min={today()} max={establishment ? addDays(establishment.maximumAdvanceDays) : undefined} value={date} onChange={(event) => { setDate(event.target.value); setTime(null) }} className="field-control mt-0 max-w-xs" />
+            <input type="date" min={businessToday()} max={establishment ? addBusinessDays(businessToday(), establishment.maximumAdvanceDays) : undefined} value={date} onChange={(event) => { setDate(event.target.value); setTime(null) }} className="field-control mt-0 max-w-xs" />
             {establishment && <p className="mt-2 text-xs leading-5 text-text-500">Reservas permitidas entre {establishment.minimumAdvanceHours}h e {establishment.maximumAdvanceDays} dias de antecedência.</p>}
             <div className="mt-5 flex flex-wrap gap-2">
               {availability.isFetching && <Hint>Buscando horários...</Hint>}
@@ -139,9 +140,7 @@ function ChoiceButton({ selected, onClick, icon, avatar, title, detail }: { sele
 }
 function Summary({ icon, label, value }: { icon: React.ReactNode; label: string; value?: string }) { return <div className="mb-4 flex gap-3"><span className="mt-0.5 text-text-400">{icon}</span><div><p className="text-[0.63rem] font-bold uppercase tracking-[0.11em] text-text-400">{label}</p><p className="mt-1 text-sm font-medium text-text-800">{value ?? 'Não selecionado'}</p></div></div> }
 function Hint({ children }: { children: React.ReactNode }) { return <p className="text-sm text-text-500">{children}</p> }
-function today() { const date = new Date(); const offset = date.getTimezoneOffset(); return new Date(date.getTime() - offset * 60000).toISOString().slice(0, 10) }
-function addDays(days: number) { const date = new Date(); date.setDate(date.getDate() + days); const offset = date.getTimezoneOffset(); return new Date(date.getTime() - offset * 60000).toISOString().slice(0, 10) }
 function normalizeTime(value: string) { return value.length === 5 ? `${value}:00` : value }
 function shortTime(value: string) { return value.slice(0, 5) }
-function formatDate(value: string) { return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(`${value}T12:00:00Z`)) }
+function formatDate(value: string) { return formatBusinessDate(value, 'long') }
 function formatMoney(value: number) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value) }
