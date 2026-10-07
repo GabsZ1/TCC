@@ -3,16 +3,23 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { getApiErrorMessage } from '@/lib/apiError'
 import { formatDateTime } from '@/lib/format'
+import { addBusinessDays, businessToday } from '@/lib/dateTime'
 
 interface Block { id: number; startsAt: string; endsAt: string; reason: string }
 interface Input { startsAt: string; endsAt: string; reason: string }
 const path = '/estabelecimentos/me/bloqueios'
 const currentMonth = () => {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth()
-  const local = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}T00:00`
-  return { start: local(new Date(year, month, 1)), end: local(new Date(year, month + 2, 1)) }
+  const today = businessToday()
+  const start = `${today.slice(0, 7)}-01`
+  const year = Number(today.slice(0, 4))
+  const month = Number(today.slice(5, 7))
+  const endYear = month >= 11 ? year + 1 : year
+  const endMonth = ((month + 1) % 12) + 1
+  return { start, end: `${endYear}-${String(endMonth).padStart(2, '0')}-01` }
+}
+
+export function blocksQueryRange(start: string, end: string) {
+  return { startsAt: `${start}T00:00`, endsAt: `${addBusinessDays(end, 1)}T00:00` }
 }
 
 export function EstablishmentBlocksPage() {
@@ -22,7 +29,7 @@ export function EstablishmentBlocksPage() {
   const [end, setEnd] = useState(period.end.slice(0, 10))
   const [editing, setEditing] = useState<number | null>(null)
   const [input, setInput] = useState<Input>({ startsAt: '', endsAt: '', reason: '' })
-  const blocks = useQuery({ queryKey: ['establishment-blocks', start, end], queryFn: () => api.get<Block[]>(path, { params: { startsAt: `${start}T00:00`, endsAt: `${end}T00:00` } }).then(response => response.data), enabled: Boolean(start && end && start < end) })
+  const blocks = useQuery({ queryKey: ['establishment-blocks', start, end], queryFn: () => api.get<Block[]>(path, { params: blocksQueryRange(start, end) }).then(response => response.data), enabled: Boolean(start && end && start <= end) })
   const save = useMutation({ mutationFn: () => editing == null ? api.post(path, input) : api.put(`${path}/${editing}`, input), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['establishment-blocks'] }); setEditing(null); setInput({ startsAt: '', endsAt: '', reason: '' }) } })
   const remove = useMutation({ mutationFn: (id: number) => api.delete(`${path}/${id}`), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['establishment-blocks'] }) })
   const submit = (event: FormEvent) => { event.preventDefault(); if (input.startsAt < input.endsAt && input.reason.trim()) save.mutate() }
