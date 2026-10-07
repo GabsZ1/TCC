@@ -130,6 +130,8 @@ class ClientAccountIntegrationTests {
     void shouldUpdateProfileAndKeepAppointmentsLinked() throws Exception {
         Fixture fixture = fixture();
         appointment(fixture, LocalDateTime.now().plusDays(3));
+        Customer counterCustomer = customerRepository.saveAndFlush(Customer.create(
+                fixture.establishment(), "Cliente de balcão", "44900000000", "balcao@cliente.test"));
         String newEmail = uniqueEmail("novo");
 
         perform(fixture.client(), put(PROFILE).contentType(MediaType.APPLICATION_JSON).content("""
@@ -139,6 +141,14 @@ class ClientAccountIntegrationTests {
                 .andExpect(jsonPath("$.name").value("Nome Novo"))
                 .andExpect(jsonPath("$.email").value(newEmail))
                 .andExpect(jsonPath("$.phone").value("4433332222"));
+
+        Customer linked = customerRepository.findByEstablishmentIdAndUserId(
+                fixture.establishment().getId(), fixture.client().getId()).orElseThrow();
+        assertThat(linked.getName()).isEqualTo("Nome Novo");
+        assertThat(linked.getEmail()).isEqualTo(newEmail);
+        assertThat(linked.getPhone()).isEqualTo("4433332222");
+        assertThat(counterCustomer.getName()).isEqualTo("Cliente de balcão");
+        assertThat(counterCustomer.getEmail()).isEqualTo("balcao@cliente.test");
 
         perform(fixture.client(), get("/api/agendamentos/me"))
                 .andExpect(status().isOk())
@@ -217,7 +227,11 @@ class ClientAccountIntegrationTests {
 
         Appointment keptPast = appointmentRepository.findById(past.getId()).orElseThrow();
         assertThat(keptPast.getStatus()).isEqualTo(AppointmentStatus.COMPLETED);
-        assertThat(keptPast.getCustomer().getUser().getId()).isEqualTo(closed.getId());
+        assertThat(keptPast.getCustomer().getUser()).isNull();
+        assertThat(keptPast.getCustomer().getName()).isEqualTo("Cliente removido");
+        assertThat(keptPast.getCustomer().getEmail()).isNull();
+        assertThat(keptPast.getCustomer().getPhone()).isNull();
+        assertThat(keptPast.getCustomer().isActive()).isFalse();
         Appointment cancelledFuture = appointmentRepository.findById(future.getId()).orElseThrow();
         assertThat(cancelledFuture.getStatus()).isEqualTo(AppointmentStatus.CANCELLED);
         assertThat(cancelledFuture.getCancellationReason()).isEqualTo("Conta do cliente excluída");

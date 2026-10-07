@@ -56,6 +56,22 @@ public class Customer {
     }
 
     public void link(User user) { this.user = user; }
+
+    /** Dados de contato de clientes vinculados são espelho da conta do cliente. */
+    public void synchronizeFrom(User user) {
+        this.name = user.getName();
+        this.phone = PhoneNumbers.normalize(user.getPhone());
+        this.email = normalizeEmail(user.getEmail());
+    }
+
+    public void anonymizeClosedAccount() {
+        this.user = null;
+        this.name = "Cliente removido";
+        this.phone = null;
+        this.email = null;
+        this.active = false;
+    }
+
     public void update(String name, String phone, String email, boolean active) {
         this.name = name;
         this.phone = PhoneNumbers.normalize(phone);
