@@ -144,6 +144,12 @@ public class AppointmentCommandService {
             Long administratorId, Long appointmentId, AppointmentRescheduleRequest request) {
         User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
         Long establishmentId = administrator.getEstablishment().getId();
+        Appointment appointmentToReschedule = appointmentRepository
+                .findByIdAndEstablishmentId(appointmentId, establishmentId)
+                .orElse(null);
+        if (appointmentToReschedule != null) {
+            lockCustomerUser(appointmentToReschedule.getCustomer());
+        }
 
         // Mesma ordem de locks da criação: estabelecimento, profissional e, por fim, o agendamento.
         Establishment establishment = findActiveEstablishmentForUpdate(establishmentId);
@@ -288,7 +294,8 @@ public class AppointmentCommandService {
         // ter duas fontes independentes de verdade sobre o horário de atendimento.
         professionalAvailabilityService.validateAvailable(professional, startsAt, endsAt);
         validateProfessionalAvailability(professional.getId(), startsAt, endsAt, ignoredAppointmentId);
-        validateClientAvailability(customer.getId(), startsAt, endsAt, ignoredAppointmentId);
+        lockCustomerUser(customer);
+        validateClientAvailability(customer, startsAt, endsAt, ignoredAppointmentId);
     }
 
     private void validateSlotAlignment(LocalDateTime startsAt, boolean online) {
@@ -324,6 +331,12 @@ public class AppointmentCommandService {
                 .orElseThrow(() -> new ResourceNotFoundException("Cliente não encontrado."));
     }
 
+    private void lockCustomerUser(Customer customer) {
+        if (customer.getUser() != null) {
+            userRepository.findByIdForUpdate(customer.getUser().getId());
+        }
+    }
+
     private void requireProfessionalOffersService(User professional, EstablishmentService service) {
         if (!professional.offers(service)) {
             throw new ConflictException("O profissional selecionado não oferece este serviço.");
@@ -343,12 +356,19 @@ public class AppointmentCommandService {
     }
 
     private void validateClientAvailability(
-            Long clientId, LocalDateTime startsAt, LocalDateTime endsAt, Long ignoredAppointmentId) {
+            Customer customer, LocalDateTime startsAt, LocalDateTime endsAt, Long ignoredAppointmentId) {
+        Long clientId = customer.getUser() == null ? customer.getId() : customer.getUser().getId();
         boolean conflict = ignoredAppointmentId == null
-                ? appointmentRepository.existsByCustomerIdAndStatusAndStartsAtLessThanAndEndsAtGreaterThan(
-                        clientId, AppointmentStatus.CONFIRMED, endsAt, startsAt)
-                : appointmentRepository.existsByCustomerIdAndStatusAndIdNotAndStartsAtLessThanAndEndsAtGreaterThan(
-                        clientId, AppointmentStatus.CONFIRMED, ignoredAppointmentId, endsAt, startsAt);
+                ? customer.getUser() == null
+                        ? appointmentRepository.existsByCustomerIdAndStatusAndStartsAtLessThanAndEndsAtGreaterThan(
+                                clientId, AppointmentStatus.CONFIRMED, endsAt, startsAt)
+                        : appointmentRepository.existsByCustomerUserIdAndStatusAndStartsAtLessThanAndEndsAtGreaterThan(
+                                clientId, AppointmentStatus.CONFIRMED, endsAt, startsAt)
+                : customer.getUser() == null
+                        ? appointmentRepository.existsByCustomerIdAndStatusAndIdNotAndStartsAtLessThanAndEndsAtGreaterThan(
+                                clientId, AppointmentStatus.CONFIRMED, ignoredAppointmentId, endsAt, startsAt)
+                        : appointmentRepository.existsByCustomerUserIdAndStatusAndIdNotAndStartsAtLessThanAndEndsAtGreaterThan(
+                                clientId, AppointmentStatus.CONFIRMED, ignoredAppointmentId, endsAt, startsAt);
         if (conflict) {
             throw new ConflictException("Você já possui um agendamento nesse período.");
         }

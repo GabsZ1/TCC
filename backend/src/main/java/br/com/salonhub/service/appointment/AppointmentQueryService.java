@@ -287,9 +287,11 @@ public class AppointmentQueryService {
         List<Appointment> professionalAppointments = appointmentRepository
                 .findByProfessionalIdAndStatusAndStartsAtLessThanAndEndsAtGreaterThanOrderByStartsAt(
                         professionalId, AppointmentStatus.CONFIRMED, dayEnd, dayStart);
-        List<Appointment> customerAppointments = appointmentRepository
-                .findByCustomerIdAndStatusAndStartsAtLessThanAndEndsAtGreaterThanOrderByStartsAt(
-                        customerId, AppointmentStatus.CONFIRMED, dayEnd, dayStart);
+        List<Appointment> customerAppointments = customer.getUser() == null
+                ? appointmentRepository.findByCustomerIdAndStatusAndStartsAtLessThanAndEndsAtGreaterThanOrderByStartsAt(
+                        customerId, AppointmentStatus.CONFIRMED, dayEnd, dayStart)
+                : appointmentRepository.findByCustomerUserIdAndStatusAndStartsAtLessThanAndEndsAtGreaterThanOrderByStartsAt(
+                        customer.getUser().getId(), AppointmentStatus.CONFIRMED, dayEnd, dayStart);
         List<ProfessionalCalendarEvent> blocks = calendarEventRepository
                 .findByProfessionalIdAndStartsAtLessThanAndEndsAtGreaterThanOrderByStartsAt(
                         professionalId, dayEnd, dayStart);

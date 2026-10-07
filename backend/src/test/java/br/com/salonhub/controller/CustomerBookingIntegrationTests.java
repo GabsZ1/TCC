@@ -1,6 +1,7 @@
 package br.com.salonhub.controller;
 
 import br.com.salonhub.support.TestDocuments;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +16,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.Map;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -31,6 +33,7 @@ class CustomerBookingIntegrationTests extends FirstAccessIntegrationSupport {
     @Autowired CustomerRepository customers;
     @Autowired UserRepository users;
     @Autowired JdbcTemplate jdbc;
+    private final ObjectMapper json = new ObjectMapper();
 
     @Test
     void customerListUsesTenantScopedPagesAndSearchesEmail() throws Exception {
@@ -265,6 +268,85 @@ class CustomerBookingIntegrationTests extends FirstAccessIntegrationSupport {
         mvc.perform(patch("/api/clientes/estabelecimento/me/{id}/mesclar/{otherId}", firstId, secondId)
                 .header("Authorization", admin)).andExpect(status().isConflict());
         org.junit.jupiter.api.Assertions.assertEquals(3, customers.findByEstablishmentIdOrderByNameAsc(establishmentId).size());
+    }
+
+    @Test
+    void linkedCustomersShareConflictsAcrossEstablishmentsAndCounterCustomersKeepCustomerConflicts() throws Exception {
+        registerClient("shared.conflict@salonhub.test", "44999994444");
+        var client = users.findByEmailIgnoreCase("shared.conflict@salonhub.test").orElseThrow();
+
+        registerEstablishment("admin.conflict.a@salonhub.test", "66777888000181");
+        String adminA = login("admin.conflict.a@salonhub.test");
+        long customerA = createCustomer(adminA, "Cliente vinculado A", "44999995555", null);
+        linkCustomer(customerA, client.getId());
+        long professionalA = createProfessionalForMerge(adminA, "professional.conflict.a@salonhub.test");
+        long secondProfessionalA = createProfessionalForMerge(adminA, "professional.conflict.a2@salonhub.test");
+        long thirdProfessionalA = createProfessionalForMerge(adminA, "professional.conflict.a3@salonhub.test");
+        long serviceA = createServiceForConflict(adminA, "Servico conflito A");
+
+        registerEstablishment("admin.conflict.b@salonhub.test", "11444777000161");
+        String adminB = login("admin.conflict.b@salonhub.test");
+        long customerB = createCustomer(adminB, "Cliente vinculado B", "44999996666", null);
+        linkCustomer(customerB, client.getId());
+        long professionalB = createProfessionalForMerge(adminB, "professional.conflict.b@salonhub.test");
+        long serviceB = createServiceForConflict(adminB, "Servico conflito B");
+
+        LocalDate day = LocalDate.now().plusDays(2);
+        while (day.getDayOfWeek().getValue() > 5) day = day.plusDays(1);
+        long originalAppointment = bookForMerge(adminA, customerA, serviceA, professionalA, day + "T10:00:00");
+
+        bookForMergeExpectConflict(adminA, customerA, serviceA, secondProfessionalA, day + "T10:00:00");
+        mvc.perform(get("/api/agendamentos/estabelecimento/me/clientes/{id}/disponibilidade", customerB)
+                        .header("Authorization", adminB).param("serviceId", String.valueOf(serviceB))
+                        .param("professionalId", String.valueOf(professionalB)).param("date", day.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.availableTimes[?(@ == '10:00:00')]").isEmpty());
+        bookForMergeExpectConflict(adminB, customerB, serviceB, professionalB, day + "T10:00:00");
+        long nonOverlappingAppointment = bookForMerge(adminB, customerB, serviceB, professionalB, day + "T12:00:00");
+
+        mvc.perform(put("/api/agendamentos/{id}/remarcacao", nonOverlappingAppointment)
+                        .header("Authorization", adminB).contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of(
+                                "professionalId", professionalB,
+                                "startsAt", day + "T10:00:00"))))
+                .andExpect(status().isConflict());
+
+        mvc.perform(patch("/api/agendamentos/{id}/cancelamento-administrativo", originalAppointment)
+                        .header("Authorization", adminA).contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of("reason", "Cliente desistiu"))))
+                .andExpect(status().isOk());
+        bookForMerge(adminB, customerB, serviceB, professionalB, day + "T10:00:00");
+
+        long counterCustomer = createCustomer(adminA, "Cliente de balcao", "44999997777", null);
+        bookForMerge(adminA, counterCustomer, serviceA, secondProfessionalA, day + "T10:00:00");
+        bookForMergeExpectConflict(adminA, counterCustomer, serviceA, thirdProfessionalA, day + "T10:00:00");
+    }
+
+    private void linkCustomer(long customerId, long userId) {
+        Customer customer = customers.findById(customerId).orElseThrow();
+        customer.link(users.findById(userId).orElseThrow());
+        customers.saveAndFlush(customer);
+    }
+
+    private long createServiceForConflict(String admin, String name) throws Exception {
+        return ((Number) JsonPath.read(mvc.perform(post("/api/servicos").header("Authorization", admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of(
+                                "name", name,
+                                "price", 50,
+                                "durationMinutes", 60))))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString(), "$.id")).longValue();
+    }
+
+    private void bookForMergeExpectConflict(String admin, long customer, long service, long professional,
+                                             String startsAt) throws Exception {
+        mvc.perform(post("/api/agendamentos/estabelecimento/me/clientes/{id}", customer)
+                        .header("Authorization", admin).contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of(
+                                "serviceId", service,
+                                "professionalId", professional,
+                                "startsAt", startsAt))))
+                .andExpect(status().isConflict());
     }
 
     private long registerEstablishment(String email, String cnpj) throws Exception {
