@@ -23,6 +23,30 @@ class AuthControllerIntegrationTests {
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private br.com.salonhub.repository.EstablishmentRepository establishmentRepository;
+
+    @Test
+    void shouldRegisterAlphanumericCnpjAndPreventDuplicateWithDifferentFormatting() throws Exception {
+        String body = """
+                {"ownerName":"Administrador Alfa","ownerEmail":"alpha.cnpj@salonhub.test","password":"senha123",
+                 "establishmentName":"Salão Alfa","cnpj":"12.abc.345/01de-35"}
+                """;
+        mockMvc.perform(post("/api/auth/cadastro").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isCreated());
+        org.assertj.core.api.Assertions.assertThat(establishmentRepository.existsByCnpj("12ABC34501DE35")).isTrue();
+
+        String duplicate = body.replace("alpha.cnpj@salonhub.test", "alpha.cnpj.duplicate@salonhub.test")
+                .replace("12.abc.345/01de-35", "12ABC34501DE35");
+        mockMvc.perform(post("/api/auth/cadastro").contentType(MediaType.APPLICATION_JSON).content(duplicate))
+                .andExpect(status().isConflict());
+
+        mockMvc.perform(post("/api/auth/cadastro").contentType(MediaType.APPLICATION_JSON)
+                        .content(duplicate.replace("12ABC34501DE35", "12ABC34501DE36")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fields.cnpj").value("CNPJ inválido"));
+    }
+
     @Test
     void shouldRegisterLoginAndGetAuthenticatedUser() throws Exception {
         mockMvc.perform(post("/api/auth/cadastro")

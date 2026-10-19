@@ -83,7 +83,7 @@ public class AuthenticationService {
     public LoginResponse changePassword(Long userId, PasswordChangeRequest request) {
         User user = userRepository.findByIdForUpdate(userId)
                 .filter(User::isActive)
-                .orElseThrow(() -> new UnauthorizedException("Usuário inválido ou inativo"));
+                .orElseThrow(() -> new UnauthorizedException("Usuário inválido ou desativado"));
         requireEstablishmentLoginAllowed(user);
 
         if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
@@ -109,7 +109,7 @@ public class AuthenticationService {
     public LoginResponse renewSession(Long userId) {
         User user = userRepository.findById(userId)
                 .filter(User::isActive)
-                .orElseThrow(() -> new UnauthorizedException("Usuário inválido ou inativo"));
+                .orElseThrow(() -> new UnauthorizedException("Usuário inválido ou desativado"));
         requireEstablishmentLoginAllowed(user);
         return issueSession(user);
     }
@@ -118,7 +118,7 @@ public class AuthenticationService {
     public AuthenticatedUserResponse getCurrentUser(Long userId) {
         User user = userRepository.findById(userId)
                 .filter(User::isActive)
-                .orElseThrow(() -> new UnauthorizedException("Usuário inválido ou inativo"));
+                .orElseThrow(() -> new UnauthorizedException("Usuário inválido ou desativado"));
         requireEstablishmentLoginAllowed(user);
         return AuthenticatedUserResponse.fromEntity(user);
     }

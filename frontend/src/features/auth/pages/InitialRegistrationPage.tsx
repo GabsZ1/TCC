@@ -1,7 +1,6 @@
 import { useState, type FormEvent, type InputHTMLAttributes } from 'react'
 import { ArrowRight, Building2, UserRound } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
-import { IMaskInput } from 'react-imask'
 import { AuthShell } from '@/features/auth/components/AuthShell'
 import { registerInitial } from '@/features/auth/services/authApi'
 import { getApiErrorMessage } from '@/lib/apiError'
@@ -101,16 +100,17 @@ function CnpjField() {
   return (
     <label className="block text-sm font-semibold text-text-800">
       CNPJ
-      <IMaskInput
+      <input
         name="cnpj"
-        mask="00.000.000/0000-00"
         required
-        inputMode="numeric"
-        pattern="[0-9]{2}\\.[0-9]{3}\\.[0-9]{3}/[0-9]{4}-[0-9]{2}"
-        title="Informe os 14 dígitos do CNPJ"
-        placeholder="00.000.000/0000-00"
+        maxLength={18}
+        autoCapitalize="characters"
+        pattern="(?:[A-Za-z0-9]{12}[0-9]{2}|[A-Za-z0-9]{2}[.][A-Za-z0-9]{3}[.][A-Za-z0-9]{3}/[A-Za-z0-9]{4}-[0-9]{2})"
+        title="Informe 12 letras ou números e 2 dígitos verificadores, com ou sem pontuação"
+        placeholder="00.000.000/E08G-12"
         className="auth-input"
       />
+      <span className="mt-1.5 block text-xs font-normal text-text-600">Aceita CNPJ numérico ou alfanumérico. Os 2 últimos caracteres são números.</span>
     </label>
   )
 }

@@ -4,6 +4,7 @@ import { Building2, CalendarClock, Save, CalendarOff, Pause, Play, RotateCcw } f
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { EstablishmentSectionHeader } from './EstablishmentSectionHeader'
 import { getApiErrorMessage } from '@/lib/apiError'
+import { formatCnpj } from '@/lib/format'
 import { allowMyEstablishmentBookings, blockMyEstablishmentBookings, fetchMyEstablishment, pauseMyEstablishment, resumeMyEstablishment, updateMyEstablishment, type BusinessHour, type Establishment, type EstablishmentUpdateInput, type WeekDay } from '@/features/establishment/establishmentApi'
 
 const QUERY_KEY = ['my-establishment']
@@ -166,6 +167,5 @@ function BusinessHourRow({ hour, onChange }: { hour: BusinessHour; onChange: (ch
 function Info({ label, value, icon }: { label: string; value: string; icon?: React.ReactNode }) { return <div><dt className="text-text-600">{label}</dt><dd className="mt-1 flex items-center gap-2 font-semibold text-text-900">{icon}{value}</dd></div> }
 function PageContainer({ children }: { children: React.ReactNode }) { return <div className="page-shell">{children}</div> }
 function StateCard({ children, error = false }: { children: React.ReactNode; error?: boolean }) { return <div className={`rounded-2xl border bg-background-50 p-8 text-center ${error ? 'border-danger-500/30 text-danger-600' : 'border-background-300 text-text-600'}`}>{children}</div> }
-function formatCnpj(value: string) { return value.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') }
 function orderBusinessHours(hours: BusinessHour[]) { return WEEK_DAYS.map((day) => hours.find((hour) => hour.dayOfWeek === day.value) ?? { dayOfWeek: day.value, closed: false, openingTime: '09:00', closingTime: '18:00' }) }
 function toForm(establishment: Awaited<ReturnType<typeof fetchMyEstablishment>>): EstablishmentUpdateInput { return { name: establishment.name, email: establishment.email ?? '', businessHours: orderBusinessHours(establishment.businessHours), minimumAdvanceHours: establishment.minimumAdvanceHours, maximumAdvanceDays: establishment.maximumAdvanceDays } }

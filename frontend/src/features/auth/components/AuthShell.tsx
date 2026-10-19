@@ -57,7 +57,7 @@ export function AuthShell({ eyebrow, title, subtitle, children, maxWidth = 'md' 
         </div>
       </aside>
 
-      <section className="relative flex min-h-screen items-center justify-center px-5 py-16 sm:px-8 lg:px-12 xl:px-16">
+      <section className="relative flex min-h-screen min-w-0 items-center justify-center px-4 py-10 sm:px-8 sm:py-16 lg:px-12 xl:px-16">
         <div className={`w-full ${widths[maxWidth]}`}>
           <Link to="/login" className="mb-10 inline-flex lg:hidden"><Brand /></Link>
 

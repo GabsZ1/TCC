@@ -97,7 +97,7 @@ Respostas possíveis:
 - `400 Bad Request`: campos inválidos.
 - `409 Conflict`: CNPJ ou e-mail já cadastrado.
 
-O CNPJ é salvo apenas com números, o e-mail de acesso é normalizado e a senha nunca é devolvida pela API.
+O CNPJ é salvo sem pontuação, com letras maiúsculas quando presentes. O formato numérico tradicional e o formato alfanumérico são aceitos; o e-mail de acesso é normalizado e a senha nunca é devolvida pela API.
 
 ## Como executar
 

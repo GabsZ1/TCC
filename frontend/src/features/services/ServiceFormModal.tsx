@@ -43,7 +43,7 @@ export function ServiceFormModal({ service, isSubmitting, errorMessage, onSubmit
         <p className="text-sm leading-6 text-text-600">Defina como o serviço aparece no catálogo e quais valores serão usados nos atendimentos.</p>
         <ServiceField name="name" label="Nome do serviço" defaultValue={service?.name} maxLength={100} placeholder="Ex.: Corte feminino" />
         <ServiceField name="description" label="Descrição (opcional)" defaultValue={service?.description ?? ''} required={false} maxLength={255} placeholder="Uma descrição curta para identificar o serviço" />
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid gap-3 min-[380px]:grid-cols-2">
           <ServiceField name="price" label="Valor" type="number" min="0.01" max="99999999.99" step="0.01" defaultValue={service?.price} icon={<Wallet size={15} />} prefix="R$" />
           <ServiceField name="durationMinutes" label="Duração" type="number" min="1" max="1440" defaultValue={service?.durationMinutes ?? 30} icon={<Clock3 size={15} />} suffix="min" />
         </div>

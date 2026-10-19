@@ -38,7 +38,7 @@ public class RegistrationService {
 
     @Transactional
     public InitialRegistrationResponse registerEstablishment(InitialRegistrationRequest request) {
-        String cnpj = digitsOnly(request.cnpj());
+        String cnpj = normalizeCnpj(request.cnpj());
         String ownerEmail = normalizeEmail(request.ownerEmail());
 
         if (establishmentRepository.existsByCnpj(cnpj)) {
@@ -123,8 +123,8 @@ public class RegistrationService {
         return email.trim().toLowerCase(Locale.ROOT);
     }
 
-    private String digitsOnly(String value) {
-        return value.replaceAll("\\D", "");
+    private String normalizeCnpj(String value) {
+        return value.trim().replaceAll("[./-]", "").toUpperCase(Locale.ROOT);
     }
 
     private String normalizeOptionalText(String value) {

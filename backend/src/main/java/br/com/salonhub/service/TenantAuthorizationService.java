@@ -81,6 +81,6 @@ public class TenantAuthorizationService {
     private User requireActiveUser(Long userId) {
         return userRepository.findById(userId)
                 .filter(User::isActive)
-                .orElseThrow(() -> new UnauthorizedException("Usuário inválido ou inativo"));
+                .orElseThrow(() -> new UnauthorizedException("Usuário inválido ou desativado"));
     }
 }

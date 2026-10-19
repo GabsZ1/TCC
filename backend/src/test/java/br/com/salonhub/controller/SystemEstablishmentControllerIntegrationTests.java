@@ -102,7 +102,7 @@ class SystemEstablishmentControllerIntegrationTests {
         assertThat(establishmentRepository.findById(inactive.getId()).orElseThrow().isActive()).isFalse();
         Appointment cancelled = appointmentRepository.findById(appointment.getId()).orElseThrow();
         assertThat(cancelled.getStatus()).isEqualTo(AppointmentStatus.CANCELLED);
-        assertThat(cancelled.getCancellationReason()).isEqualTo("Site desativado");
+        assertThat(cancelled.getCancellationReason()).isEqualTo("Estabelecimento desativado");
         assertThat(cancelled.getCancelledBy().getId()).isEqualTo(systemAdministrator.getId());
         mockMvc.perform(get("/api/auth/me").header("Authorization", bearer(localAdministrator)))
                 .andExpect(status().isUnauthorized());

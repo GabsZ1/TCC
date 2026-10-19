@@ -92,7 +92,7 @@ export function CompletedAppointmentsPanel() {
           <select value={professionalId} onChange={(event) => setProfessionalId(event.target.value)} className="filter-input">
             <option value="">Todos</option>
             {employees.data?.map((employee) => (
-              <option key={employee.id} value={employee.id}>{employee.name}{employee.active ? '' : ' (inativo)'}</option>
+              <option key={employee.id} value={employee.id}>{employee.name}{employee.active ? '' : ' (desativado)'}</option>
             ))}
           </select>
         </Filter>
@@ -220,7 +220,7 @@ function FilterTag({ children, onRemove }: { children: ReactNode; onRemove: () =
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full border border-primary-200 bg-primary-50 py-1 pl-3 pr-1.5 text-xs font-semibold text-primary-800">
       {children}
-      <button type="button" onClick={onRemove} className="grid size-5 place-items-center rounded-full hover:bg-primary-100" aria-label="Remover filtro"><X size={12} /></button>
+      <button type="button" onClick={onRemove} className="grid size-5 place-items-center rounded-full hover:bg-primary-100" aria-label="Remover filtro" title="Remover este filtro"><X size={12} /></button>
     </span>
   )
 }

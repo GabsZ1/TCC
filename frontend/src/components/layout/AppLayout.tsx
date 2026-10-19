@@ -91,6 +91,7 @@ export function AppLayout() {
               className="grid size-10 place-items-center rounded-[0.7rem] border border-background-300 bg-white text-text-700 shadow-sm"
               onClick={() => setMobileMenuOpen(true)}
               aria-label="Abrir menu"
+              title="Abrir menu de navegação"
             >
               <Menu size={20} />
             </button>
@@ -224,7 +225,7 @@ function MobileDrawer({ items, user, onClose, onLogout }: { items: NavItem[]; us
       <aside ref={drawerRef} className="absolute inset-y-0 left-0 flex w-[min(88vw,20rem)] flex-col bg-[var(--sidebar-bg)] p-4 shadow-2xl">
         <div className="flex items-center justify-between px-1 pt-1">
           <Brand inverse />
-          <button ref={closeButtonRef} onClick={onClose} className="grid size-10 place-items-center rounded-[0.7rem] text-[var(--sidebar-muted)] hover:bg-white/10 hover:text-white" aria-label="Fechar menu"><X size={20} /></button>
+          <button ref={closeButtonRef} onClick={onClose} className="grid size-10 place-items-center rounded-[0.7rem] text-[var(--sidebar-muted)] hover:bg-white/10 hover:text-white" aria-label="Fechar menu" title="Fechar menu de navegação"><X size={20} /></button>
         </div>
         <div className="mt-8 flex-1 space-y-1 overflow-y-auto">{items.map((item) => <SidebarLink key={item.to} item={item} onNavigate={onClose} />)}</div>
         <div className="border-t border-[var(--sidebar-border)] pt-4">

@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { AtSign, CalendarCheck, CalendarClock, Clock3, Mail, MapPin, MessageCircle, Phone, Scissors, ShieldCheck, UsersRound } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
 import { getApiErrorMessage } from '@/lib/apiError'
-import { formatDate, formatMoney } from '@/lib/format'
+import { formatCnpj, formatDate, formatMoney } from '@/lib/format'
 import { formatPhone } from '@/lib/phone'
 import { fetchSystemEstablishmentDetails, type SystemEstablishmentDetails } from '@/features/system-admin/systemEstablishmentsApi'
 
@@ -37,7 +37,7 @@ function DetailsContent({ data }: { data: SystemEstablishmentDetails }) {
     <div className="space-y-7">
       <section>
         <div className="flex flex-wrap gap-2">
-          <Pill tone={establishment.active ? 'success' : 'warning'}>{establishment.active ? 'Site ativo' : 'Site desativado'}</Pill>
+          <Pill tone={establishment.active ? 'success' : 'warning'}>{establishment.active ? 'Estabelecimento ativo' : 'Estabelecimento desativado'}</Pill>
           {establishment.paused && <Pill tone="warning">{establishment.pausedBySystem ? 'Operação pausada pela plataforma' : 'Operação pausada pelo estabelecimento'}</Pill>}
           {establishment.bookingsBlocked && <Pill tone="warning">{establishment.bookingsBlockedBySystem ? 'Agendamentos bloqueados pela plataforma' : 'Agendamentos bloqueados pelo estabelecimento'}</Pill>}
         </div>
@@ -61,7 +61,7 @@ function DetailsContent({ data }: { data: SystemEstablishmentDetails }) {
           {data.administrators.map((admin) => (
             <div key={admin.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-background-100 px-4 py-3 text-sm">
               <span className="font-semibold text-text-900">{admin.name}</span>
-              <span className="flex items-center gap-2 text-text-600"><Mail size={14} />{admin.email}{!admin.active && <Pill tone="warning">Inativo</Pill>}</span>
+              <span className="flex items-center gap-2 text-text-600"><Mail size={14} />{admin.email}{!admin.active && <Pill tone="warning">Desativado</Pill>}</span>
             </div>
           ))}
           {data.administrators.length === 0 && <Empty>Nenhum administrador cadastrado.</Empty>}
@@ -111,7 +111,7 @@ function DetailsContent({ data }: { data: SystemEstablishmentDetails }) {
           {data.professionals.map((professional) => (
             <div key={professional.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
               <div><p className="font-semibold text-text-900">{professional.name}</p><p className="text-xs text-text-500">{professional.occupation ?? 'Ocupação não informada'} · {professional.email}</p></div>
-              <Pill tone={professional.active ? 'success' : 'warning'}>{professional.active ? 'Ativo' : 'Inativo'}</Pill>
+              <Pill tone={professional.active ? 'success' : 'warning'}>{professional.active ? 'Ativo' : 'Desativado'}</Pill>
             </div>
           ))}
           {data.professionals.length === 0 && <div className="px-4 py-3"><Empty>Nenhum profissional cadastrado.</Empty></div>}
@@ -124,7 +124,7 @@ function DetailsContent({ data }: { data: SystemEstablishmentDetails }) {
           {data.services.map((service) => (
             <div key={service.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
               <div><p className="font-semibold text-text-900">{service.name}</p><p className="text-xs text-text-500">{formatMoney(service.price)} · {service.durationMinutes} min</p></div>
-              <Pill tone={service.active ? 'success' : 'warning'}>{service.active ? 'Ativo' : 'Inativo'}</Pill>
+              <Pill tone={service.active ? 'success' : 'warning'}>{service.active ? 'Ativo' : 'Desativado'}</Pill>
             </div>
           ))}
           {data.services.length === 0 && <div className="px-4 py-3"><Empty>Nenhum serviço cadastrado.</Empty></div>}
@@ -148,7 +148,6 @@ function formatAddress(profile: NonNullable<SystemEstablishmentDetails['profile'
   const street = [profile.street, profile.streetNumber].filter(Boolean).join(', ')
   return [street, profile.addressComplement, profile.neighborhood, [profile.city, profile.state].filter(Boolean).join(' - ')].filter(Boolean).join(' · ')
 }
-function formatCnpj(value: string) { return value.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') }
 function shortTime(value: string | null) { return value?.slice(0, 5) ?? '--:--' }
 function weekdayLabel(value: string) { return ({ MONDAY: 'Segunda-feira', TUESDAY: 'Terça-feira', WEDNESDAY: 'Quarta-feira', THURSDAY: 'Quinta-feira', FRIDAY: 'Sexta-feira', SATURDAY: 'Sábado', SUNDAY: 'Domingo' } as Record<string, string>)[value] ?? value }
 function formatAdvance(minutes: number) {

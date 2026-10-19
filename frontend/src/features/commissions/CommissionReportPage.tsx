@@ -65,7 +65,7 @@ export function CommissionReportPage() {
         <Filter label="Profissional">
           <select value={professionalId} onChange={(event) => setProfessionalId(event.target.value)} className="filter-input">
             <option value="">Todos</option>
-            {employees.data?.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}{employee.active ? '' : ' (inativo)'}</option>)}
+            {employees.data?.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}{employee.active ? '' : ' (desativado)'}</option>)}
           </select>
         </Filter>
         {employees.isError && <p role="alert" className="text-sm text-danger-600 sm:col-span-2 lg:col-span-3">{getApiErrorMessage(employees.error, 'Não foi possível carregar os profissionais.')}</p>}

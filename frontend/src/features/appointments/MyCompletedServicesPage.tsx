@@ -185,17 +185,17 @@ export function MyCompletedServicesPage() {
 function EntryCard({ entry }: { entry: CompletedServiceEntry }) {
   return (
     <li className="surface-card p-4">
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate font-semibold text-text-900">{entry.serviceName}</p>
           <p className="mt-0.5 truncate text-sm text-text-600">{entry.clientName}</p>
         </div>
         <p className="shrink-0 text-xs font-medium text-text-500">{formatDateTime(entry.completedAt)}</p>
       </div>
-      <dl className="mt-3 grid grid-cols-3 gap-2 border-t border-background-300 pt-3 text-sm">
+      <dl className="mt-3 grid grid-cols-2 gap-2 border-t border-background-300 pt-3 text-sm min-[440px]:grid-cols-3">
         <div><dt className="text-xs text-text-500">Valor</dt><dd className="font-medium text-text-800">{formatMoney(entry.servicePrice)}</dd></div>
         <div><dt className="text-xs text-text-500">Comissão</dt><dd className="font-medium text-text-800">{formatPercentage(entry.commissionPercentage)}</dd></div>
-        <div className="text-right"><dt className="text-xs text-text-500">Você recebe</dt><dd className="font-bold text-text-950">{formatMoney(entry.commissionAmount)}</dd></div>
+        <div className="col-span-2 min-[440px]:col-span-1 min-[440px]:text-right"><dt className="text-xs text-text-500">Você recebe</dt><dd className="font-bold text-text-950">{formatMoney(entry.commissionAmount)}</dd></div>
       </dl>
     </li>
   )
@@ -209,7 +209,7 @@ function FilterTag({ children, onRemove }: { children: ReactNode; onRemove: () =
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full border border-primary-200 bg-primary-50 py-1 pl-3 pr-1.5 text-xs font-semibold text-primary-800">
       {children}
-      <button type="button" onClick={onRemove} className="grid size-5 place-items-center rounded-full hover:bg-primary-100" aria-label="Remover filtro"><X size={12} /></button>
+      <button type="button" onClick={onRemove} className="grid size-5 place-items-center rounded-full hover:bg-primary-100" aria-label="Remover filtro" title="Remover este filtro"><X size={12} /></button>
     </span>
   )
 }

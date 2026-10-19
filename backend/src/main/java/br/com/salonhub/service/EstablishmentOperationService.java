@@ -103,7 +103,7 @@ public class EstablishmentOperationService {
         appointmentRepository.findByEstablishmentIdAndStatusForUpdate(
                         establishmentId, AppointmentStatus.CONFIRMED)
                 .forEach(appointment -> {
-                    appointment.cancelByAdministrator("Site desativado", systemAdministrator, now);
+                    appointment.cancelByAdministrator("Estabelecimento desativado", systemAdministrator, now);
                     appointmentNotifier.cancelledByEstablishment(appointment, systemAdministrator);
                 });
         establishment.deactivate();

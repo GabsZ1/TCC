@@ -47,7 +47,7 @@ public class EstablishmentManagementService {
         Establishment establishment = establishmentRepository.findByIdForUpdate(identityEstablishment.getId())
                 .orElseThrow(() -> new IllegalStateException("Estabelecimento do administrador não encontrado."));
         if (!establishment.isActive()) {
-            throw new ConflictException("Não é possível editar um estabelecimento inativo.");
+            throw new ConflictException("Não é possível editar um estabelecimento desativado.");
         }
 
         if (request.businessHours() != null) {

@@ -85,7 +85,7 @@ export function ServicesPage() {
       <div className="mt-7 flex flex-wrap gap-2" role="group" aria-label="Filtrar serviços por status">
         <FilterButton active={statusFilter === 'all'} onClick={() => { setStatusFilter('all'); setPage(0) }} label="Todos" count={countsQuery.data?.total} />
         <FilterButton active={statusFilter === 'active'} onClick={() => { setStatusFilter('active'); setPage(0) }} label="Ativos" count={countsQuery.data?.active} tone="success" />
-        <FilterButton active={statusFilter === 'inactive'} onClick={() => { setStatusFilter('inactive'); setPage(0) }} label="Inativos" count={countsQuery.data?.inactive} />
+        <FilterButton active={statusFilter === 'inactive'} onClick={() => { setStatusFilter('inactive'); setPage(0) }} label="Desativados" count={countsQuery.data?.inactive} />
       </div>
 
       <div className="mt-5 max-w-md">
@@ -93,13 +93,13 @@ export function ServicesPage() {
         <div className="relative mt-1">
           <Search size={17} aria-hidden="true" className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-text-400" />
           <input id="service-search" type="search" value={searchInput} onChange={(event) => { setSearchInput(event.target.value); setPage(0) }} placeholder="Digite o nome do serviço" className="field-control mt-0 pl-10 pr-10" />
-          {searchInput && <button type="button" onClick={() => { setSearchInput(''); setSearch(''); setPage(0) }} aria-label="Limpar busca" className="icon-button absolute right-1.5 top-1/2 -translate-y-1/2"><X size={16} /></button>}
+          {searchInput && <button type="button" onClick={() => { setSearchInput(''); setSearch(''); setPage(0) }} aria-label="Limpar busca" title="Limpar busca de serviços" className="icon-button absolute right-1.5 top-1/2 -translate-y-1/2"><X size={16} /></button>}
         </div>
       </div>
 
       {statusError && <p role="alert" className="mt-5 rounded-xl border border-danger-500/20 bg-danger-50 px-4 py-3 text-sm text-danger-600">{statusError}</p>}
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
+      <div className="mt-6 grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
         {servicesQuery.isLoading && <StateCard>Carregando serviços...</StateCard>}
         {servicesQuery.isError && <StateCard error>{getApiErrorMessage(servicesQuery.error, 'Não foi possível carregar os serviços.')}</StateCard>}
         {!servicesQuery.isLoading && !servicesQuery.isError && services.length === 0 && <StateCard>{search || statusFilter !== 'all' ? 'Nenhum serviço encontrado para os filtros selecionados.' : 'Nenhum serviço cadastrado. Cadastre o primeiro para liberar agendamentos.'}</StateCard>}
@@ -110,7 +110,7 @@ export function ServicesPage() {
               <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary-100 text-primary-700"><Scissors size={19} /></span>
               <span className={`status-pill ${service.active ? 'bg-success-50 text-success-700' : 'bg-background-200 text-text-600'}`}>
                 <span className={`size-1.5 rounded-full ${service.active ? 'bg-success-500' : 'bg-text-400'}`} />
-                {service.active ? 'Ativo' : 'Inativo'}
+                {service.active ? 'Ativo' : 'Desativado'}
               </span>
             </div>
 

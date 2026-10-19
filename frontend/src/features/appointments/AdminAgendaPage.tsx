@@ -67,7 +67,7 @@ export function AdminAgendaPage() {
 
       <section className="surface-card grid gap-4 p-5 sm:grid-cols-3">
         <Filter label="Data"><input type="date" value={date} onChange={(event) => { setDate(event.target.value); setPage(0) }} className="filter-input" /></Filter>
-        <Filter label="Profissional"><select value={professionalId} onChange={(event) => { setProfessionalId(event.target.value); setPage(0) }} className="filter-input"><option value="">Todos</option>{employees.data?.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}{employee.active ? '' : ' (inativo)'}</option>)}</select></Filter>
+        <Filter label="Profissional"><select value={professionalId} onChange={(event) => { setProfessionalId(event.target.value); setPage(0) }} className="filter-input"><option value="">Todos</option>{employees.data?.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}{employee.active ? '' : ' (desativado)'}</option>)}</select></Filter>
         <Filter label="Situação"><select value={status} onChange={(event) => { setStatus(event.target.value as StatusFilter); setPage(0) }} className="filter-input"><option value="">Todas</option><option value="CONFIRMED">Confirmado</option><option value="COMPLETED">Concluído</option><option value="CANCELLED">Cancelado</option><option value="NO_SHOW">Não compareceu</option><option value="INVALIDATED">Invalidado</option></select></Filter>
         <button type="button" onClick={() => { setDate(''); setProfessionalId(''); setStatus(''); setPage(0) }} className="text-left text-sm font-semibold text-text-600 hover:text-text-800 sm:col-span-3">Limpar filtros</button>
       </section>

@@ -6,6 +6,11 @@ export function formatMoney(value: number) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
 }
 
+/** Aplica a máscara visual aos CNPJs numéricos e alfanuméricos. */
+export function formatCnpj(value: string) {
+  return value.replace(/^([A-Z0-9]{2})([A-Z0-9]{3})([A-Z0-9]{3})([A-Z0-9]{4})([0-9]{2})$/i, '$1.$2.$3/$4-$5')
+}
+
 export function formatPercentage(value: number) {
   return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value) + '%'
 }

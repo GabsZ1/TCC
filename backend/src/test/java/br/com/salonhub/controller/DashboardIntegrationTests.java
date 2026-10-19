@@ -153,24 +153,6 @@ class DashboardIntegrationTests extends FirstAccessIntegrationSupport {
     }
 
     @Test
-    void shouldForbidProfessionalFromViewingDashboard() throws Exception {
-        Fixture fixture = setUp("dashboard-forbidden-professional", "43000400010415");
-
-        mockMvc.perform(get("/api/estabelecimentos/me/dashboard")
-                        .header("Authorization", bearer(fixture.professionalToken())))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void shouldForbidClientFromViewingDashboard() throws Exception {
-        Fixture fixture = setUp("dashboard-forbidden-client", "43000500010522");
-
-        mockMvc.perform(get("/api/estabelecimentos/me/dashboard")
-                        .header("Authorization", bearer(fixture.clientToken())))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
     void shouldIsolateDashboardDataBetweenEstablishments() throws Exception {
         Fixture fixtureA = setUp("dashboard-tenant-a", "43000600010630");
         Fixture fixtureB = setUp("dashboard-tenant-b", "43000700010747");

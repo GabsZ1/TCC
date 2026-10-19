@@ -31,7 +31,7 @@ export function EmployeeDetailsModal({ employee, onClose, onEdit }: { employee: 
             </div>
             <span className={`status-pill self-start sm:mb-1 ${employee.active ? 'bg-success-50 text-success-700' : 'bg-background-200 text-text-600'}`}>
               <span className={`size-1.5 rounded-full ${employee.active ? 'bg-success-500' : 'bg-text-400'}`} />
-              {employee.active ? 'Ativo' : 'Inativo'}
+              {employee.active ? 'Ativo' : 'Desativado'}
             </span>
           </div>
         </section>

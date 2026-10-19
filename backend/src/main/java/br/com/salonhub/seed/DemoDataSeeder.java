@@ -112,7 +112,7 @@ public class DemoDataSeeder {
         EstablishmentService manicure = service(bella, "Manicure", null, "35.00", "50", 45);
         EstablishmentService pedicure = service(bella, "Pedicure", null, "40.00", "50", 45);
         EstablishmentService designSobrancelha = service(bella, "Design de sobrancelha", null, "45.00", "45", 30);
-        service(bella, "Progressiva", "Serviço desativado para testar a listagem de inativos.", "300.00", "30", 90).deactivate();
+        service(bella, "Progressiva", "Serviço desativado para testar a listagem de desativados.", "300.00", "30", 90).deactivate();
         professional(bella, "Camila Rocha", "camila", "Cabeleireiro(a)", "44998760001", "@camila.hair", 2021, List.of());
         professional(bella, "Juliana Mendes", "juliana", "Colorista", "44998760002", "@ju.cores",
                 2022, List.of(coloracao, mechas, hidratacao, escova));

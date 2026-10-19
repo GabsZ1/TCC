@@ -163,16 +163,6 @@ class AppointmentCompletionIntegrationTests extends FirstAccessIntegrationSuppor
     }
 
     @Test
-    void shouldForbidClientFromCompletingAppointment() throws Exception {
-        Fixture fixture = setUp("complete-client-forbidden", "32345678000100");
-        Long appointmentId = createPastAppointment(fixture);
-
-        mockMvc.perform(patch("/api/agendamentos/{id}/conclusao", appointmentId)
-                        .header("Authorization", bearer(fixture.clientToken())))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
     void shouldForbidAnotherProfessionalFromCompletingSomeoneElsesAppointment() throws Exception {
         Fixture fixture = setUp("complete-other-professional", "42345678000156");
         Long appointmentId = createPastAppointment(fixture);

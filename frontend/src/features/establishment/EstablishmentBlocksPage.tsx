@@ -3,7 +3,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { getApiErrorMessage } from '@/lib/apiError'
 import { formatDateTime } from '@/lib/format'
-import { addBusinessDays, businessToday } from '@/lib/dateTime'
+import { businessToday } from '@/lib/dateTime'
+import { blocksQueryRange } from './establishmentBlocksUtils'
 
 interface Block { id: number; startsAt: string; endsAt: string; reason: string }
 interface Input { startsAt: string; endsAt: string; reason: string }
@@ -16,10 +17,6 @@ const currentMonth = () => {
   const endYear = month >= 11 ? year + 1 : year
   const endMonth = ((month + 1) % 12) + 1
   return { start, end: `${endYear}-${String(endMonth).padStart(2, '0')}-01` }
-}
-
-export function blocksQueryRange(start: string, end: string) {
-  return { startsAt: `${start}T00:00`, endsAt: `${addBusinessDays(end, 1)}T00:00` }
 }
 
 export function EstablishmentBlocksPage() {

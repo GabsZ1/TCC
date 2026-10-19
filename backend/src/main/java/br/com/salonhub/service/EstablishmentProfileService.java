@@ -57,7 +57,7 @@ public class EstablishmentProfileService {
         Establishment establishment = tenantAuthorizationService
                 .requireAdministrator(administratorId).getEstablishment();
         if (!establishment.isActive()) {
-            throw new ConflictException("Não é possível editar o perfil de um estabelecimento inativo.");
+            throw new ConflictException("Não é possível editar o perfil de um estabelecimento desativado.");
         }
         EstablishmentProfile profile = profileRepository.findByEstablishmentId(establishment.getId())
                 .orElseGet(() -> EstablishmentProfile.builder().establishment(establishment).build());

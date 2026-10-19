@@ -184,7 +184,7 @@ export function EmployeesListPage() {
       <section className="surface-card mt-7 grid overflow-hidden sm:grid-cols-3">
         <MiniMetric icon={<UsersRound size={17} />} label="Total" value={sortedEmployees.length} />
         <MiniMetric icon={<UserCheck size={17} />} label="Ativos" value={activeCount} tone="success" bordered />
-        <MiniMetric icon={<UserX size={17} />} label="Inativos" value={inactiveCount} tone="muted" bordered />
+        <MiniMetric icon={<UserX size={17} />} label="Desativados" value={inactiveCount} tone="muted" bordered />
       </section>
 
       {removalMessage && (
@@ -213,7 +213,7 @@ export function EmployeesListPage() {
                 <h3 className="break-words font-semibold text-text-900">{employee.name}</h3>
                 <p className="mt-0.5 break-all text-xs text-text-500">{employee.email}</p>
               </div>
-              <span className={`status-pill shrink-0 ${employee.active ? 'bg-success-50 text-success-700' : 'bg-background-200 text-text-600'}`}>{employee.active ? 'Ativo' : 'Inativo'}</span>
+              <span className={`status-pill shrink-0 ${employee.active ? 'bg-success-50 text-success-700' : 'bg-background-200 text-text-600'}`}>{employee.active ? 'Ativo' : 'Desativado'}</span>
             </div>
             <p className="mt-3 text-sm text-text-600">{employee.occupation || 'Ocupação não informada'}</p>
             <div className="mt-4 flex items-center justify-between gap-2 border-t border-background-300 pt-3">
@@ -253,7 +253,7 @@ export function EmployeesListPage() {
                   <td className="px-5 py-4">
                     <span className={`status-pill ${employee.active ? 'bg-success-50 text-success-700' : 'bg-background-200 text-text-600'}`}>
                       <span className={`size-1.5 rounded-full ${employee.active ? 'bg-success-500' : 'bg-text-400'}`} />
-                      {employee.active ? 'Ativo' : 'Inativo'}
+                      {employee.active ? 'Ativo' : 'Desativado'}
                     </span>
                   </td>
                   <td className="px-5 py-4">

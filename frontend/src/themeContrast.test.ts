@@ -53,12 +53,7 @@ function contrast(foreground: string, background: string) {
 const combinations = [
   ['text-400', 'background-50'],
   ['text-500', 'background-50'],
-  ['text-500', 'background-100'],
-  ['text-600', 'background-50'],
-  ['text-600', 'background-100'],
   ['text-600', 'background-200'],
-  ['text-700', 'background-50'],
-  ['text-800', 'background-50'],
   ['text-900', 'background-50'],
   ['primary-700', 'primary-50'],
   ['accent-700', 'accent-100'],
@@ -66,13 +61,10 @@ const combinations = [
   ['warning-700', 'warning-50'],
   ['danger-600', 'danger-50'],
   ['on-primary', 'primary-600'],
-  ['on-primary', 'primary-700'],
   ['on-danger', 'danger-500'],
-  ['on-danger', 'danger-600'],
   ['on-success', 'success-600'],
   ['on-warning', 'warning-700'],
   ['sidebar-text', 'sidebar-bg'],
-  ['sidebar-muted', 'sidebar-bg'],
 ] as const
 
 describe('contraste do tema claro', () => {

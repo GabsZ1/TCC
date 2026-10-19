@@ -2,7 +2,8 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { blocksQueryRange, EstablishmentBlocksPage } from './EstablishmentBlocksPage'
+import { EstablishmentBlocksPage } from './EstablishmentBlocksPage'
+import { blocksQueryRange } from './establishmentBlocksUtils'
 
 describe('exceções do estabelecimento', () => {
   afterEach(() => vi.useRealTimers())

@@ -86,9 +86,9 @@ export function EstablishmentGalleryManager({ establishmentId }: { establishment
           </div>
           <div className="flex items-center gap-1 p-2">
             <GripVertical size={16} className="mr-auto hidden text-text-400 sm:block" aria-hidden="true" />
-            <button type="button" disabled={busy || index === 0} onClick={() => move(index, index - 1)} className="grid size-10 place-items-center rounded-lg text-text-600 hover:bg-background-100 disabled:opacity-30" aria-label={`Mover foto ${index + 1} para antes`}><ArrowLeft size={17} /></button>
-            <button type="button" disabled={busy || index === photos.length - 1} onClick={() => move(index, index + 1)} className="grid size-10 place-items-center rounded-lg text-text-600 hover:bg-background-100 disabled:opacity-30" aria-label={`Mover foto ${index + 1} para depois`}><ArrowRight size={17} /></button>
-            <button type="button" disabled={busy} onClick={() => setPhotoToRemove(photo.id)} className="ml-auto grid size-10 place-items-center rounded-lg text-danger-600 hover:bg-danger-50 disabled:opacity-30" aria-label={`Remover foto ${index + 1}`}><Trash2 size={17} /></button>
+            <button type="button" disabled={busy || index === 0} onClick={() => move(index, index - 1)} className="grid size-10 place-items-center rounded-lg text-text-600 hover:bg-background-100 disabled:opacity-30" aria-label={`Mover foto ${index + 1} para antes`} title={`Mover foto ${index + 1} para antes`}><ArrowLeft size={17} /></button>
+            <button type="button" disabled={busy || index === photos.length - 1} onClick={() => move(index, index + 1)} className="grid size-10 place-items-center rounded-lg text-text-600 hover:bg-background-100 disabled:opacity-30" aria-label={`Mover foto ${index + 1} para depois`} title={`Mover foto ${index + 1} para depois`}><ArrowRight size={17} /></button>
+            <button type="button" disabled={busy} onClick={() => setPhotoToRemove(photo.id)} className="ml-auto grid size-10 place-items-center rounded-lg text-danger-600 hover:bg-danger-50 disabled:opacity-30" aria-label={`Remover foto ${index + 1}`} title={`Remover foto ${index + 1} da galeria`}><Trash2 size={17} /></button>
           </div>
         </li>)}
       </ol>}

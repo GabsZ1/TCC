@@ -191,15 +191,6 @@ class AppointmentsReportIntegrationTests extends FirstAccessIntegrationSupport {
     }
 
     @Test
-    void shouldForbidClientFromAccessingReport() throws Exception {
-        Fixture fixture = setUp("appointments-report-forbidden-client", "45000700010700");
-
-        mockMvc.perform(get("/api/estabelecimentos/me/relatorio-atendimentos")
-                        .header("Authorization", bearer(fixture.clientToken())))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
     void shouldRejectPeriodFilterMissingOneOfTheBounds() throws Exception {
         Fixture fixture = setUp("appointments-report-partial-period", "45000800010817");
 

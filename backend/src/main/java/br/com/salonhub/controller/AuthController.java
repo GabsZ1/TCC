@@ -144,7 +144,7 @@ public class AuthController {
     @GetMapping("/me")
     @Operation(summary = "Consultar sessão", description = "Retorna o usuário autenticado e seu estabelecimento.")
     @ApiResponse(responseCode = "200", description = "Usuário autenticado")
-    @ApiResponse(responseCode = "401", description = "Token ausente, inválido ou usuário inativo")
+    @ApiResponse(responseCode = "401", description = "Token ausente, inválido ou usuário desativado")
     public AuthenticatedUserResponse getCurrentUser(@AuthenticationPrincipal Jwt jwt) {
         return authenticationService.getCurrentUser(Long.valueOf(jwt.getSubject()));
     }
@@ -153,7 +153,7 @@ public class AuthController {
     @Operation(summary = "Renovar sessão",
             description = "Devolve um token novo para uma sessão ainda válida, sem pedir a senha de novo.")
     @ApiResponse(responseCode = "200", description = "Token renovado")
-    @ApiResponse(responseCode = "401", description = "Token ausente, expirado, de sessão encerrada ou usuário inativo")
+    @ApiResponse(responseCode = "401", description = "Token ausente, expirado, de sessão encerrada ou usuário desativado")
     public LoginResponse renewSession(@AuthenticationPrincipal Jwt jwt) {
         return authenticationService.renewSession(Long.valueOf(jwt.getSubject()));
     }
@@ -163,7 +163,7 @@ public class AuthController {
             + "Todas as sessões abertas são encerradas e a resposta traz um token novo para o dispositivo atual.")
     @ApiResponse(responseCode = "200", description = "Senha alterada; token novo da sessão atual")
     @ApiResponse(responseCode = "400", description = "Senha atual incorreta, confirmação divergente ou senha fraca")
-    @ApiResponse(responseCode = "401", description = "Token ausente, inválido ou usuário inativo")
+    @ApiResponse(responseCode = "401", description = "Token ausente, inválido ou usuário desativado")
     public LoginResponse changePassword(
             @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody PasswordChangeRequest request) {

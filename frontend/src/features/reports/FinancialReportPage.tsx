@@ -70,13 +70,13 @@ export function FinancialReportPage() {
         <Filter label="Profissional">
           <select value={professionalId} onChange={(event) => setProfessionalId(event.target.value)} className="filter-input">
             <option value="">Todos</option>
-            {employees.data?.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}{employee.active ? '' : ' (inativo)'}</option>)}
+            {employees.data?.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}{employee.active ? '' : ' (desativado)'}</option>)}
           </select>
         </Filter>
         <Filter label="Serviço">
           <select value={serviceId} onChange={(event) => setServiceId(event.target.value)} className="filter-input">
             <option value="">Todos</option>
-            {services.data?.map((service) => <option key={service.id} value={service.id}>{service.name}{service.active ? '' : ' (inativo)'}</option>)}
+            {services.data?.map((service) => <option key={service.id} value={service.id}>{service.name}{service.active ? '' : ' (desativado)'}</option>)}
           </select>
         </Filter>
         {filterError && <p role="alert" className="text-sm text-danger-600 sm:col-span-2 lg:col-span-4">{filterError}</p>}

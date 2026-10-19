@@ -17,7 +17,7 @@ public class CustomerResolutionService {
         Long establishmentId = establishment.getId();
         Customer linked = customers.findByEstablishmentIdAndUserId(establishmentId, client.getId()).orElse(null);
         if (linked != null) {
-            if (!linked.isActive()) throw new ConflictException("Cliente inativo neste estabelecimento.");
+            if (!linked.isActive()) throw new ConflictException("Cliente desativado neste estabelecimento.");
             linked.synchronizeFrom(client);
             return linked;
         }

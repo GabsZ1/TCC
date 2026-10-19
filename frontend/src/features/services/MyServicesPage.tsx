@@ -25,7 +25,7 @@ export function MyServicesPage() {
         </p>
       )}
 
-      <div className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="mt-7 grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
         {servicesQuery.isLoading && <StateCard>Carregando serviços...</StateCard>}
         {servicesQuery.isError && (
           <StateCard error>{getApiErrorMessage(servicesQuery.error, 'Não foi possível carregar seus serviços.')}</StateCard>

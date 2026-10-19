@@ -313,7 +313,7 @@ button:disabled { cursor: default; }
 
 @layer components {
   .page-shell {
-    @apply mx-auto w-full max-w-[94rem] px-5 py-7 sm:px-8 sm:py-9 lg:px-10 lg:py-10 xl:px-12;
+    @apply mx-auto min-w-0 w-full max-w-[94rem] px-4 py-6 sm:px-8 sm:py-9 lg:px-10 lg:py-10 xl:px-12;
   }
 
   .page-title {
@@ -334,7 +334,7 @@ button:disabled { cursor: default; }
   }
 
   .surface-card {
-    @apply rounded-[1rem] border border-background-300 bg-background-50;
+    @apply min-w-0 rounded-[1rem] border border-background-300 bg-background-50;
     box-shadow: var(--shadow-soft);
   }
 
@@ -361,7 +361,7 @@ button:disabled { cursor: default; }
   }
 
   .icon-button {
-    @apply inline-grid size-9 place-items-center rounded-[0.65rem] border border-transparent text-text-600 hover:border-background-300 hover:bg-background-100 hover:text-text-900;
+    @apply inline-grid size-11 place-items-center rounded-[0.65rem] border border-transparent text-text-600 hover:border-background-300 hover:bg-background-100 hover:text-text-900 sm:size-9;
   }
 
   .filter-input,

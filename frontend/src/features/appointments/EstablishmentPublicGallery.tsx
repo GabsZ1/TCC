@@ -35,12 +35,12 @@ export function EstablishmentPublicGallery({ establishmentId, establishmentName 
       }}>
         <GalleryPhotoImage establishmentId={establishmentId} photoId={selected.id} alt={`${establishmentName}: foto ${selectedIndex + 1} de ${photos.length}`} className="aspect-[4/3] w-full object-contain sm:aspect-[16/9] sm:max-h-[30rem]" />
         {photos.length > 1 && <>
-          <button type="button" onClick={() => goTo(selectedIndex - 1)} className="absolute left-2 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-text-900 shadow-md transition hover:bg-white focus-visible:outline-2 focus-visible:outline-primary-600 sm:left-4" aria-label="Foto anterior"><ChevronLeft size={23} /></button>
-          <button type="button" onClick={() => goTo(selectedIndex + 1)} className="absolute right-2 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-text-900 shadow-md transition hover:bg-white focus-visible:outline-2 focus-visible:outline-primary-600 sm:right-4" aria-label="Próxima foto"><ChevronRight size={23} /></button>
+          <button type="button" onClick={() => goTo(selectedIndex - 1)} className="absolute left-2 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-text-900 shadow-md transition hover:bg-white focus-visible:outline-2 focus-visible:outline-primary-600 sm:left-4" aria-label="Foto anterior" title="Mostrar foto anterior"><ChevronLeft size={23} /></button>
+          <button type="button" onClick={() => goTo(selectedIndex + 1)} className="absolute right-2 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-text-900 shadow-md transition hover:bg-white focus-visible:outline-2 focus-visible:outline-primary-600 sm:right-4" aria-label="Próxima foto" title="Mostrar próxima foto"><ChevronRight size={23} /></button>
         </>}
       </div>
       {photos.length > 1 && <div className="mt-3 flex snap-x gap-2 overflow-x-auto pb-2" aria-label="Escolher foto da galeria">
-        {photos.map((photo, index) => <button key={photo.id} type="button" onClick={() => setSelectedId(photo.id)} aria-label={`Mostrar foto ${index + 1}`} aria-current={index === selectedIndex ? 'true' : undefined} className={`w-20 shrink-0 snap-start overflow-hidden rounded-xl border-2 transition sm:w-24 ${index === selectedIndex ? 'border-primary-600' : 'border-transparent opacity-75 hover:opacity-100'}`}>
+        {photos.map((photo, index) => <button key={photo.id} type="button" onClick={() => setSelectedId(photo.id)} aria-label={`Mostrar foto ${index + 1}`} title={`Mostrar foto ${index + 1}`} aria-current={index === selectedIndex ? 'true' : undefined} className={`w-20 shrink-0 snap-start overflow-hidden rounded-xl border-2 transition sm:w-24 ${index === selectedIndex ? 'border-primary-600' : 'border-transparent opacity-75 hover:opacity-100'}`}>
           <GalleryPhotoImage establishmentId={establishmentId} photoId={photo.id} lazy alt="" className="aspect-[4/3] w-full object-cover" />
         </button>)}
       </div>}

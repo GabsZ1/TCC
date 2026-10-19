@@ -2,6 +2,7 @@ package br.com.salonhub.validation;
 
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
+import java.util.Locale;
 
 public class CnpjValidator implements ConstraintValidator<ValidCnpj, String> {
 
@@ -14,27 +15,27 @@ public class CnpjValidator implements ConstraintValidator<ValidCnpj, String> {
             return true;
         }
 
-        String normalizedValue = value.trim();
-        boolean supportedFormat = normalizedValue.matches("\\d{14}")
-                || normalizedValue.matches("\\d{2}\\.\\d{3}\\.\\d{3}/\\d{4}-\\d{2}");
+        String normalizedValue = value.trim().toUpperCase(Locale.ROOT);
+        boolean supportedFormat = normalizedValue.matches("[A-Z0-9]{12}[0-9]{2}")
+                || normalizedValue.matches("[A-Z0-9]{2}\\.[A-Z0-9]{3}\\.[A-Z0-9]{3}/[A-Z0-9]{4}-[0-9]{2}");
         if (!supportedFormat) {
             return false;
         }
 
-        String digits = normalizedValue.replaceAll("\\D", "");
-        if (digits.length() != 14 || digits.chars().distinct().count() == 1) {
+        String cnpj = normalizedValue.replaceAll("[./-]", "");
+        if (cnpj.substring(0, 12).chars().distinct().count() == 1) {
             return false;
         }
 
-        int firstDigit = calculateDigit(digits.substring(0, 12), FIRST_DIGIT_WEIGHTS);
-        int secondDigit = calculateDigit(digits.substring(0, 12) + firstDigit, SECOND_DIGIT_WEIGHTS);
-        return digits.endsWith("" + firstDigit + secondDigit);
+        int firstDigit = calculateDigit(cnpj.substring(0, 12), FIRST_DIGIT_WEIGHTS);
+        int secondDigit = calculateDigit(cnpj.substring(0, 12) + firstDigit, SECOND_DIGIT_WEIGHTS);
+        return cnpj.endsWith("" + firstDigit + secondDigit);
     }
 
-    private int calculateDigit(String digits, int[] weights) {
+    private int calculateDigit(String characters, int[] weights) {
         int sum = 0;
         for (int index = 0; index < weights.length; index++) {
-            sum += Character.digit(digits.charAt(index), 10) * weights[index];
+            sum += (characters.charAt(index) - '0') * weights[index];
         }
         int digit = 11 - (sum % 11);
         return digit >= 10 ? 0 : digit;

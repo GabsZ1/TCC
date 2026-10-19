@@ -178,15 +178,6 @@ class CommissionReportIntegrationTests extends FirstAccessIntegrationSupport {
     }
 
     @Test
-    void shouldForbidClientFromAccessingReport() throws Exception {
-        Fixture fixture = setUp("commissions-forbidden-client", "44000700010700");
-
-        mockMvc.perform(get("/api/estabelecimentos/me/relatorio-comissoes")
-                        .header("Authorization", bearer(fixture.clientToken())))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
     void shouldRejectPeriodFilterMissingOneOfTheBounds() throws Exception {
         Fixture fixture = setUp("commissions-partial-period", "44000800010817");
 

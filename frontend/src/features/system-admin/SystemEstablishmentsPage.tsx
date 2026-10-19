@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Building2, CalendarOff, Eye, Pause, Power, RotateCcw, Search } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { getApiErrorMessage } from '@/lib/apiError'
+import { formatCnpj } from '@/lib/format'
 import { SystemEstablishmentDetailsModal } from '@/features/system-admin/SystemEstablishmentDetailsModal'
 import {
   allowSystemEstablishmentBookings,
@@ -39,9 +40,9 @@ export function SystemEstablishmentsPage() {
   const filtered = useMemo(() => {
     const term = normalizeName(search)
     if (!term) return establishments.data ?? []
-    const digits = term.replace(/\D/g, '')
+    const cnpjTerm = term.replace(/[^a-z0-9]/g, '').toUpperCase()
     return (establishments.data ?? []).filter((item) =>
-      normalizeName(item.name).includes(term) || (digits.length > 0 && item.cnpj.includes(digits)),
+      normalizeName(item.name).includes(term) || (cnpjTerm.length > 0 && item.cnpj.includes(cnpjTerm)),
     )
   }, [establishments.data, search])
   const totalPages = Math.max(1, Math.ceil(filtered.length / ESTABLISHMENTS_PER_PAGE))
@@ -68,12 +69,12 @@ export function SystemEstablishmentsPage() {
         {!establishments.isLoading && !establishments.isError && filtered.length === 0 && <State>Nenhum estabelecimento encontrado.</State>}
         {visible.length > 0 && <div className="divide-y divide-background-300">{visible.map((item) => (
           <article key={item.id} className="p-5">
-            <div className="flex items-start gap-3"><span className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary-100 text-primary-700"><Building2 size={20} /></span><div className="min-w-0 flex-1"><h3 className="font-semibold text-text-900">{item.name}</h3><p className="mt-1 text-sm text-text-500">CNPJ {formatCnpj(item.cnpj)}{item.email ? ` · ${item.email}` : ''}</p><div className="mt-3 flex flex-wrap gap-2"><Status active={item.active} label={item.active ? 'Site ativo' : 'Site desativado'} />{item.paused && <Status label="Operação pausada" />}{item.bookingsBlocked && <Status label="Agendamentos bloqueados" />}</div></div></div>
+            <div className="flex items-start gap-3"><span className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary-100 text-primary-700"><Building2 size={20} /></span><div className="min-w-0 flex-1"><h3 className="break-words font-semibold text-text-900">{item.name}</h3><p className="mt-1 break-all text-sm text-text-500">CNPJ {formatCnpj(item.cnpj)}{item.email ? ` · ${item.email}` : ''}</p><div className="mt-3 flex flex-wrap gap-2"><Status active={item.active} label={item.active ? 'Estabelecimento ativo' : 'Estabelecimento desativado'} />{item.paused && <Status label="Operação pausada" />}{item.bookingsBlocked && <Status label="Agendamentos bloqueados" />}</div></div></div>
             <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
               <ActionButton icon={<Eye size={16} />} disabled={false} onClick={() => setDetailsOf(item)}>Ver detalhes</ActionButton>
               <ActionButton icon={<CalendarOff size={16} />} disabled={!item.active || stateMutation.isPending} onClick={() => select(item, item.bookingsBlocked ? 'allow' : 'block')}>{item.bookingsBlocked ? 'Liberar agendamentos' : 'Bloquear agendamentos'}</ActionButton>
               <ActionButton icon={item.paused ? <RotateCcw size={16} /> : <Pause size={16} />} disabled={!item.active || stateMutation.isPending} onClick={() => select(item, item.paused ? 'resume' : 'pause')}>{item.paused ? 'Retomar operação' : 'Pausar operação'}</ActionButton>
-              <ActionButton danger={item.active} icon={<Power size={16} />} disabled={stateMutation.isPending} onClick={() => select(item, item.active ? 'deactivate' : 'reactivate')}>{item.active ? 'Desativar site' : 'Reativar site'}</ActionButton>
+              <ActionButton danger={item.active} icon={<Power size={16} />} disabled={stateMutation.isPending} onClick={() => select(item, item.active ? 'deactivate' : 'reactivate')}>{item.active ? 'Desativar estabelecimento' : 'Reativar estabelecimento'}</ActionButton>
             </div>
           </article>
         ))}</div>}
@@ -100,15 +101,15 @@ function confirmationProps(item: SystemEstablishment, action: Action) {
     allow: { title: 'Liberar agendamentos', message: `Permitir novamente novas reservas em “${item.name}”?`, confirmLabel: 'Liberar' },
     pause: { title: 'Pausar operação', message: `Pausar “${item.name}”? A pausa só será possível se não houver atendimentos confirmados e bloqueará o acesso dos funcionários.`, confirmLabel: 'Pausar' },
     resume: { title: 'Retomar operação', message: `Liberar novamente o acesso dos funcionários de “${item.name}”?`, confirmLabel: 'Retomar' },
-    deactivate: { title: 'Desativar site', message: `Desativar “${item.name}”? Todos os usuários vinculados perderão o acesso e os atendimentos confirmados serão cancelados definitivamente com o motivo “Site desativado”.`, confirmLabel: 'Desativar site' },
-    reactivate: { title: 'Reativar site', message: `Reativar o acesso de “${item.name}”? Os atendimentos cancelados na desativação continuarão cancelados.`, confirmLabel: 'Reativar site' },
+    deactivate: { title: 'Desativar estabelecimento', message: `Desativar “${item.name}”? Todos os usuários vinculados perderão o acesso e os atendimentos confirmados serão cancelados definitivamente com o motivo “Estabelecimento desativado”.`, confirmLabel: 'Desativar estabelecimento' },
+    reactivate: { title: 'Reativar estabelecimento', message: `Reativar o acesso de “${item.name}”? Os atendimentos cancelados na desativação continuarão cancelados.`, confirmLabel: 'Reativar estabelecimento' },
   }
   return copy[action]
 }
 
 function successMessage(action: Action) {
-  if (action === 'deactivate') return 'Site desativado e atendimentos pendentes cancelados.'
-  if (action === 'reactivate') return 'Site reativado. Os cancelamentos anteriores foram mantidos.'
+  if (action === 'deactivate') return 'Estabelecimento desativado e atendimentos pendentes cancelados.'
+  if (action === 'reactivate') return 'Estabelecimento reativado. Os cancelamentos anteriores foram mantidos.'
   if (action === 'pause') return 'Operação pausada pelo sistema.'
   if (action === 'resume') return 'Operação retomada.'
   return action === 'block' ? 'Novos agendamentos bloqueados pelo sistema.' : 'Novos agendamentos liberados.'
@@ -117,5 +118,4 @@ function successMessage(action: Action) {
 function ActionButton({ children, icon, danger = false, disabled, onClick }: { children: React.ReactNode; icon: React.ReactNode; danger?: boolean; disabled: boolean; onClick: () => void }) { return <button type="button" disabled={disabled} onClick={onClick} className={`inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40 ${danger ? 'border-danger-500/30 text-danger-600 hover:bg-danger-50' : 'border-background-300 text-text-700 hover:bg-background-100'}`}>{icon}{children}</button> }
 function Status({ active = false, label }: { active?: boolean; label: string }) { return <span className={`status-pill ${active ? 'bg-success-50 text-success-700' : 'bg-warning-100 text-warning-700'}`}>{label}</span> }
 function State({ children, error = false }: { children: React.ReactNode; error?: boolean }) { return <div className={`p-10 text-center text-sm ${error ? 'text-danger-600' : 'text-text-500'}`}>{children}</div> }
-function formatCnpj(value: string) { return value.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') }
 function normalizeName(value: string) { return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLocaleLowerCase('pt-BR') }

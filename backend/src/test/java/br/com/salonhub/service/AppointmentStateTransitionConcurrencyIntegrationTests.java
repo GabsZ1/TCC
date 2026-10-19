@@ -126,7 +126,7 @@ class AppointmentStateTransitionConcurrencyIntegrationTests {
         } else {
             assertThat(result.firstSucceeded()).isFalse();
             assertThat(current.getCompletedAt()).isNull();
-            assertThat(current.getCancellationReason()).isEqualTo("Site desativado");
+            assertThat(current.getCancellationReason()).isEqualTo("Estabelecimento desativado");
             assertThat(current.getCancelledBy()).isNotNull();
         }
     }
