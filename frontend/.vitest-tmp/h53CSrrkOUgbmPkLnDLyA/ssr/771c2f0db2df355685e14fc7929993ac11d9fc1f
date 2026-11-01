@@ -1,0 +1,23 @@
+__vite_ssr_exportName__("phoneDigits", () => { try { return phoneDigits } catch {} });
+__vite_ssr_exportName__("isValidPhone", () => { try { return isValidPhone } catch {} });
+__vite_ssr_exportName__("formatPhone", () => { try { return formatPhone } catch {} });
+__vite_ssr_exportName__("PHONE_MASK", () => { try { return PHONE_MASK } catch {} });
+/** Telefones brasileiros (DDD + 8 ou 9 dígitos). O backend guarda só os dígitos. */
+function phoneDigits(value) {
+	return value.replace(/\D/g, "");
+};
+function isValidPhone(value) {
+	return /^[1-9]\d{9,10}$/.test(phoneDigits(value));
+};
+function formatPhone(value) {
+	const digits = phoneDigits(value ?? "");
+	if (digits.length === 11) return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+	if (digits.length === 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+	return value ?? "";
+};
+/** Máscara dinâmica: fixo (8 dígitos) ou celular (9 dígitos). */
+const PHONE_MASK = [{ mask: "(00) 0000-0000" }, { mask: "(00) 00000-0000" }];
+//# sourceMappingSource=vite-generated
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJtYXBwaW5ncyI6IkFBQUEsQ0FBQTs7Ozs7QUFFTyxTQUFTLFlBQVksT0FBZTtDQUN6QyxPQUFPLE1BQU0sUUFBUSxPQUFPLEVBQUU7QUFDaEM7QUFFTyxTQUFTLGFBQWEsT0FBZTtDQUMxQyxPQUFPLGtCQUFrQixLQUFLLFlBQVksS0FBSyxDQUFDO0FBQ2xEO0FBRU8sU0FBUyxZQUFZLE9BQWtDO0NBQzVELE1BQU0sU0FBUyxZQUFZLFNBQVMsRUFBRTtDQUN0QyxJQUFJLE9BQU8sV0FBVyxJQUFJLE9BQU8sSUFBSSxPQUFPLE1BQU0sR0FBRyxDQUFDLEVBQUUsSUFBSSxPQUFPLE1BQU0sR0FBRyxDQUFDLEVBQUUsR0FBRyxPQUFPLE1BQU0sQ0FBQztDQUNoRyxJQUFJLE9BQU8sV0FBVyxJQUFJLE9BQU8sSUFBSSxPQUFPLE1BQU0sR0FBRyxDQUFDLEVBQUUsSUFBSSxPQUFPLE1BQU0sR0FBRyxDQUFDLEVBQUUsR0FBRyxPQUFPLE1BQU0sQ0FBQztDQUNoRyxPQUFPLFNBQVM7QUFDbEI7O0FBR08sTUFBTSxhQUFhLENBQUMsRUFBRSxNQUFNLGlCQUFpQixHQUFHLEVBQUUsTUFBTSxrQkFBa0IsQ0FBQyIsIm5hbWVzIjpbXSwiaWdub3JlTGlzdCI6W10sInNvdXJjZXMiOlsicGhvbmUudHMiXSwic291cmNlc0NvbnRlbnQiOlsiLyoqIFRlbGVmb25lcyBicmFzaWxlaXJvcyAoREREICsgOCBvdSA5IGTDrWdpdG9zKS4gTyBiYWNrZW5kIGd1YXJkYSBzw7Mgb3MgZMOtZ2l0b3MuICovXHJcblxyXG5leHBvcnQgZnVuY3Rpb24gcGhvbmVEaWdpdHModmFsdWU6IHN0cmluZykge1xyXG4gIHJldHVybiB2YWx1ZS5yZXBsYWNlKC9cXEQvZywgJycpXHJcbn1cclxuXHJcbmV4cG9ydCBmdW5jdGlvbiBpc1ZhbGlkUGhvbmUodmFsdWU6IHN0cmluZykge1xyXG4gIHJldHVybiAvXlsxLTldXFxkezksMTB9JC8udGVzdChwaG9uZURpZ2l0cyh2YWx1ZSkpXHJcbn1cclxuXHJcbmV4cG9ydCBmdW5jdGlvbiBmb3JtYXRQaG9uZSh2YWx1ZTogc3RyaW5nIHwgbnVsbCB8IHVuZGVmaW5lZCkge1xyXG4gIGNvbnN0IGRpZ2l0cyA9IHBob25lRGlnaXRzKHZhbHVlID8/ICcnKVxyXG4gIGlmIChkaWdpdHMubGVuZ3RoID09PSAxMSkgcmV0dXJuIGAoJHtkaWdpdHMuc2xpY2UoMCwgMil9KSAke2RpZ2l0cy5zbGljZSgyLCA3KX0tJHtkaWdpdHMuc2xpY2UoNyl9YFxyXG4gIGlmIChkaWdpdHMubGVuZ3RoID09PSAxMCkgcmV0dXJuIGAoJHtkaWdpdHMuc2xpY2UoMCwgMil9KSAke2RpZ2l0cy5zbGljZSgyLCA2KX0tJHtkaWdpdHMuc2xpY2UoNil9YFxyXG4gIHJldHVybiB2YWx1ZSA/PyAnJ1xyXG59XHJcblxyXG4vKiogTcOhc2NhcmEgZGluw6JtaWNhOiBmaXhvICg4IGTDrWdpdG9zKSBvdSBjZWx1bGFyICg5IGTDrWdpdG9zKS4gKi9cclxuZXhwb3J0IGNvbnN0IFBIT05FX01BU0sgPSBbeyBtYXNrOiAnKDAwKSAwMDAwLTAwMDAnIH0sIHsgbWFzazogJygwMCkgMDAwMDAtMDAwMCcgfV1cclxuIl0sImZpbGUiOiIvc3JjL2xpYi9waG9uZS50cyJ9
+
+//# vitestCache=W3siZmlsZSI6IjEiLCJpZCI6IjEiLCJ1cmwiOiIyIiwiaW1wb3J0ZWRVcmxzIjoiMyIsIm1hcHBpbmdzIjpmYWxzZSwiZGVwcyI6IjQiLCJkeW5hbWljRGVwcyI6IjUiLCJzdGF0aWNNb2NrcyI6bnVsbH0sIkM6L1RDQy9Qcm9qZXRvL2Zyb250ZW5kL3NyYy9saWIvcGhvbmUudHMiLCIvc3JjL2xpYi9waG9uZS50cyIsW10sW10sW11d

@@ -1,0 +1,58 @@
+const __vite_ssr_import_0__ = await __vite_ssr_import__("/node_modules/vitest/dist/index.js", {"importedNames":["afterEach","describe","expect","it","vi"]});
+const __vite_ssr_import_1__ = await __vite_ssr_import__("/src/lib/cep.ts", {"importedNames":["CepNotFoundError","formatCep","lookupCep"]});
+
+
+function jsonResponse(body, status = 200) {
+	return new Response(JSON.stringify(body), {
+		status,
+		headers: { "Content-Type": "application/json" }
+	});
+}
+(0,__vite_ssr_import_0__.describe)("cep", () => {
+	(0,__vite_ssr_import_0__.afterEach)(() => __vite_ssr_import_0__.vi.unstubAllGlobals());
+	(0,__vite_ssr_import_0__.it)("formata o CEP para exibição", () => {
+		(0,__vite_ssr_import_0__.expect)((0,__vite_ssr_import_1__.formatCep)("87010")).toBe("87010");
+		(0,__vite_ssr_import_0__.expect)((0,__vite_ssr_import_1__.formatCep)("87010-000")).toBe("87010-000");
+		(0,__vite_ssr_import_0__.expect)((0,__vite_ssr_import_1__.formatCep)("870100001234")).toBe("87010-000");
+	});
+	(0,__vite_ssr_import_0__.it)("preenche o endereço pela ViaCEP", async () => {
+		const fetchMock = __vite_ssr_import_0__.vi.fn().mockResolvedValue(jsonResponse({
+			logradouro: "Avenida Brasil",
+			bairro: "Centro",
+			localidade: "Maringá",
+			uf: "PR"
+		}));
+		__vite_ssr_import_0__.vi.stubGlobal("fetch", fetchMock);
+		await (0,__vite_ssr_import_0__.expect)((0,__vite_ssr_import_1__.lookupCep)("87013-000")).resolves.toEqual({
+			street: "Avenida Brasil",
+			neighborhood: "Centro",
+			city: "Maringá",
+			state: "PR"
+		});
+		(0,__vite_ssr_import_0__.expect)(fetchMock).toHaveBeenCalledWith("https://viacep.com.br/ws/87013000/json/", __vite_ssr_import_0__.expect.anything());
+	});
+	(0,__vite_ssr_import_0__.it)("informa CEP inexistente", async () => {
+		__vite_ssr_import_0__.vi.stubGlobal("fetch", __vite_ssr_import_0__.vi.fn().mockResolvedValue(jsonResponse({ erro: "true" })));
+		await (0,__vite_ssr_import_0__.expect)((0,__vite_ssr_import_1__.lookupCep)("99999999")).rejects.toBeInstanceOf((0,__vite_ssr_import_1__.CepNotFoundError));
+	});
+	(0,__vite_ssr_import_0__.it)("usa a BrasilAPI quando a ViaCEP falha", async () => {
+		const fetchMock = __vite_ssr_import_0__.vi.fn().mockRejectedValueOnce(new TypeError("Failed to fetch")).mockResolvedValueOnce(jsonResponse({
+			street: "Rua A",
+			neighborhood: "Zona 7",
+			city: "Maringá",
+			state: "PR"
+		}));
+		__vite_ssr_import_0__.vi.stubGlobal("fetch", fetchMock);
+		await (0,__vite_ssr_import_0__.expect)((0,__vite_ssr_import_1__.lookupCep)("87020000")).resolves.toEqual({
+			street: "Rua A",
+			neighborhood: "Zona 7",
+			city: "Maringá",
+			state: "PR"
+		});
+		(0,__vite_ssr_import_0__.expect)(fetchMock).toHaveBeenLastCalledWith("https://brasilapi.com.br/api/cep/v1/87020000", __vite_ssr_import_0__.expect.anything());
+	});
+});
+//# sourceMappingSource=vite-generated
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJtYXBwaW5ncyI6IkFBQUE7QUFDQTs7O0FBRUEsU0FBUyxhQUFhLE1BQWUsU0FBUyxLQUFLO0NBQ2pELE9BQU8sSUFBSSxTQUFTLEtBQUssVUFBVSxJQUFJLEdBQUc7RUFBRTtFQUFRLFNBQVMsRUFBRSxnQkFBZ0IsbUJBQW1CO0NBQUUsQ0FBQztBQUN2RztBQUVBLG1DQUFTLGFBQWE7Q0FDcEIsMENBQWdCLHlCQUFHLGlCQUFpQixDQUFDO0NBRXJDLDZCQUFHLHFDQUFxQztFQUN0QyxpQ0FBTyxvQ0FBVSxPQUFPLENBQUMsQ0FBQyxDQUFDLEtBQUssT0FBTztFQUN2QyxpQ0FBTyxvQ0FBVSxXQUFXLENBQUMsQ0FBQyxDQUFDLEtBQUssV0FBVztFQUMvQyxpQ0FBTyxvQ0FBVSxjQUFjLENBQUMsQ0FBQyxDQUFDLEtBQUssV0FBVztDQUNwRCxDQUFDO0NBRUQsNkJBQUcsbUNBQW1DLFlBQVk7RUFDaEQsTUFBTSxZQUFZLHlCQUFHLEdBQUcsQ0FBQyxDQUFDLGtCQUFrQixhQUFhO0dBQUUsWUFBWTtHQUFrQixRQUFRO0dBQVUsWUFBWTtHQUFXLElBQUk7RUFBSyxDQUFDLENBQUM7RUFDN0kseUJBQUcsV0FBVyxTQUFTLFNBQVM7RUFDaEMsTUFBTSxpQ0FBTyxvQ0FBVSxXQUFXLENBQUMsQ0FBQyxDQUFDLFNBQVMsUUFBUTtHQUFFLFFBQVE7R0FBa0IsY0FBYztHQUFVLE1BQU07R0FBVyxPQUFPO0VBQUssQ0FBQztFQUN4SSxpQ0FBTyxTQUFTLENBQUMsQ0FBQyxxQkFBcUIsMkNBQTJDLDZCQUFPLFNBQVMsQ0FBQztDQUNyRyxDQUFDO0NBRUQsNkJBQUcsMkJBQTJCLFlBQVk7RUFDeEMseUJBQUcsV0FBVyxTQUFTLHlCQUFHLEdBQUcsQ0FBQyxDQUFDLGtCQUFrQixhQUFhLEVBQUUsTUFBTSxPQUFPLENBQUMsQ0FBQyxDQUFDO0VBQ2hGLE1BQU0saUNBQU8sb0NBQVUsVUFBVSxDQUFDLENBQUMsQ0FBQyxRQUFRLGtCQUFlLHVDQUFnQjtDQUM3RSxDQUFDO0NBRUQsNkJBQUcseUNBQXlDLFlBQVk7RUFDdEQsTUFBTSxZQUFZLHlCQUFHLEdBQUcsQ0FBQyxDQUN0QixzQkFBc0IsSUFBSSxVQUFVLGlCQUFpQixDQUFDLENBQUMsQ0FDdkQsc0JBQXNCLGFBQWE7R0FBRSxRQUFRO0dBQVMsY0FBYztHQUFVLE1BQU07R0FBVyxPQUFPO0VBQUssQ0FBQyxDQUFDO0VBQ2hILHlCQUFHLFdBQVcsU0FBUyxTQUFTO0VBQ2hDLE1BQU0saUNBQU8sb0NBQVUsVUFBVSxDQUFDLENBQUMsQ0FBQyxTQUFTLFFBQVE7R0FBRSxRQUFRO0dBQVMsY0FBYztHQUFVLE1BQU07R0FBVyxPQUFPO0VBQUssQ0FBQztFQUM5SCxpQ0FBTyxTQUFTLENBQUMsQ0FBQyx5QkFBeUIsZ0RBQWdELDZCQUFPLFNBQVMsQ0FBQztDQUM5RyxDQUFDO0FBQ0gsQ0FBQyIsIm5hbWVzIjpbXSwiaWdub3JlTGlzdCI6W10sInNvdXJjZXMiOlsiY2VwLnRlc3QudHMiXSwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHsgYWZ0ZXJFYWNoLCBkZXNjcmliZSwgZXhwZWN0LCBpdCwgdmkgfSBmcm9tICd2aXRlc3QnXHJcbmltcG9ydCB7IENlcE5vdEZvdW5kRXJyb3IsIGZvcm1hdENlcCwgbG9va3VwQ2VwIH0gZnJvbSAnLi9jZXAnXHJcblxyXG5mdW5jdGlvbiBqc29uUmVzcG9uc2UoYm9keTogdW5rbm93biwgc3RhdHVzID0gMjAwKSB7XHJcbiAgcmV0dXJuIG5ldyBSZXNwb25zZShKU09OLnN0cmluZ2lmeShib2R5KSwgeyBzdGF0dXMsIGhlYWRlcnM6IHsgJ0NvbnRlbnQtVHlwZSc6ICdhcHBsaWNhdGlvbi9qc29uJyB9IH0pXHJcbn1cclxuXHJcbmRlc2NyaWJlKCdjZXAnLCAoKSA9PiB7XHJcbiAgYWZ0ZXJFYWNoKCgpID0+IHZpLnVuc3R1YkFsbEdsb2JhbHMoKSlcclxuXHJcbiAgaXQoJ2Zvcm1hdGEgbyBDRVAgcGFyYSBleGliacOnw6NvJywgKCkgPT4ge1xyXG4gICAgZXhwZWN0KGZvcm1hdENlcCgnODcwMTAnKSkudG9CZSgnODcwMTAnKVxyXG4gICAgZXhwZWN0KGZvcm1hdENlcCgnODcwMTAtMDAwJykpLnRvQmUoJzg3MDEwLTAwMCcpXHJcbiAgICBleHBlY3QoZm9ybWF0Q2VwKCc4NzAxMDAwMDEyMzQnKSkudG9CZSgnODcwMTAtMDAwJylcclxuICB9KVxyXG5cclxuICBpdCgncHJlZW5jaGUgbyBlbmRlcmXDp28gcGVsYSBWaWFDRVAnLCBhc3luYyAoKSA9PiB7XHJcbiAgICBjb25zdCBmZXRjaE1vY2sgPSB2aS5mbigpLm1vY2tSZXNvbHZlZFZhbHVlKGpzb25SZXNwb25zZSh7IGxvZ3JhZG91cm86ICdBdmVuaWRhIEJyYXNpbCcsIGJhaXJybzogJ0NlbnRybycsIGxvY2FsaWRhZGU6ICdNYXJpbmfDoScsIHVmOiAnUFInIH0pKVxyXG4gICAgdmkuc3R1Ykdsb2JhbCgnZmV0Y2gnLCBmZXRjaE1vY2spXHJcbiAgICBhd2FpdCBleHBlY3QobG9va3VwQ2VwKCc4NzAxMy0wMDAnKSkucmVzb2x2ZXMudG9FcXVhbCh7IHN0cmVldDogJ0F2ZW5pZGEgQnJhc2lsJywgbmVpZ2hib3Job29kOiAnQ2VudHJvJywgY2l0eTogJ01hcmluZ8OhJywgc3RhdGU6ICdQUicgfSlcclxuICAgIGV4cGVjdChmZXRjaE1vY2spLnRvSGF2ZUJlZW5DYWxsZWRXaXRoKCdodHRwczovL3ZpYWNlcC5jb20uYnIvd3MvODcwMTMwMDAvanNvbi8nLCBleHBlY3QuYW55dGhpbmcoKSlcclxuICB9KVxyXG5cclxuICBpdCgnaW5mb3JtYSBDRVAgaW5leGlzdGVudGUnLCBhc3luYyAoKSA9PiB7XHJcbiAgICB2aS5zdHViR2xvYmFsKCdmZXRjaCcsIHZpLmZuKCkubW9ja1Jlc29sdmVkVmFsdWUoanNvblJlc3BvbnNlKHsgZXJybzogJ3RydWUnIH0pKSlcclxuICAgIGF3YWl0IGV4cGVjdChsb29rdXBDZXAoJzk5OTk5OTk5JykpLnJlamVjdHMudG9CZUluc3RhbmNlT2YoQ2VwTm90Rm91bmRFcnJvcilcclxuICB9KVxyXG5cclxuICBpdCgndXNhIGEgQnJhc2lsQVBJIHF1YW5kbyBhIFZpYUNFUCBmYWxoYScsIGFzeW5jICgpID0+IHtcclxuICAgIGNvbnN0IGZldGNoTW9jayA9IHZpLmZuKClcclxuICAgICAgLm1vY2tSZWplY3RlZFZhbHVlT25jZShuZXcgVHlwZUVycm9yKCdGYWlsZWQgdG8gZmV0Y2gnKSlcclxuICAgICAgLm1vY2tSZXNvbHZlZFZhbHVlT25jZShqc29uUmVzcG9uc2UoeyBzdHJlZXQ6ICdSdWEgQScsIG5laWdoYm9yaG9vZDogJ1pvbmEgNycsIGNpdHk6ICdNYXJpbmfDoScsIHN0YXRlOiAnUFInIH0pKVxyXG4gICAgdmkuc3R1Ykdsb2JhbCgnZmV0Y2gnLCBmZXRjaE1vY2spXHJcbiAgICBhd2FpdCBleHBlY3QobG9va3VwQ2VwKCc4NzAyMDAwMCcpKS5yZXNvbHZlcy50b0VxdWFsKHsgc3RyZWV0OiAnUnVhIEEnLCBuZWlnaGJvcmhvb2Q6ICdab25hIDcnLCBjaXR5OiAnTWFyaW5nw6EnLCBzdGF0ZTogJ1BSJyB9KVxyXG4gICAgZXhwZWN0KGZldGNoTW9jaykudG9IYXZlQmVlbkxhc3RDYWxsZWRXaXRoKCdodHRwczovL2JyYXNpbGFwaS5jb20uYnIvYXBpL2NlcC92MS84NzAyMDAwMCcsIGV4cGVjdC5hbnl0aGluZygpKVxyXG4gIH0pXHJcbn0pXHJcbiJdLCJmaWxlIjoiL3NyYy9saWIvY2VwLnRlc3QudHMifQ==
+
+//# vitestCache=W3siZmlsZSI6IjEiLCJpZCI6IjEiLCJ1cmwiOiIyIiwiaW1wb3J0ZWRVcmxzIjoiMyIsIm1hcHBpbmdzIjpmYWxzZSwiZGVwcyI6IjQiLCJkeW5hbWljRGVwcyI6IjUiLCJzdGF0aWNNb2NrcyI6bnVsbH0sIkM6L1RDQy9Qcm9qZXRvL2Zyb250ZW5kL3NyYy9saWIvY2VwLnRlc3QudHMiLCIvc3JjL2xpYi9jZXAudGVzdC50cyIsW10sWyI2IiwiNyJdLFtdLCIvbm9kZV9tb2R1bGVzL3ZpdGVzdC9kaXN0L2luZGV4LmpzIiwiL3NyYy9saWIvY2VwLnRzIl0=

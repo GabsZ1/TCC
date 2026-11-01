@@ -1,0 +1,46 @@
+__vite_ssr_exportName__("RENEW_BEFORE_EXPIRY_MS", () => { try { return RENEW_BEFORE_EXPIRY_MS } catch {} });
+__vite_ssr_exportName__("SESSION_ENDED_PARAM", () => { try { return SESSION_ENDED_PARAM } catch {} });
+__vite_ssr_exportName__("SESSION_ENDED_VALUE", () => { try { return SESSION_ENDED_VALUE } catch {} });
+__vite_ssr_exportName__("REDIRECT_PARAM", () => { try { return REDIRECT_PARAM } catch {} });
+__vite_ssr_exportName__("tokenExpiresAt", () => { try { return tokenExpiresAt } catch {} });
+__vite_ssr_exportName__("shouldRenewToken", () => { try { return shouldRenewToken } catch {} });
+__vite_ssr_exportName__("loginPathAfterSessionEnded", () => { try { return loginPathAfterSessionEnded } catch {} });
+/**
+* Regras da sessão no navegador: renovação do token antes de expirar e volta para a
+* página em que o usuário estava quando a sessão termina.
+*/
+/** Renova o token quando faltar menos que isso para expirar e o usuário estiver ativo. */
+const RENEW_BEFORE_EXPIRY_MS = 30 * 60 * 1e3;
+/** Parâmetro da tela de login que indica sessão expirada ou encerrada. */
+const SESSION_ENDED_PARAM = "sessao";
+const SESSION_ENDED_VALUE = "encerrada";
+const REDIRECT_PARAM = "redirect";
+/** Lê o "exp" do JWT (em milissegundos). Só para decidir quando renovar: quem valida é o backend. */
+function tokenExpiresAt(token) {
+	const payload = token.split(".")[1];
+	if (!payload) return null;
+	try {
+		const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+		const padded = base64 + "=".repeat((4 - base64.length % 4) % 4);
+		const { exp } = JSON.parse(atob(padded));
+		return typeof exp === "number" ? exp * 1e3 : null;
+	} catch {
+		return null;
+	}
+};
+function shouldRenewToken(token, now = Date.now()) {
+	const expiresAt = tokenExpiresAt(token);
+	return expiresAt !== null && expiresAt > now && expiresAt - now <= RENEW_BEFORE_EXPIRY_MS;
+};
+/** Endereço do login depois que a API recusa a sessão, guardando a página atual. */
+function loginPathAfterSessionEnded(currentPath) {
+	const params = new URLSearchParams({ [SESSION_ENDED_PARAM]: SESSION_ENDED_VALUE });
+	if (currentPath.startsWith("/") && currentPath !== "/" && !currentPath.startsWith("/login")) {
+		params.set(REDIRECT_PARAM, currentPath);
+	};
+	return `/login?${params.toString()}`;
+}
+//# sourceMappingSource=vite-generated
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJtYXBwaW5ncyI6IkFBQUEsQ0FBQTs7Ozs7Ozs7Ozs7O0FBTU8sTUFBTSx5QkFBeUIsS0FBSyxLQUFLOztBQUd6QyxNQUFNLHNCQUFzQjtBQUM1QixNQUFNLHNCQUFzQjtBQUM1QixNQUFNLGlCQUFpQjs7QUFHdkIsU0FBUyxlQUFlLE9BQThCO0NBQzNELE1BQU0sVUFBVSxNQUFNLE1BQU0sR0FBRyxDQUFDLENBQUM7Q0FDakMsSUFBSSxDQUFDLFNBQVMsT0FBTztDQUNyQixJQUFJO0VBQ0YsTUFBTSxTQUFTLFFBQVEsUUFBUSxNQUFNLEdBQUcsQ0FBQyxDQUFDLFFBQVEsTUFBTSxHQUFHO0VBQzNELE1BQU0sU0FBUyxTQUFTLElBQUksUUFBUSxJQUFLLE9BQU8sU0FBUyxLQUFNLENBQUM7RUFDaEUsTUFBTSxFQUFFLFFBQVEsS0FBSyxNQUFNLEtBQUssTUFBTSxDQUFDO0VBQ3ZDLE9BQU8sT0FBTyxRQUFRLFdBQVcsTUFBTSxNQUFPO0NBQ2hELFFBQVE7RUFDTixPQUFPO0NBQ1Q7QUFDRjtBQUVPLFNBQVMsaUJBQWlCLE9BQWUsTUFBTSxLQUFLLElBQUksR0FBRztDQUNoRSxNQUFNLFlBQVksZUFBZSxLQUFLO0NBQ3RDLE9BQU8sY0FBYyxRQUFRLFlBQVksT0FBTyxZQUFZLE9BQU87QUFDckU7O0FBR08sU0FBUywyQkFBMkIsYUFBcUI7Q0FDOUQsTUFBTSxTQUFTLElBQUksZ0JBQWdCLEdBQUcsc0JBQXNCLG9CQUFvQixDQUFDO0NBQ2pGLElBQUksWUFBWSxXQUFXLEdBQUcsS0FBSyxnQkFBZ0IsT0FBTyxDQUFDLFlBQVksV0FBVyxRQUFRLEdBQUc7RUFDM0YsT0FBTyxJQUFJLGdCQUFnQixXQUFXO0NBQ3hDO0NBQ0EsT0FBTyxVQUFVLE9BQU8sU0FBUztBQUNuQyIsIm5hbWVzIjpbXSwiaWdub3JlTGlzdCI6W10sInNvdXJjZXMiOlsic2Vzc2lvbi50cyJdLCJzb3VyY2VzQ29udGVudCI6WyIvKipcclxuICogUmVncmFzIGRhIHNlc3PDo28gbm8gbmF2ZWdhZG9yOiByZW5vdmHDp8OjbyBkbyB0b2tlbiBhbnRlcyBkZSBleHBpcmFyIGUgdm9sdGEgcGFyYSBhXHJcbiAqIHDDoWdpbmEgZW0gcXVlIG8gdXN1w6FyaW8gZXN0YXZhIHF1YW5kbyBhIHNlc3PDo28gdGVybWluYS5cclxuICovXHJcblxyXG4vKiogUmVub3ZhIG8gdG9rZW4gcXVhbmRvIGZhbHRhciBtZW5vcyBxdWUgaXNzbyBwYXJhIGV4cGlyYXIgZSBvIHVzdcOhcmlvIGVzdGl2ZXIgYXRpdm8uICovXHJcbmV4cG9ydCBjb25zdCBSRU5FV19CRUZPUkVfRVhQSVJZX01TID0gMzAgKiA2MCAqIDEwMDBcclxuXHJcbi8qKiBQYXLDom1ldHJvIGRhIHRlbGEgZGUgbG9naW4gcXVlIGluZGljYSBzZXNzw6NvIGV4cGlyYWRhIG91IGVuY2VycmFkYS4gKi9cclxuZXhwb3J0IGNvbnN0IFNFU1NJT05fRU5ERURfUEFSQU0gPSAnc2Vzc2FvJ1xyXG5leHBvcnQgY29uc3QgU0VTU0lPTl9FTkRFRF9WQUxVRSA9ICdlbmNlcnJhZGEnXHJcbmV4cG9ydCBjb25zdCBSRURJUkVDVF9QQVJBTSA9ICdyZWRpcmVjdCdcclxuXHJcbi8qKiBMw6ogbyBcImV4cFwiIGRvIEpXVCAoZW0gbWlsaXNzZWd1bmRvcykuIFPDsyBwYXJhIGRlY2lkaXIgcXVhbmRvIHJlbm92YXI6IHF1ZW0gdmFsaWRhIMOpIG8gYmFja2VuZC4gKi9cclxuZXhwb3J0IGZ1bmN0aW9uIHRva2VuRXhwaXJlc0F0KHRva2VuOiBzdHJpbmcpOiBudW1iZXIgfCBudWxsIHtcclxuICBjb25zdCBwYXlsb2FkID0gdG9rZW4uc3BsaXQoJy4nKVsxXVxyXG4gIGlmICghcGF5bG9hZCkgcmV0dXJuIG51bGxcclxuICB0cnkge1xyXG4gICAgY29uc3QgYmFzZTY0ID0gcGF5bG9hZC5yZXBsYWNlKC8tL2csICcrJykucmVwbGFjZSgvXy9nLCAnLycpXHJcbiAgICBjb25zdCBwYWRkZWQgPSBiYXNlNjQgKyAnPScucmVwZWF0KCg0IC0gKGJhc2U2NC5sZW5ndGggJSA0KSkgJSA0KVxyXG4gICAgY29uc3QgeyBleHAgfSA9IEpTT04ucGFyc2UoYXRvYihwYWRkZWQpKSBhcyB7IGV4cD86IHVua25vd24gfVxyXG4gICAgcmV0dXJuIHR5cGVvZiBleHAgPT09ICdudW1iZXInID8gZXhwICogMTAwMCA6IG51bGxcclxuICB9IGNhdGNoIHtcclxuICAgIHJldHVybiBudWxsXHJcbiAgfVxyXG59XHJcblxyXG5leHBvcnQgZnVuY3Rpb24gc2hvdWxkUmVuZXdUb2tlbih0b2tlbjogc3RyaW5nLCBub3cgPSBEYXRlLm5vdygpKSB7XHJcbiAgY29uc3QgZXhwaXJlc0F0ID0gdG9rZW5FeHBpcmVzQXQodG9rZW4pXHJcbiAgcmV0dXJuIGV4cGlyZXNBdCAhPT0gbnVsbCAmJiBleHBpcmVzQXQgPiBub3cgJiYgZXhwaXJlc0F0IC0gbm93IDw9IFJFTkVXX0JFRk9SRV9FWFBJUllfTVNcclxufVxyXG5cclxuLyoqIEVuZGVyZcOnbyBkbyBsb2dpbiBkZXBvaXMgcXVlIGEgQVBJIHJlY3VzYSBhIHNlc3PDo28sIGd1YXJkYW5kbyBhIHDDoWdpbmEgYXR1YWwuICovXHJcbmV4cG9ydCBmdW5jdGlvbiBsb2dpblBhdGhBZnRlclNlc3Npb25FbmRlZChjdXJyZW50UGF0aDogc3RyaW5nKSB7XHJcbiAgY29uc3QgcGFyYW1zID0gbmV3IFVSTFNlYXJjaFBhcmFtcyh7IFtTRVNTSU9OX0VOREVEX1BBUkFNXTogU0VTU0lPTl9FTkRFRF9WQUxVRSB9KVxyXG4gIGlmIChjdXJyZW50UGF0aC5zdGFydHNXaXRoKCcvJykgJiYgY3VycmVudFBhdGggIT09ICcvJyAmJiAhY3VycmVudFBhdGguc3RhcnRzV2l0aCgnL2xvZ2luJykpIHtcclxuICAgIHBhcmFtcy5zZXQoUkVESVJFQ1RfUEFSQU0sIGN1cnJlbnRQYXRoKVxyXG4gIH1cclxuICByZXR1cm4gYC9sb2dpbj8ke3BhcmFtcy50b1N0cmluZygpfWBcclxufVxyXG4iXSwiZmlsZSI6Ii9zcmMvbGliL3Nlc3Npb24udHMifQ==
+
+//# vitestCache=W3siZmlsZSI6IjEiLCJpZCI6IjEiLCJ1cmwiOiIyIiwiaW1wb3J0ZWRVcmxzIjoiMyIsIm1hcHBpbmdzIjpmYWxzZSwiZGVwcyI6IjQiLCJkeW5hbWljRGVwcyI6IjUiLCJzdGF0aWNNb2NrcyI6bnVsbH0sIkM6L1RDQy9Qcm9qZXRvL2Zyb250ZW5kL3NyYy9saWIvc2Vzc2lvbi50cyIsIi9zcmMvbGliL3Nlc3Npb24udHMiLFtdLFtdLFtdXQ==

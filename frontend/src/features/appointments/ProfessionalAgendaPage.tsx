@@ -32,6 +32,7 @@ export function ProfessionalAgendaPage() {
   const [view, setView] = useState<CalendarView>(() => window.matchMedia('(max-width: 640px)').matches ? 'day' : 'week')
   const [filter, setFilter] = useState<AgendaFilter>('active')
   const [range, setRange] = useState<VisibleRange | null>(null)
+  const [calendarTitle, setCalendarTitle] = useState('')
   const [editor, setEditor] = useState<EventEditorState | null>(null)
   const [selectedAppointment, setSelectedAppointment] = useState<ProfessionalAgendaItem | null>(null)
   const [deletingEvent, setDeletingEvent] = useState<ProfessionalAgendaItem | null>(null)
@@ -123,7 +124,16 @@ export function ProfessionalAgendaPage() {
       <label className="flex items-center gap-2 text-sm font-medium text-text-700"><span>Exibir</span><select value={filter} onChange={(event) => setFilter(event.target.value as AgendaFilter)} className="rounded-lg border border-background-300 bg-background-50 px-3 py-2"><option value="active">Ativos</option><option value="finished">Encerrados</option><option value="all">Todos</option></select></label>
     </div>
     {agenda.isError && <div role="alert" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-danger-500/30 bg-danger-500/5 px-4 py-3 text-sm text-danger-600"><span>{getApiErrorMessage(agenda.error, 'Não foi possível carregar sua agenda.')}</span><button type="button" onClick={() => agenda.refetch()} className="inline-flex items-center gap-1 font-semibold"><RefreshCw size={15} /> Tentar novamente</button></div>}
-    <section className={`professional-calendar surface-card relative p-3 sm:p-5 ${agenda.isLoading ? 'min-h-96 animate-pulse opacity-60' : ''}`} aria-busy={agenda.isLoading}>
+    <section className={`professional-calendar surface-card relative p-3 sm:p-5 ${view === 'week' ? 'professional-calendar-week' : ''} ${agenda.isLoading ? 'min-h-96 animate-pulse opacity-60' : ''}`} aria-busy={agenda.isLoading}>
+      <div className="mb-3 flex items-center justify-between gap-2 sm:hidden">
+        <div className="flex gap-1">
+          <button type="button" aria-label="Período anterior" onClick={() => calendarRef.current?.getApi().prev()} className="secondary-button min-h-10 px-3">‹</button>
+          <button type="button" aria-label="Próximo período" onClick={() => calendarRef.current?.getApi().next()} className="secondary-button min-h-10 px-3">›</button>
+        </div>
+        <strong className="min-w-0 text-center text-sm text-text-900">{calendarTitle}</strong>
+        <button type="button" onClick={() => calendarRef.current?.getApi().today()} className="secondary-button min-h-10 px-3">Hoje</button>
+      </div>
+      <div className="overflow-x-auto overscroll-x-contain">
       <FullCalendar
         ref={calendarRef}
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
@@ -141,7 +151,7 @@ export function ProfessionalAgendaPage() {
         select={handleSelect}
         dateClick={handleDateClick}
         eventClick={handleEventClick}
-        datesSet={(info: DatesSetArg) => setRange({ startsAt: toLocalDateTime(info.start), endsAt: toLocalDateTime(info.end) })}
+        datesSet={(info: DatesSetArg) => { setRange({ startsAt: toLocalDateTime(info.start), endsAt: toLocalDateTime(info.end) }); setCalendarTitle(info.view.title) }}
         events={events}
         eventContent={renderEventContent}
         businessHours={businessHours}
@@ -153,6 +163,7 @@ export function ProfessionalAgendaPage() {
         allDaySlot={false}
         noEventsText="Nenhum item"
       />
+      </div>
       {agenda.isFetching && !agenda.isLoading && <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-background-50/95 px-2 py-1 text-xs text-text-600 shadow"><RefreshCw className="animate-spin" size={13} /> Atualizando</span>}
     </section>
     <p className="mt-2 text-xs text-text-600">As áreas sombreadas ficam fora da sua jornada. Fuso da agenda: {agendaTimeZone}.</p>

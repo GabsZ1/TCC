@@ -417,9 +417,9 @@ button:disabled { cursor: default; }
 .professional-calendar .fc .fc-daygrid-day { cursor: pointer; }
 
 @media (max-width: 640px) {
-  .professional-calendar .fc .fc-toolbar { align-items: stretch; flex-direction: column; gap: .75rem; }
-  .professional-calendar .fc .fc-toolbar-chunk { display: flex; justify-content: center; }
-  .professional-calendar .fc .fc-toolbar-title { font-size: 1.08rem; }
+  .professional-calendar .fc .fc-toolbar { display: none; }
+  .professional-calendar-week .fc { min-width: 720px; }
+  .professional-calendar-week .fc .fc-col-header-cell-cushion { display: block; padding: .65rem .25rem; font-size: .85rem; }
   .professional-calendar .fc .fc-daygrid-day-frame { min-height: 5.25rem; }
   .professional-calendar .fc .fc-timegrid-slot { height: 2.75rem; }
 }
