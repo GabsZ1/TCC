@@ -1,4 +1,4 @@
-package br.com.salonhub.service;
+package br.com.salonhub.service.report;
 
 import br.com.salonhub.exception.InvalidRequestException;
 

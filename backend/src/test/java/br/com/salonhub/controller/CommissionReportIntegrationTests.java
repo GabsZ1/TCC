@@ -24,6 +24,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -54,6 +55,9 @@ class CommissionReportIntegrationTests extends FirstAccessIntegrationSupport {
     private MockMvc mockMvc;
 
     @Autowired
+    private Clock clock;
+
+    @Autowired
     private AppointmentRepository appointmentRepository;
 
     @Autowired
@@ -68,7 +72,7 @@ class CommissionReportIntegrationTests extends FirstAccessIntegrationSupport {
     @Test
     void shouldReturnCurrentMonthReportWhenNoFilterIsApplied() throws Exception {
         Fixture fixture = setUp("commissions-current-month", "44000000010049");
-        createCompletedAppointment(fixture, fixture.professional(), LocalDateTime.now().minusDays(1));
+        createCompletedAppointment(fixture, fixture.professional(), currentMonthCompletion());
 
         mockMvc.perform(get("/api/estabelecimentos/me/relatorio-comissoes")
                         .header("Authorization", bearer(fixture.administratorToken())))
@@ -86,8 +90,8 @@ class CommissionReportIntegrationTests extends FirstAccessIntegrationSupport {
         Fixture fixture = setUp("commissions-by-professional", "44000100010156");
         User secondProfessional = addSecondProfessional(fixture, "commissions-by-professional");
 
-        createCompletedAppointment(fixture, fixture.professional(), LocalDateTime.now().minusHours(2));
-        createCompletedAppointment(fixture, secondProfessional, LocalDateTime.now().minusHours(1));
+        createCompletedAppointment(fixture, fixture.professional(), currentMonthCompletion());
+        createCompletedAppointment(fixture, secondProfessional, currentMonthCompletion());
 
         mockMvc.perform(get("/api/estabelecimentos/me/relatorio-comissoes")
                         .header("Authorization", bearer(fixture.administratorToken()))
@@ -101,10 +105,10 @@ class CommissionReportIntegrationTests extends FirstAccessIntegrationSupport {
     @Test
     void shouldFilterByAValidPeriodUsingTheCompletionDate() throws Exception {
         Fixture fixture = setUp("commissions-period", "44000200010263");
-        createCompletedAppointment(fixture, fixture.professional(), LocalDateTime.now().minusDays(40));
-        createCompletedAppointment(fixture, fixture.professional(), LocalDateTime.now().minusDays(1));
+        createCompletedAppointment(fixture, fixture.professional(), LocalDateTime.now(clock).minusDays(40));
+        createCompletedAppointment(fixture, fixture.professional(), currentMonthCompletion());
 
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(clock);
         mockMvc.perform(get("/api/estabelecimentos/me/relatorio-comissoes")
                         .header("Authorization", bearer(fixture.administratorToken()))
                         .param("startDate", today.minusDays(3).toString())
@@ -117,7 +121,7 @@ class CommissionReportIntegrationTests extends FirstAccessIntegrationSupport {
     @Test
     void shouldExcludeInvalidatedAppointmentsFromTheReport() throws Exception {
         Fixture fixture = setUp("commissions-invalidated", "44000300010370");
-        Long appointmentId = createCompletedAppointment(fixture, fixture.professional(), LocalDateTime.now().minusHours(2));
+        Long appointmentId = createCompletedAppointment(fixture, fixture.professional(), currentMonthCompletion());
         mockMvc.perform(patch("/api/agendamentos/{id}/invalidacao", appointmentId)
                         .header("Authorization", bearer(fixture.administratorToken()))
                         .contentType(MediaType.APPLICATION_JSON)
@@ -136,7 +140,7 @@ class CommissionReportIntegrationTests extends FirstAccessIntegrationSupport {
     @Test
     void shouldFreezeCommissionPercentageRegisteredAtCompletionEvenIfServiceChangesLater() throws Exception {
         Fixture fixture = setUp("commissions-frozen-percentage", "44000400010488");
-        createCompletedAppointment(fixture, fixture.professional(), LocalDateTime.now().minusHours(2));
+        createCompletedAppointment(fixture, fixture.professional(), currentMonthCompletion());
 
         mockMvc.perform(put("/api/servicos/{id}", fixture.service().getId())
                         .header("Authorization", bearer(fixture.administratorToken()))
@@ -158,8 +162,8 @@ class CommissionReportIntegrationTests extends FirstAccessIntegrationSupport {
         Fixture fixture = setUp("commissions-total", "44000500010595");
         User secondProfessional = addSecondProfessional(fixture, "commissions-total");
 
-        createCompletedAppointment(fixture, fixture.professional(), LocalDateTime.now().minusHours(2));
-        createCompletedAppointment(fixture, secondProfessional, LocalDateTime.now().minusHours(1));
+        createCompletedAppointment(fixture, fixture.professional(), currentMonthCompletion());
+        createCompletedAppointment(fixture, secondProfessional, currentMonthCompletion());
 
         mockMvc.perform(get("/api/estabelecimentos/me/relatorio-comissoes")
                         .header("Authorization", bearer(fixture.administratorToken())))
@@ -183,7 +187,7 @@ class CommissionReportIntegrationTests extends FirstAccessIntegrationSupport {
 
         mockMvc.perform(get("/api/estabelecimentos/me/relatorio-comissoes")
                         .header("Authorization", bearer(fixture.administratorToken()))
-                        .param("startDate", LocalDate.now().toString()))
+                        .param("startDate", LocalDate.now(clock).toString()))
                 .andExpect(status().isBadRequest());
     }
 
@@ -191,13 +195,17 @@ class CommissionReportIntegrationTests extends FirstAccessIntegrationSupport {
     void shouldIsolateCommissionReportBetweenEstablishments() throws Exception {
         Fixture fixtureA = setUp("commissions-tenant-a", "44000900010924");
         Fixture fixtureB = setUp("commissions-tenant-b", "44001000011035");
-        createCompletedAppointment(fixtureA, fixtureA.professional(), LocalDateTime.now().minusHours(1));
+        createCompletedAppointment(fixtureA, fixtureA.professional(), currentMonthCompletion());
 
         mockMvc.perform(get("/api/estabelecimentos/me/relatorio-comissoes")
                         .header("Authorization", bearer(fixtureB.administratorToken())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.entries").isEmpty())
                 .andExpect(jsonPath("$.totalCommission").value(0.0));
+    }
+
+    private LocalDateTime currentMonthCompletion() {
+        return LocalDate.now(clock).atStartOfDay();
     }
 
     private Long createCompletedAppointment(Fixture fixture, User professional, LocalDateTime completedAt) {

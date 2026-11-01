@@ -1,8 +1,8 @@
 package br.com.salonhub.controller;
 
 import br.com.salonhub.dto.commission.CommissionReportResponse;
-import br.com.salonhub.service.CommissionReportService;
-import br.com.salonhub.service.ReportPdfExporter;
+import br.com.salonhub.service.report.CommissionReportService;
+import br.com.salonhub.service.report.ReportPdfExporter;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.jwt.Jwt;

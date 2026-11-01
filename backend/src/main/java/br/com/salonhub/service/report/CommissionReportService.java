@@ -1,4 +1,6 @@
-package br.com.salonhub.service;
+package br.com.salonhub.service.report;
+
+import br.com.salonhub.service.TenantAuthorizationService;
 
 import br.com.salonhub.dto.commission.CommissionReportEntry;
 import br.com.salonhub.dto.commission.CommissionReportResponse;
