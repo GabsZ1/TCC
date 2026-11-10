@@ -1,3 +1,4 @@
+/** Exibe as comissões calculadas para os profissionais no período selecionado. */
 import { useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { BadgeDollarSign, CalendarRange, Scissors, UsersRound } from 'lucide-react'
@@ -8,6 +9,7 @@ import { getApiErrorMessage } from '@/lib/apiError'
 
 const REPORT_KEY = 'commission-report'
 
+/** Consulta comissões por período e profissional e oferece a exportação do recorte exibido. */
 export function CommissionReportPage() {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
@@ -21,6 +23,7 @@ export function CommissionReportPage() {
     queryFn: () => fetchCommissionReport(filters),
   })
 
+  /** Confere o período antes de atualizar os filtros usados na consulta de comissões. */
   function applyFilters(event: FormEvent) {
     event.preventDefault()
     if (Boolean(startDate) !== Boolean(endDate)) {

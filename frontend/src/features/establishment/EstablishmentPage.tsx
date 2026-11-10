@@ -1,3 +1,4 @@
+/** Permite administrar dados, horários e regras operacionais do estabelecimento. */
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Building2, CalendarClock, Save, CalendarOff, Pause, Play, RotateCcw } from 'lucide-react'
@@ -24,6 +25,7 @@ export function EstablishmentPage() {
   return <EstablishmentContent establishment={establishment} />
 }
 
+/** Mantém separados o formulário cadastral e as operações de estado do estabelecimento. */
 function EstablishmentContent({ establishment }: { establishment: Awaited<ReturnType<typeof fetchMyEstablishment>> }) {
   const queryClient = useQueryClient()
   const [form, setForm] = useState<EstablishmentUpdateInput>(() => toForm(establishment))
@@ -45,6 +47,7 @@ function EstablishmentContent({ establishment }: { establishment: Awaited<Return
       setErrorMessage(getApiErrorMessage(error, 'Não foi possível atualizar o estabelecimento.'))
     },
   })
+  // Uma mudança operacional afeta outras consultas; invalida os dados dependentes após salvar.
   const stateMutation = useMutation({
     mutationFn: ({ operation }: { operation: () => Promise<Establishment>; successMessage: string }) => operation(),
     onSuccess: (updated, variables) => {
@@ -167,5 +170,6 @@ function BusinessHourRow({ hour, onChange }: { hour: BusinessHour; onChange: (ch
 function Info({ label, value, icon }: { label: string; value: string; icon?: React.ReactNode }) { return <div><dt className="text-text-600">{label}</dt><dd className="mt-1 flex items-center gap-2 font-semibold text-text-900">{icon}{value}</dd></div> }
 function PageContainer({ children }: { children: React.ReactNode }) { return <div className="page-shell">{children}</div> }
 function StateCard({ children, error = false }: { children: React.ReactNode; error?: boolean }) { return <div className={`rounded-2xl border bg-background-50 p-8 text-center ${error ? 'border-danger-500/30 text-danger-600' : 'border-background-300 text-text-600'}`}>{children}</div> }
+/** Garante uma linha para cada dia, mesmo quando o backend ainda não possui horário cadastrado. */
 function orderBusinessHours(hours: BusinessHour[]) { return WEEK_DAYS.map((day) => hours.find((hour) => hour.dayOfWeek === day.value) ?? { dayOfWeek: day.value, closed: false, openingTime: '09:00', closingTime: '18:00' }) }
 function toForm(establishment: Awaited<ReturnType<typeof fetchMyEstablishment>>): EstablishmentUpdateInput { return { name: establishment.name, email: establishment.email ?? '', businessHours: orderBusinessHours(establishment.businessHours), minimumAdvanceHours: establishment.minimumAdvanceHours, maximumAdvanceDays: establishment.maximumAdvanceDays } }

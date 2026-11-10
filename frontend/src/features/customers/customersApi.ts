@@ -1,3 +1,4 @@
+/** Centraliza as operações de cadastro, busca e consulta de clientes do estabelecimento. */
 import { api } from '@/lib/api'
 import type { Appointment } from '@/features/appointments/appointmentsApi'
 import { phoneDigits } from '@/lib/phone'

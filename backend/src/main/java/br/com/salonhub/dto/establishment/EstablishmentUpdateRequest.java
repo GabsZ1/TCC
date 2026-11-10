@@ -8,6 +8,7 @@ import java.util.List;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Max;
 
+/** Define os dados recebidos pela API no fluxo de estabelecimentos e suas validações de entrada. */
 public record EstablishmentUpdateRequest(
         @NotBlank(message = "O nome do estabelecimento é obrigatório")
         @Size(max = 150, message = "O nome deve ter no máximo 150 caracteres")

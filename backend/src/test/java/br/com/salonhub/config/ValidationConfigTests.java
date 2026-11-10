@@ -17,6 +17,7 @@ import java.util.TimeZone;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/** Verifica o registro dos validadores usados pela API. */
 class ValidationConfigTests {
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()

@@ -2,6 +2,7 @@ package br.com.salonhub.service.appointment;
 
 import java.time.LocalDateTime;
 
+/** Define o alinhamento dos horários oferecidos para reservas online e internas. */
 final class AppointmentSlotPolicy {
 
     static final int SLOT_INTERVAL_MINUTES = 30;

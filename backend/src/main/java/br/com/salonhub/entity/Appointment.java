@@ -23,6 +23,7 @@ import java.time.OffsetDateTime;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
+/** Representa a reserva e preserva seu histórico de preço, estado e autoria das transições. */
 @Entity
 @Table(name = "appointments")
 @Getter
@@ -129,6 +130,7 @@ public class Appointment {
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
+    /** Cria a reserva com uma cópia da duração e dos valores do serviço no momento da contratação. */
     public static Appointment schedule(
             Establishment establishment,
             Customer customer,
@@ -147,11 +149,13 @@ public class Appointment {
         return appointment;
     }
 
+    /** Registra a origem da reserva e quem a criou para auditoria posterior. */
     public void recordCreation(AppointmentSource source, User actor) {
         this.source = source;
         this.createdBy = actor;
     }
 
+    /** Troca o cadastro após mesclagem, preservando o vínculo com o mesmo estabelecimento. */
     public void reassignCustomer(Customer customer) {
         if (!establishment.getId().equals(customer.getEstablishment().getId())) {
             throw new IllegalArgumentException("O cliente deve pertencer ao mesmo estabelecimento.");
@@ -160,18 +164,20 @@ public class Appointment {
     }
 
 
+    /** Marca o cancelamento e guarda a autoria e o instante da decisão. */
     public void cancel(User actor, LocalDateTime at) {
         this.status = AppointmentStatus.CANCELLED;
         this.cancelledBy = actor;
         this.cancelledAt = at;
     }
 
-    // Convenience overloads retained for fixture and historical data creation.
+    // Sobrecargas usadas por dados históricos e cenários de teste sem autoria explícita.
     public void cancel() { cancel(null, startsAt); }
     public void complete(LocalDateTime at) { complete(at, null); }
     public void markNoShow() { markNoShow(null, startsAt.plusMinutes(15)); }
     public void invalidate(String reason) { invalidate(reason, null, endsAt); }
 
+    /** Preserva o motivo e a autoria do cancelamento feito pela administração. */
     public void cancelByAdministrator(String reason, User administrator, LocalDateTime cancelledAt) {
         this.status = AppointmentStatus.CANCELLED;
         this.cancellationReason = reason;
@@ -186,18 +192,21 @@ public class Appointment {
         this.cancelledAt = cancelledAt;
     }
 
+    /** Conclui o atendimento e guarda quem confirmou a execução. */
     public void complete(LocalDateTime completedAt, User actor) {
         this.completedBy = actor;
         this.status = AppointmentStatus.COMPLETED;
         this.completedAt = completedAt;
     }
 
+    /** Registra que o cliente faltou e quem fez a marcação. */
     public void markNoShow(User actor, LocalDateTime at) {
         this.status = AppointmentStatus.NO_SHOW;
         this.noShowBy = actor;
         this.noShowAt = at;
     }
 
+    /** Mantém o atendimento no histórico, mas registra que seus resultados foram invalidados. */
     public void invalidate(String reason, User actor, LocalDateTime at) {
         this.status = AppointmentStatus.INVALIDATED;
         this.invalidationReason = reason;
@@ -213,10 +222,12 @@ public class Appointment {
         this.endsAt = startsAt.plusMinutes(durationMinutes);
     }
 
+    /** Marca o lembrete enviado para evitar nova notificação da mesma reserva. */
     public void markReminderSent(LocalDateTime sentAt) {
         this.reminderSentAt = sentAt;
     }
 
+    /** Ao trocar o serviço, atualiza também a cópia dos valores contratados na reserva. */
     public void update(EstablishmentService service, User professional, LocalDateTime startsAt) {
         if (!startsAt.equals(this.startsAt)) this.reminderSentAt = null;
         this.service = service;

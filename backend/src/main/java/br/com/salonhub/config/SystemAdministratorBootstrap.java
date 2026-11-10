@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Locale;
 
+/** Inicializa a conta de administração do sistema quando configurada. */
 @Component
 @RequiredArgsConstructor
 public class SystemAdministratorBootstrap implements ApplicationRunner {

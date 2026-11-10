@@ -1,3 +1,4 @@
+/** Destaca atendimentos iniciados que ainda aguardam conclusão ou marcação de falta. */
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react'

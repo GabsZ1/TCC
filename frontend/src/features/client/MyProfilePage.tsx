@@ -1,3 +1,4 @@
+/** Permite ao cliente consultar e atualizar os próprios dados. */
 import { ClientProfilePage } from '@/features/client/ClientProfilePage'
 import { ProfessionalProfilePage } from '@/features/employees/pages/ProfessionalProfilePage'
 import { useAuth } from '@/hooks/useAuth'

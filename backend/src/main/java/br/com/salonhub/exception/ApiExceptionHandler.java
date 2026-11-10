@@ -28,6 +28,7 @@ import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+/** Converte falhas de validação e negócio em respostas HTTP consistentes. */
 @RestControllerAdvice
 public class ApiExceptionHandler {
 

@@ -5,6 +5,7 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/** Representa um serviço ofertado, incluindo duração, preço e estado. */
 @Entity
 @Table(name = "salon_services")
 @Getter
@@ -56,6 +57,7 @@ public class EstablishmentService {
         this.updatedAt = LocalDateTime.now();
     }
 
+    /** Atualiza os dados oferecidos no catálogo sem modificar reservas já contratadas. */
     public void updateDetails(
             String name,
             String description,
@@ -69,10 +71,12 @@ public class EstablishmentService {
         this.durationMinutes = durationMinutes;
     }
 
+    /** Devolve o serviço ao catálogo ativo. */
     public void reactivate() {
         this.active = true;
     }
 
+    /** Retira o serviço de novas reservas sem excluir seu histórico. */
     public void deactivate() {
         this.active = false;
     }

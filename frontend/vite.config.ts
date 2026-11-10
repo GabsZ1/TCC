@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 
-// https://vite.dev/config/
+/** Registra React e Tailwind, resolve o alias de src e encaminha a API no desenvolvimento local. */
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {

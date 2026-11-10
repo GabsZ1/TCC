@@ -1,3 +1,4 @@
+/** Resume os atendimentos concluídos e dá acesso aos respectivos detalhes. */
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { BadgeDollarSign, ChevronLeft, ChevronRight, CircleDollarSign, ClipboardCheck, RotateCcw, X } from 'lucide-react'
@@ -42,6 +43,7 @@ export function CompletedAppointmentsPanel() {
     setPage(0)
   }
 
+  /** Só aplica o período ao relatório quando as duas datas são válidas. */
   function applyFilters(event: FormEvent) {
     event.preventDefault()
     if (Boolean(startDate) !== Boolean(endDate)) {
@@ -194,6 +196,7 @@ export function CompletedAppointmentsPanel() {
   )
 }
 
+/** Mostra valores e detalhes do atendimento concluído em uma linha do relatório. */
 function EntryCard({ entry }: { entry: CompletedAppointmentEntry }) {
   return (
     <li className="surface-card p-4">

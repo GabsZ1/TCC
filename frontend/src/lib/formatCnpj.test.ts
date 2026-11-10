@@ -1,3 +1,4 @@
+/** Protege por testes o comportamento de formatCnpj, incluindo os cenários de regressão deste módulo. */
 import { describe, expect, it } from 'vitest'
 import { formatCnpj } from './format'
 

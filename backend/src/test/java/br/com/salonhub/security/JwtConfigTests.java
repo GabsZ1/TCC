@@ -9,6 +9,7 @@ import java.util.Base64;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
+/** Verifica a configuração usada para emitir e validar tokens JWT. */
 class JwtConfigTests {
 
     private final JwtConfig jwtConfig = new JwtConfig();

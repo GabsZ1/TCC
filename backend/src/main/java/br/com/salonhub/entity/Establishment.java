@@ -16,6 +16,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.OffsetDateTime;
 
+/** Representa o estabelecimento e suas regras operacionais de atendimento. */
 @Entity
 @Table(name = "establishments")
 @Getter
@@ -73,24 +74,29 @@ public class Establishment {
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
+    /** Atualiza os dados cadastrais sem alterar o estado operacional da unidade. */
     public void updateRegistration(String name, String email) {
         this.name = name;
         this.email = email;
     }
 
+    /** Guarda os limites de antecedência usados para oferecer novas reservas. */
     public void updateAppointmentAdvancePolicy(int minimumAdvanceMinutes, int maximumAdvanceDays) {
         this.minimumAdvanceMinutes = minimumAdvanceMinutes;
         this.maximumAdvanceDays = maximumAdvanceDays;
     }
 
+    /** Reabre a unidade preservando suas configurações e seu histórico. */
     public void reactivate() {
         this.active = true;
     }
 
+    /** Interrompe a operação da unidade sem apagar seus dados. */
     public void deactivate() {
         this.active = false;
     }
 
+    /** Guarda a origem da pausa para impedir que a administração local reverta uma ação do sistema. */
     public void pause(boolean bySystemAdministrator) {
         this.paused = true;
         if (bySystemAdministrator) {
@@ -98,11 +104,13 @@ public class Establishment {
         }
     }
 
+    /** Remove a pausa operacional e sua marca de origem. */
     public void resume() {
         this.paused = false;
         this.pausedBySystem = false;
     }
 
+    /** Impede novas reservas sem desativar o estabelecimento ou alterar as reservas existentes. */
     public void blockBookings(boolean bySystemAdministrator) {
         this.bookingsBlocked = true;
         if (bySystemAdministrator) {
@@ -110,11 +118,13 @@ public class Establishment {
         }
     }
 
+    /** Libera novas reservas e limpa a marca de bloqueio global. */
     public void allowBookings() {
         this.bookingsBlocked = false;
         this.bookingsBlockedBySystem = false;
     }
 
+    /** Centraliza os três estados que precisam permitir uma nova reserva. */
     public boolean acceptsNewAppointments() {
         return active && !paused && !bookingsBlocked;
     }

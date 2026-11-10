@@ -10,6 +10,7 @@ import static org.springframework.test.web.client.ExpectedCount.once;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
+/** Verifica a consulta de CEPs e o tratamento de falhas da BrasilAPI. */
 class BrasilApiCepGeocodingServiceTests {
     @Test
     void readsCoordinatesFromCepV2Response() {

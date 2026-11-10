@@ -63,6 +63,7 @@ public class PasswordRecoveryService {
         this.cooldownSeconds = cooldownSeconds;
     }
 
+    /** Inicia a recuperação sem revelar se o e-mail informado pertence a uma conta. */
     @Transactional
     public PasswordRecoveryResponse requestReset(PasswordRecoveryRequest request) {
         String email = request.email().trim().toLowerCase(Locale.ROOT);
@@ -77,7 +78,7 @@ public class PasswordRecoveryService {
         if (!user.isActive() || !user.isPasswordInitialized()) return publicResponse;
 
         OffsetDateTime now = OffsetDateTime.now(clock);
-        // Preserve the cooldown internally without exposing it through the public response.
+        // Aplica o intervalo entre pedidos sem expor esse limite na resposta pública.
         if (!cooldownElapsed(user.getId(), now)) return publicResponse;
 
         invalidatePendingTokens(user.getId(), now);
@@ -97,6 +98,7 @@ public class PasswordRecoveryService {
         requireUsable(findToken(rawToken, false), OffsetDateTime.now(clock));
     }
 
+    /** Consome um token válido e atualiza a senha da conta associada. */
     @Transactional
     public void resetPassword(PasswordResetRequest request) {
         OffsetDateTime now = OffsetDateTime.now(clock);

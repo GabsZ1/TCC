@@ -1,6 +1,6 @@
 package br.com.salonhub.service.report;
 
-import br.com.salonhub.service.TenantAuthorizationService;
+import br.com.salonhub.service.tenant.TenantAuthorizationService;
 
 import br.com.salonhub.dto.commission.CommissionReportEntry;
 import br.com.salonhub.dto.commission.CommissionReportResponse;
@@ -32,6 +32,7 @@ public class CommissionReportService {
     private final TenantAuthorizationService tenantAuthorizationService;
     private final Clock clock;
 
+    /** Calcula comissões a partir dos atendimentos válidos no período informado. */
     @Transactional(readOnly = true)
     public CommissionReportResponse getReport(
             Long administratorId, LocalDate startDate, LocalDate endDate, Long professionalId) {

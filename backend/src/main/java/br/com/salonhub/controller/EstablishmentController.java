@@ -13,10 +13,10 @@ import br.com.salonhub.dto.report.CompletedAppointmentEntry;
 import br.com.salonhub.dto.report.FinancialReportResponse;
 import br.com.salonhub.service.report.AppointmentsReportService;
 import br.com.salonhub.service.report.CommissionReportService;
-import br.com.salonhub.service.CompletedAppointmentsService;
-import br.com.salonhub.service.DashboardService;
-import br.com.salonhub.service.EstablishmentManagementService;
-import br.com.salonhub.service.EstablishmentOperationService;
+import br.com.salonhub.service.appointment.CompletedAppointmentsService;
+import br.com.salonhub.service.dashboard.DashboardService;
+import br.com.salonhub.service.establishment.EstablishmentManagementService;
+import br.com.salonhub.service.establishment.EstablishmentOperationService;
 import br.com.salonhub.service.report.FinancialReportService;
 import br.com.salonhub.service.report.ReportCsvExporter;
 import br.com.salonhub.service.report.ReportPdfExporter;
@@ -36,6 +36,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+/** Expõe as operações HTTP de estabelecimentos e encaminha as regras de negócio aos serviços. */
 @PreAuthorize(AccessRules.ADMIN)
 @RestController
 @RequestMapping("/api/estabelecimentos/me")
@@ -52,16 +53,19 @@ public class EstablishmentController {
     private final ReportCsvExporter csvExporter;
     private final ReportPdfExporter pdfExporter;
 
+    /** Consulta os dados operacionais da unidade do administrador autenticado. */
     @GetMapping
     public EstablishmentResponse findMine(@AuthenticationPrincipal Jwt jwt) {
         return establishmentManagementService.findMine(Long.valueOf(jwt.getSubject()));
     }
 
+    /** Expõe os indicadores do painel da unidade. */
     @GetMapping("/dashboard")
     public DashboardSummaryResponse dashboard(@AuthenticationPrincipal Jwt jwt) {
         return dashboardService.getSummary(Long.valueOf(jwt.getSubject()));
     }
 
+    /** Consulta comissões do período no estabelecimento autorizado. */
     @GetMapping("/relatorio-comissoes")
     public CommissionReportResponse commissionReport(
             @AuthenticationPrincipal Jwt jwt,
@@ -71,6 +75,7 @@ public class EstablishmentController {
         return commissionReportService.getReport(Long.valueOf(jwt.getSubject()), startDate, endDate, professionalId);
     }
 
+    /** Exporta em CSV o mesmo recorte do relatório de comissões. */
     @GetMapping("/relatorio-comissoes/csv")
     public ResponseEntity<byte[]> commissionReportCsv(
             @AuthenticationPrincipal Jwt jwt,
@@ -82,6 +87,7 @@ public class EstablishmentController {
         return csv("relatorio-comissoes", report.periodStart(), report.periodEnd(), csvExporter.commission(report));
     }
 
+    /** Exporta em PDF o mesmo recorte do relatório de comissões. */
     @GetMapping("/relatorio-comissoes/pdf")
     public ResponseEntity<byte[]> commissionReportPdf(
             @AuthenticationPrincipal Jwt jwt,
@@ -104,6 +110,7 @@ public class EstablishmentController {
         return financialReportService.getReport(Long.valueOf(jwt.getSubject()), startDate, endDate, professionalId, serviceId);
     }
 
+    /** Exporta em CSV o período do relatório financeiro. */
     @GetMapping("/relatorio-financeiro/csv")
     public ResponseEntity<byte[]> financialReportCsv(
             @AuthenticationPrincipal Jwt jwt,
@@ -116,6 +123,7 @@ public class EstablishmentController {
         return csv("relatorio-financeiro", report.periodStart(), report.periodEnd(), csvExporter.financial(report));
     }
 
+    /** Exporta em PDF o período do relatório financeiro. */
     @GetMapping("/relatorio-financeiro/pdf")
     public ResponseEntity<byte[]> financialReportPdf(
             @AuthenticationPrincipal Jwt jwt,
@@ -128,6 +136,7 @@ public class EstablishmentController {
         return pdf("relatorio-financeiro", report.periodStart(), report.periodEnd(), pdfExporter.financial(report));
     }
 
+    /** Consulta atendimentos concluídos e seus totais. */
     @GetMapping("/atendimentos-realizados")
     public CompletedAppointmentsResponse completedAppointments(
             @AuthenticationPrincipal Jwt jwt,
@@ -140,6 +149,7 @@ public class EstablishmentController {
                 Long.valueOf(jwt.getSubject()), startDate, endDate, professionalId, page, size);
     }
 
+    /** Exporta em PDF os atendimentos concluídos filtrados. */
     @GetMapping("/atendimentos-realizados/pdf")
     public ResponseEntity<byte[]> completedAppointmentsPdf(
             @AuthenticationPrincipal Jwt jwt,
@@ -157,6 +167,7 @@ public class EstablishmentController {
         return pdf("atendimentos-realizados", startDate, endDate, pdfExporter.completed(first, entries));
     }
 
+    /** Consulta agendamentos e indicadores do período. */
     @GetMapping("/relatorio-atendimentos")
     public AppointmentsReportResponse appointmentsReport(
             @AuthenticationPrincipal Jwt jwt,
@@ -166,6 +177,7 @@ public class EstablishmentController {
         return appointmentsReportService.getReport(Long.valueOf(jwt.getSubject()), startDate, endDate, professionalId);
     }
 
+    /** Exporta em CSV os agendamentos do período. */
     @GetMapping("/relatorio-atendimentos/csv")
     public ResponseEntity<byte[]> appointmentsReportCsv(
             @AuthenticationPrincipal Jwt jwt,
@@ -177,6 +189,7 @@ public class EstablishmentController {
         return csv("relatorio-comparecimento", report.periodStart(), report.periodEnd(), csvExporter.appointments(report));
     }
 
+    /** Exporta em PDF os agendamentos do período. */
     @GetMapping("/relatorio-atendimentos/pdf")
     public ResponseEntity<byte[]> appointmentsReportPdf(
             @AuthenticationPrincipal Jwt jwt,
@@ -206,6 +219,7 @@ public class EstablishmentController {
                 .body(content);
     }
 
+    /** Altera cadastro, expediente e política de antecedência da própria unidade. */
     @PutMapping
     public EstablishmentResponse update(
             @AuthenticationPrincipal Jwt jwt,
@@ -213,21 +227,25 @@ public class EstablishmentController {
         return establishmentManagementService.update(Long.valueOf(jwt.getSubject()), request);
     }
 
+    /** Suspende a criação de novas reservas na unidade. */
     @PatchMapping("/bloqueio-agendamentos")
     public EstablishmentResponse blockBookings(@AuthenticationPrincipal Jwt jwt) {
         return establishmentOperationService.blockBookings(Long.valueOf(jwt.getSubject()));
     }
 
+    /** Libera reservas quando o bloqueio foi feito pela própria unidade. */
     @DeleteMapping("/bloqueio-agendamentos")
     public EstablishmentResponse allowBookings(@AuthenticationPrincipal Jwt jwt) {
         return establishmentOperationService.allowBookings(Long.valueOf(jwt.getSubject()));
     }
 
+    /** Pausa a operação da unidade após verificar atendimentos abertos. */
     @PatchMapping("/pausa")
     public EstablishmentResponse pause(@AuthenticationPrincipal Jwt jwt) {
         return establishmentOperationService.pause(Long.valueOf(jwt.getSubject()));
     }
 
+    /** Retoma a operação após uma pausa administrativa local. */
     @DeleteMapping("/pausa")
     public EstablishmentResponse resume(@AuthenticationPrincipal Jwt jwt) {
         return establishmentOperationService.resume(Long.valueOf(jwt.getSubject()));

@@ -22,6 +22,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/** Verifica a estrutura e o conteúdo dos PDFs de relatório. */
 class ReportPdfExporterTests {
     private final ReportPdfExporter exporter = new ReportPdfExporter();
     private static final LocalDate START = LocalDate.of(2026, 9, 1);

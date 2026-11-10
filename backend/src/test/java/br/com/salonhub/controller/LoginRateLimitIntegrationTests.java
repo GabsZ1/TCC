@@ -37,6 +37,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "app.security.login.max-failures-per-ip=8",
         "app.security.public-forms.max-requests-per-ip=3"
 })
+/** Verifica o limite de tentativas de entrada pela API. */
 class LoginRateLimitIntegrationTests {
 
     private static final String PASSWORD = "Senha@123";

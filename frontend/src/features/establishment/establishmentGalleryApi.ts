@@ -1,3 +1,4 @@
+/** Envia, ordena e remove fotos da galeria do estabelecimento. */
 import { api } from '@/lib/api'
 
 export interface GalleryPhoto { id: number; position: number }

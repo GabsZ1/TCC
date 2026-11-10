@@ -1,5 +1,7 @@
 package br.com.salonhub.security;
 
+import br.com.salonhub.service.tenant.TenantAuthorizationService;
+
 /**
  * Regras de acesso por perfil usadas no {@code @PreAuthorize} dos controllers.
  * <p>

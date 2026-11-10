@@ -15,6 +15,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/** Verifica as rotas de autenticação e seus contratos HTTP. */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional

@@ -1,3 +1,4 @@
+/** Redefine a senha usando o token recebido no fluxo de recuperação. */
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { ArrowRight, KeyRound, TriangleAlert } from 'lucide-react'

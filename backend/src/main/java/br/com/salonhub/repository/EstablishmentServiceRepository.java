@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+/** Declara as consultas de estabelecimentos usadas pela camada de serviço. */
 @Repository
 public interface EstablishmentServiceRepository extends JpaRepository<EstablishmentService, Long> {
 

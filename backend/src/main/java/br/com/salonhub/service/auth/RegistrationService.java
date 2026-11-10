@@ -26,6 +26,7 @@ import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.Locale;
 
+/** Cria contas e estabelece os vínculos iniciais de clientes e estabelecimentos. */
 @Service
 @RequiredArgsConstructor
 public class RegistrationService {
@@ -36,6 +37,7 @@ public class RegistrationService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
+    /** Cria o estabelecimento e a conta administradora inicial na mesma transação. */
     @Transactional
     public InitialRegistrationResponse registerEstablishment(InitialRegistrationRequest request) {
         String cnpj = normalizeCnpj(request.cnpj());
@@ -81,6 +83,7 @@ public class RegistrationService {
                 administrator.getEmail());
     }
 
+    /** Cria a conta do cliente e seus dados de identificação. */
     @Transactional
     public AuthenticatedUserResponse registerClient(ClientRegistrationRequest request) {
         if (!request.password().equals(request.passwordConfirmation())) {

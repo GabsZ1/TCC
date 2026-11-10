@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import br.com.salonhub.validation.ValidCnpj;
 
+/** Define os dados recebidos pela API no fluxo de autenticação e suas validações de entrada. */
 public record InitialRegistrationRequest(
         @NotBlank @Size(max = 150) String ownerName,
         @NotBlank @Email @Size(max = 150) String ownerEmail,

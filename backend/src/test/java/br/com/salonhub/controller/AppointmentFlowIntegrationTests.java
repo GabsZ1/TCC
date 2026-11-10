@@ -30,6 +30,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/** Percorre a criação, consulta e alteração de agendamentos pela API. */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional

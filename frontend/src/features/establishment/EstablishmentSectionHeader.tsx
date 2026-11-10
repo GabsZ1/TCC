@@ -1,3 +1,4 @@
+/** Padroniza títulos e ações das seções de configuração do estabelecimento. */
 import type { ReactNode } from 'react'
 
 export function EstablishmentSectionHeader({ icon, title, description }: { icon: ReactNode; title: string; description: string }) {

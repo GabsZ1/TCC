@@ -22,6 +22,7 @@ public final class SecureTokens {
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
+    /** Armazena apenas o resumo do token para não persistir o segredo enviado ao usuário. */
     public static String sha256(String value) {
         try {
             byte[] digest = MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8));

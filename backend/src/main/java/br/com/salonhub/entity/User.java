@@ -11,6 +11,7 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+/** Representa contas, papéis e vínculos com estabelecimentos e serviços. */
 @Entity
 @Table(name = "users")
 @Getter
@@ -73,6 +74,7 @@ public class User {
     @Builder.Default
     private int firstAccessVersion = 0;
 
+    /** Invalida o convite anterior antes de emitir outro para a mesma conta. */
     public void renewFirstAccess() { this.firstAccessVersion++; }
 
     /** Vai no JWT; incrementar encerra todas as sessões abertas (ver SessionVersionValidator). */
@@ -105,11 +107,13 @@ public class User {
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
+    /** Altera os dados gerais permitidos ao perfil do usuário. */
     public void updateProfile(String name, String email) {
         this.name = name;
         this.email = email;
     }
 
+    /** Conclui o primeiro acesso gravando a senha inicial. */
     public void initializePassword(String encodedPassword) {
         this.password = encodedPassword;
         this.passwordInitialized = true;
@@ -121,10 +125,12 @@ public class User {
         endAllSessions();
     }
 
+    /** Incrementa a versão da sessão para rejeitar tokens emitidos antes da alteração. */
     public void endAllSessions() {
         this.sessionVersion++;
     }
 
+    /** Troca a referência à foto vinculada ao usuário. */
     public void replacePhoto(Media photo) {
         this.photo = photo;
     }
@@ -154,6 +160,7 @@ public class User {
         this.address = address;
     }
 
+    /** Atualiza os dados pessoais da conta cliente. */
     public void updateClientProfile(String name, String email, String phone) {
         this.name = name;
         this.email = email;
@@ -175,10 +182,12 @@ public class User {
         endAllSessions();
     }
 
+    /** Devolve os serviços atualmente atribuídos ao profissional. */
     public Set<EstablishmentService> getOfferedServices() {
         return Collections.unmodifiableSet(offeredServices);
     }
 
+    /** Substitui o conjunto de serviços oferecidos pelo profissional. */
     public void updateOfferedServices(
             boolean offersAllServices,
             Collection<EstablishmentService> services) {
@@ -189,6 +198,7 @@ public class User {
         }
     }
 
+    /** Confere se o serviço pertence ao conjunto atribuído ao profissional. */
     public boolean offers(EstablishmentService service) {
         if (offersAllServices) {
             return true;
@@ -201,10 +211,12 @@ public class User {
                         || service.getId() != null && service.getId().equals(offeredService.getId()));
     }
 
+    /** Bloqueia o acesso da conta sem remover seus vínculos históricos. */
     public void deactivate() {
         this.active = false;
     }
 
+    /** Restaura o acesso da conta mantendo seus vínculos existentes. */
     public void reactivate() {
         this.active = true;
     }

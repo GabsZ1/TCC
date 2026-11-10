@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+/** Declara as consultas de agendamentos usadas pela camada de serviço. */
 public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
 
     /** Agendamentos ainda sem lembrete que começam entre {@code from} (exclusivo) e {@code until}. */

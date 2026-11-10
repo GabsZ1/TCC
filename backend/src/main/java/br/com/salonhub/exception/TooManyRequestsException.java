@@ -2,6 +2,7 @@ package br.com.salonhub.exception;
 
 import java.time.Duration;
 
+/** Sinaliza que o limite de tentativas permitido foi ultrapassado. */
 public class TooManyRequestsException extends RuntimeException {
 
     private final Duration retryAfter;

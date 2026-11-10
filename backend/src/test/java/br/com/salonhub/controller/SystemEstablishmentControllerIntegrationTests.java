@@ -13,7 +13,7 @@ import br.com.salonhub.repository.EstablishmentRepository;
 import br.com.salonhub.repository.EstablishmentServiceRepository;
 import br.com.salonhub.repository.AppointmentRepository;
 import br.com.salonhub.repository.UserRepository;
-import br.com.salonhub.service.TokenService;
+import br.com.salonhub.service.auth.TokenService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -36,6 +36,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/** Verifica as rotas de estabelecimentos da administração do sistema. */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional

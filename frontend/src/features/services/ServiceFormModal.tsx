@@ -1,3 +1,4 @@
+/** Coleta preço, duração e demais dados usados ao criar ou editar um serviço. */
 import { useState, type FormEvent } from 'react'
 import { Clock3, Percent, Wallet } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
@@ -11,9 +12,11 @@ interface ServiceFormModalProps {
   onClose: () => void
 }
 
+/** Coleta duração, preço e comissão antes de criar ou atualizar um serviço. */
 export function ServiceFormModal({ service, isSubmitting, errorMessage, onSubmit, onClose }: ServiceFormModalProps) {
   const [error, setError] = useState<string | null>(null)
 
+  /** Converte os campos do formulário para os valores esperados pela API. */
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const form = new FormData(event.currentTarget)

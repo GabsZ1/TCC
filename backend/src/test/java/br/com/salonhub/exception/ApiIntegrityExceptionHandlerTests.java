@@ -14,6 +14,7 @@ import java.sql.SQLException;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+/** Verifica a tradução de falhas de integridade em respostas da API. */
 class ApiIntegrityExceptionHandlerTests {
     @ParameterizedTest
     @CsvSource({

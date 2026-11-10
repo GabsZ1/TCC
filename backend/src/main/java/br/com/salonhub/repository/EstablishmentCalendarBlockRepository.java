@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+/** Declara as consultas de estabelecimentos usadas pela camada de serviço. */
 public interface EstablishmentCalendarBlockRepository extends JpaRepository<EstablishmentCalendarBlock, Long> {
     List<EstablishmentCalendarBlock> findByEstablishmentIdAndStartsAtLessThanAndEndsAtGreaterThanOrderByStartsAt(
             Long establishmentId, LocalDateTime end, LocalDateTime start);

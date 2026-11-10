@@ -2,7 +2,7 @@ package br.com.salonhub.controller;
 
 import br.com.salonhub.entity.*;
 import br.com.salonhub.repository.*;
-import br.com.salonhub.service.TokenService;
+import br.com.salonhub.service.auth.TokenService;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+/** Verifica as operações HTTP de gestão do estabelecimento. */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional

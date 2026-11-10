@@ -1,12 +1,14 @@
 package br.com.salonhub.service.professionalagenda;
 
+import br.com.salonhub.service.employee.EmployeeService;
+import br.com.salonhub.service.establishment.EstablishmentManagementService;
 import br.com.salonhub.dto.professionalagenda.*;
 import br.com.salonhub.entity.*;
 import br.com.salonhub.exception.ConflictException;
 import br.com.salonhub.exception.InvalidRequestException;
 import br.com.salonhub.exception.ResourceNotFoundException;
 import br.com.salonhub.repository.*;
-import br.com.salonhub.service.TenantAuthorizationService;
+import br.com.salonhub.service.tenant.TenantAuthorizationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +22,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/** Gerencia os horários e eventos que compõem a agenda do profissional. */
 @Service
 @RequiredArgsConstructor
 public class ProfessionalAgendaService {
@@ -34,6 +37,7 @@ public class ProfessionalAgendaService {
     private final AppointmentRepository appointmentRepository;
     private final Clock clock;
 
+    /** Consulta a jornada semanal e os eventos do profissional no escopo da equipe. */
     @Transactional(readOnly = true)
     public List<ProfessionalHourResponse> findSchedule(Long professionalId) {
         User professional = requireProfessionalWithEstablishment(professionalId);
@@ -60,6 +64,7 @@ public class ProfessionalAgendaService {
         }).toList();
     }
 
+    /** Substitui a jornada semanal após validar horários e vínculos do profissional. */
     @Transactional
     public List<ProfessionalHourResponse> updateSchedule(
             Long professionalId, ProfessionalScheduleUpdateRequest request) {
@@ -135,6 +140,7 @@ public class ProfessionalAgendaService {
         }
     }
 
+    /** Confere se uma reserva confirmada continuaria coberta pela nova jornada semanal. */
     private boolean fallsOutsideNewSchedule(
             Appointment appointment,
             Map<DayOfWeek, EstablishmentBusinessHour> establishmentHours,
@@ -166,6 +172,7 @@ public class ProfessionalAgendaService {
                 || appointment.getEndsAt().toLocalTime().isAfter(closing);
     }
 
+    /** Bloqueia um intervalo na agenda do profissional após conferir conflitos. */
     @Transactional
     public CalendarEventResponse createEvent(Long professionalId, CalendarEventRequest request) {
         User professional = lockProfessional(professionalId);
@@ -180,6 +187,7 @@ public class ProfessionalAgendaService {
         return CalendarEventResponse.fromEntity(eventRepository.save(event));
     }
 
+    /** Altera um evento existente sem permitir sobreposição inválida. */
     @Transactional
     public CalendarEventResponse updateEvent(Long professionalId, Long eventId, CalendarEventRequest request) {
         User professional = lockProfessional(professionalId);
@@ -190,6 +198,7 @@ public class ProfessionalAgendaService {
         return CalendarEventResponse.fromEntity(event);
     }
 
+    /** Remove somente eventos da agenda do profissional autorizado. */
     @Transactional
     public void deleteEvent(Long professionalId, Long eventId) {
         User professional = requireActiveProfessionalWithEstablishment(professionalId);
@@ -198,6 +207,7 @@ public class ProfessionalAgendaService {
         eventRepository.delete(event);
     }
 
+    /** Combina eventos e agendamentos para apresentar a agenda do período. */
     @Transactional(readOnly = true)
     public List<ProfessionalAgendaItemResponse> findAgenda(
             Long professionalId, LocalDateTime startsAt, LocalDateTime endsAt) {
@@ -224,6 +234,7 @@ public class ProfessionalAgendaService {
         }
     }
 
+    /** Impede que uma jornada personalizada ultrapasse o expediente da unidade. */
     private void validateWithinEstablishment(
             ProfessionalHourRequest hour, EstablishmentBusinessHour establishmentHour) {
         if (hour.closed()) {

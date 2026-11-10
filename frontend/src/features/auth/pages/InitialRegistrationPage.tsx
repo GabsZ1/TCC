@@ -1,3 +1,4 @@
+/** Registra o primeiro estabelecimento e seu administrador. */
 import { useState, type FormEvent, type InputHTMLAttributes } from 'react'
 import { ArrowRight, Building2, UserRound } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -5,11 +6,13 @@ import { AuthShell } from '@/features/auth/components/AuthShell'
 import { registerInitial } from '@/features/auth/services/authApi'
 import { getApiErrorMessage } from '@/lib/apiError'
 
+/** Agrupa os dados do responsável e da unidade no cadastro inicial. */
 export function InitialRegistrationPage() {
   const navigate = useNavigate()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  /** Envia juntos os dados do responsável e do estabelecimento inicial. */
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError(null)
@@ -40,6 +43,7 @@ export function InitialRegistrationPage() {
       title="Cadastre seu estabelecimento"
       subtitle="Crie o acesso do responsável e os dados básicos do negócio. Depois você poderá configurar equipe, serviços e agenda."
       maxWidth="lg"
+      scrollFormOnDesktop
     >
       <form onSubmit={handleSubmit}>
         <FormSection icon={<UserRound size={18} />} title="Sua conta" description="Dados usados para acessar e administrar o Meu Espaço.">
@@ -96,6 +100,7 @@ function Field({ name, label, required = true, className = '', ...props }: Field
   )
 }
 
+/** Aceita CNPJ numérico ou alfanumérico, com ou sem pontuação, no cadastro inicial. */
 function CnpjField() {
   return (
     <label className="block text-sm font-semibold text-text-800">
@@ -115,6 +120,7 @@ function CnpjField() {
   )
 }
 
+/** Separa os dados do responsável dos dados do estabelecimento. */
 function FormSection({ icon, title, description, children }: { icon: React.ReactNode; title: string; description: string; children: React.ReactNode }) {
   return (
     <section>

@@ -1,3 +1,4 @@
+/** Reúne a visão administrativa dos agendamentos do estabelecimento. */
 import { useSearchParams } from 'react-router-dom'
 import { BarChart3, ClipboardCheck } from 'lucide-react'
 import { AppointmentsReportPage } from '@/features/reports/AppointmentsReportPage'
@@ -42,6 +43,7 @@ export function EstablishmentAppointmentsPage() {
   )
 }
 
+/** Indica a seção ativa e permite trocar de visão administrativa. */
 function TabButton({ active, onClick, icon, children }: { active: boolean; onClick: () => void; icon: React.ReactNode; children: React.ReactNode }) {
   return (
     <button

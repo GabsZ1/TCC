@@ -1,3 +1,4 @@
+/** Protege por testes o comportamento de establishmentUploads, incluindo os cenários de regressão deste módulo. */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { api } from '@/lib/api'
 import { uploadEstablishmentImage } from './establishmentImagesApi'

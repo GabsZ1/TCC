@@ -1,3 +1,4 @@
+/** Protege por testes o comportamento de customersApi, incluindo os cenários de regressão deste módulo. */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from '@/lib/api'
 import { fetchCustomerAppointments, fetchCustomers } from './customersApi'

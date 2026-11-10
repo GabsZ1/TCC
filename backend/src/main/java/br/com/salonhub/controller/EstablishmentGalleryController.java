@@ -5,7 +5,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 
 import br.com.salonhub.dto.establishment.GalleryPhotoResponse;
 import br.com.salonhub.dto.establishment.GalleryReorderRequest;
-import br.com.salonhub.service.EstablishmentGalleryService;
+import br.com.salonhub.service.establishment.EstablishmentGalleryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -17,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
+/** Expõe as operações HTTP de estabelecimentos e encaminha as regras de negócio aos serviços. */
 @PreAuthorize(AccessRules.ADMIN)
 @RestController
 @RequestMapping("/api/estabelecimentos")
@@ -24,12 +25,14 @@ import java.util.List;
 public class EstablishmentGalleryController {
     private final EstablishmentGalleryService gallery;
 
+    /** Lista as fotos visíveis ao cliente no perfil público. */
     @PreAuthorize(AccessRules.AUTHENTICATED)
     @GetMapping("/{establishmentId}/perfil/galeria")
     public List<GalleryPhotoResponse> publicPhotos(@PathVariable Long establishmentId) {
         return gallery.findPublic(establishmentId);
     }
 
+    /** Entrega o conteúdo de uma foto pública da galeria. */
     @PreAuthorize(AccessRules.AUTHENTICATED)
     @GetMapping("/{establishmentId}/perfil/galeria/{photoId}")
     public ResponseEntity<byte[]> publicImage(@PathVariable Long establishmentId, @PathVariable Long photoId) {
@@ -37,28 +40,33 @@ public class EstablishmentGalleryController {
         return ResponseEntity.ok().contentType(MediaType.parseMediaType(image.contentType())).body(image.data());
     }
 
+    /** Lista as fotos da galeria para sua administração. */
     @GetMapping("/me/perfil/galeria")
     public List<GalleryPhotoResponse> mine(@AuthenticationPrincipal Jwt jwt) {
         return gallery.findMine(Long.valueOf(jwt.getSubject()));
     }
 
+    /** Entrega uma foto da galeria ao administrador da unidade. */
     @GetMapping("/me/perfil/galeria/{photoId}")
     public ResponseEntity<byte[]> myImage(@AuthenticationPrincipal Jwt jwt, @PathVariable Long photoId) {
         var image = gallery.findMineImage(Long.valueOf(jwt.getSubject()), photoId);
         return ResponseEntity.ok().contentType(MediaType.parseMediaType(image.contentType())).body(image.data());
     }
 
+    /** Adiciona uma foto à galeria da unidade. */
     @PostMapping(value = "/me/perfil/galeria", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public GalleryPhotoResponse upload(@AuthenticationPrincipal Jwt jwt, @RequestPart("file") MultipartFile file) {
         return gallery.upload(Long.valueOf(jwt.getSubject()), file);
     }
 
+    /** Grava a nova sequência completa das fotos da galeria. */
     @PutMapping("/me/perfil/galeria/ordem")
     public List<GalleryPhotoResponse> reorder(@AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody GalleryReorderRequest request) {
         return gallery.reorder(Long.valueOf(jwt.getSubject()), request.photoIds());
     }
 
+    /** Remove uma foto da galeria da unidade. */
     @DeleteMapping("/me/perfil/galeria/{photoId}")
     public ResponseEntity<Void> delete(@AuthenticationPrincipal Jwt jwt, @PathVariable Long photoId) {
         gallery.delete(Long.valueOf(jwt.getSubject()), photoId);

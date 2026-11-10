@@ -1,3 +1,4 @@
+/** Escolhe a rota inicial após a autenticação conforme o perfil e o estado da conta. */
 import type { UserRole } from '@/types/auth'
 
 const exactPathsByRole: Record<UserRole, string[]> = {

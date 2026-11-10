@@ -1,3 +1,4 @@
+/** Protege por testes o comportamento de cep, incluindo os cenários de regressão deste módulo. */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { CepNotFoundError, formatCep, lookupCep } from './cep'
 

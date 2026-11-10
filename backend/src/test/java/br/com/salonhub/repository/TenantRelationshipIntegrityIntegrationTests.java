@@ -18,6 +18,7 @@ import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+/** Verifica vínculos consistentes entre dados do mesmo estabelecimento. */
 @SpringBootTest
 @Transactional
 class TenantRelationshipIntegrityIntegrationTests {

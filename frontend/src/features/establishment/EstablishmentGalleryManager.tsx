@@ -1,3 +1,4 @@
+/** Gerencia a seleção, a ordem e a exclusão de fotos da galeria. */
 import { useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, ArrowRight, GripVertical, Images, Plus, Trash2 } from 'lucide-react'
@@ -6,6 +7,7 @@ import { getApiErrorMessage } from '@/lib/apiError'
 import { GalleryPhotoImage } from './GalleryPhotoImage'
 import { deleteGalleryPhoto, fetchGallery, GALLERY_LIMIT, reorderGallery, uploadGalleryPhoto } from './establishmentGalleryApi'
 
+/** Controla lote de envio, ordem das fotos e exclusão com atualização da galeria. */
 export function EstablishmentGalleryManager({ establishmentId }: { establishmentId: number }) {
   const queryClient = useQueryClient()
   const queryKey = ['establishment-gallery', establishmentId, true]
@@ -17,6 +19,7 @@ export function EstablishmentGalleryManager({ establishmentId }: { establishment
   const [draggedId, setDraggedId] = useState<number | null>(null)
   const [photoToRemove, setPhotoToRemove] = useState<number | null>(null)
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['establishment-gallery', establishmentId] })
+  // Envia os arquivos em sequência para exibir progresso e respeitar a ordem de seleção.
   const upload = useMutation({
     mutationFn: async (files: File[]) => {
       for (const [index, file] of files.entries()) {
@@ -40,6 +43,7 @@ export function EstablishmentGalleryManager({ establishmentId }: { establishment
   })
   const busy = upload.isPending || remove.isPending || reorder.isPending
 
+  /** Rejeita o lote inteiro quando excede a capacidade ou contém uma imagem inválida. */
   function selectFiles(files: FileList | null) {
     if (!files?.length) return
     const selected = Array.from(files)
@@ -52,6 +56,7 @@ export function EstablishmentGalleryManager({ establishmentId }: { establishment
     upload.mutate(selected)
   }
 
+  /** Envia a sequência completa de IDs após arrastar ou usar os botões de posição. */
   function move(from: number, to: number) {
     if (busy || from < 0 || to < 0 || to >= photos.length || from === to) return
     const ids = photos.map((photo) => photo.id)

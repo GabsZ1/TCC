@@ -1,3 +1,4 @@
+/** Associa os serviços que cada profissional pode oferecer. */
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, Layers3 } from 'lucide-react'
@@ -6,6 +7,7 @@ import { fetchServices, type SalonService } from '@/features/services/servicesAp
 import { fetchEmployeeServices, updateEmployeeServices, type Employee, type ProfessionalServices } from '@/features/employees/services/employeesApi'
 import { getApiErrorMessage } from '@/lib/apiError'
 
+/** Consulta os serviços disponíveis antes de abrir a seleção para o profissional. */
 export function ProfessionalServicesModal({ employee, onClose }: { employee: Employee; onClose: () => void }) {
   const queryClient = useQueryClient()
   const catalog = useQuery({ queryKey: ['services'], queryFn: fetchServices })
@@ -21,6 +23,7 @@ export function ProfessionalServicesModal({ employee, onClose }: { employee: Emp
   )
 }
 
+/** Mantém a seleção de serviços do profissional e envia o conjunto final à API. */
 function ServicesEditor({ employee, catalog, assigned, onClose, onSaved }: { employee: Employee; catalog: SalonService[]; assigned: ProfessionalServices; onClose: () => void; onSaved: () => void }) {
   const [allServices, setAllServices] = useState(assigned.allServices)
   const [selectedIds, setSelectedIds] = useState(() => assigned.services.map((service) => service.id))

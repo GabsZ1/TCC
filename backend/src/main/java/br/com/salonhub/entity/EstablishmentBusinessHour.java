@@ -6,6 +6,7 @@ import lombok.*;
 import java.time.DayOfWeek;
 import java.time.LocalTime;
 
+/** Representa um período semanal de funcionamento do estabelecimento. */
 @Entity
 @Table(name = "establishment_business_hours", uniqueConstraints =
         @UniqueConstraint(columnNames = {"establishment_id", "day_of_week"}))
@@ -34,6 +35,7 @@ public class EstablishmentBusinessHour {
     @Column(name = "closing_time")
     private LocalTime closingTime;
 
+    /** Altera o expediente semanal usado no cálculo de disponibilidade. */
     public void update(boolean closed, LocalTime openingTime, LocalTime closingTime) {
         this.closed = closed;
         this.openingTime = closed ? null : openingTime;

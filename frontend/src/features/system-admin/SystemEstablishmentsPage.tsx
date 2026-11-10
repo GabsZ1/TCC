@@ -1,3 +1,4 @@
+/** Permite ao administrador do sistema consultar e controlar estabelecimentos. */
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Building2, CalendarOff, Eye, Pause, Power, RotateCcw, Search } from 'lucide-react'
@@ -20,6 +21,7 @@ const QUERY_KEY = ['system-establishments']
 const ESTABLISHMENTS_PER_PAGE = 10
 type Action = 'block' | 'allow' | 'pause' | 'resume' | 'deactivate' | 'reactivate'
 
+/** Filtra os estabelecimentos e exige confirmação antes de alterar seu estado operacional. */
 export function SystemEstablishmentsPage() {
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
@@ -37,6 +39,7 @@ export function SystemEstablishmentsPage() {
     },
     onError: () => setSelection(null),
   })
+  // A busca ignora acentos no nome e pontuação no CNPJ; a paginação usa a lista filtrada.
   const filtered = useMemo(() => {
     const term = normalizeName(search)
     if (!term) return establishments.data ?? []
@@ -86,6 +89,7 @@ export function SystemEstablishmentsPage() {
   )
 }
 
+/** Traduz a ação escolhida para a chamada administrativa correspondente. */
 function runAction(id: number, action: Action) {
   if (action === 'block') return blockSystemEstablishmentBookings(id)
   if (action === 'allow') return allowSystemEstablishmentBookings(id)

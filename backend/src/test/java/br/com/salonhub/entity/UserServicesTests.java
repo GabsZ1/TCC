@@ -6,6 +6,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/** Verifica os serviços associados a um usuário profissional. */
 class UserServicesTests {
 
     @Test

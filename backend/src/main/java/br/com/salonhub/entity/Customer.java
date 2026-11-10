@@ -14,6 +14,7 @@ import br.com.salonhub.validation.PhoneNumbers;
 @Entity
 @Table(name = "customers", uniqueConstraints = @UniqueConstraint(
         name = "uq_customers_establishment_user", columnNames = {"establishment_id", "user_id"}))
+/** Representa o cadastro de um cliente dentro de um estabelecimento. */
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Customer {
@@ -46,6 +47,7 @@ public class Customer {
     @UpdateTimestamp @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
+    /** Cria o cadastro local associado ao estabelecimento informado. */
     public static Customer create(Establishment establishment, String name, String phone, String email) {
         Customer customer = new Customer();
         customer.establishment = establishment;
@@ -55,6 +57,7 @@ public class Customer {
         return customer;
     }
 
+    /** Associa um usuário à ficha local sem mudar seu estabelecimento. */
     public void link(User user) { this.user = user; }
 
     /** Dados de contato de clientes vinculados são espelho da conta do cliente. */
@@ -64,6 +67,7 @@ public class Customer {
         this.email = normalizeEmail(user.getEmail());
     }
 
+    /** Remove dados pessoais da ficha após o encerramento da conta vinculada. */
     public void anonymizeClosedAccount() {
         this.user = null;
         this.name = "Cliente removido";
@@ -72,6 +76,7 @@ public class Customer {
         this.active = false;
     }
 
+    /** Altera os dados do cadastro local e seu estado de atividade. */
     public void update(String name, String phone, String email, boolean active) {
         this.name = name;
         this.phone = PhoneNumbers.normalize(phone);

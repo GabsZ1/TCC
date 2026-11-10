@@ -1,3 +1,4 @@
+/** Configura o cliente HTTP e aplica autenticação e tratamento comum às requisições. */
 import axios from 'axios'
 import { loginPathAfterSessionEnded } from '@/lib/session'
 

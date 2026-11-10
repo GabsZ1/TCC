@@ -1,3 +1,4 @@
+/** Protege por testes o comportamento de CustomersPage, incluindo os cenários de regressão deste módulo. */
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'

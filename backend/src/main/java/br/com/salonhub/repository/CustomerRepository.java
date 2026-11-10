@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import java.util.Optional;
 
+/** Declara as consultas de clientes usadas pela camada de serviço. */
 public interface CustomerRepository extends JpaRepository<Customer, Long> {
     @Query("""
             select customer from Customer customer

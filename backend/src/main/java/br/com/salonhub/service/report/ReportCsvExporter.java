@@ -26,6 +26,7 @@ public class ReportCsvExporter {
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final byte[] BOM = {(byte) 0xEF, (byte) 0xBB, (byte) 0xBF};
 
+    /** Escreve o relatório de comissões em CSV com colunas e valores próprios do período. */
     public byte[] commission(CommissionReportResponse report) {
         List<List<String>> rows = new ArrayList<>();
         rows.add(List.of("Relatório de comissões", period(report.periodStart(), report.periodEnd())));
@@ -39,6 +40,7 @@ public class ReportCsvExporter {
         return toCsv(rows);
     }
 
+    /** Escreve o resumo financeiro em CSV para análise fora da aplicação. */
     public byte[] financial(FinancialReportResponse report) {
         List<List<String>> rows = new ArrayList<>();
         rows.add(List.of("Relatório financeiro", period(report.periodStart(), report.periodEnd())));
@@ -51,6 +53,7 @@ public class ReportCsvExporter {
         return toCsv(rows);
     }
 
+    /** Escreve os agendamentos filtrados em CSV preservando o cabeçalho do relatório. */
     public byte[] appointments(AppointmentsReportResponse report) {
         List<List<String>> rows = new ArrayList<>();
         rows.add(List.of("Relatório de agenda e comparecimento", period(report.periodStart(), report.periodEnd())));

@@ -1,3 +1,4 @@
+/** Apresenta os indicadores gerais e os atalhos para as áreas operacionais. */
 import { type ComponentType } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
@@ -16,6 +17,7 @@ import { getApiErrorMessage } from '@/lib/apiError'
 import { fetchNextClientAppointment, fetchProfessionalToday, type Appointment } from '@/features/appointments/appointmentsApi'
 import { businessToday, formatBusinessDateWithWeekday } from '@/lib/dateTime'
 
+/** Consulta somente os dados do papel autenticado e escolhe a página inicial correspondente. */
 export function DashboardPage() {
   const { user } = useAuth()
   const dashboard = useQuery({ queryKey: ['dashboard-summary'], queryFn: fetchDashboardSummary, enabled: user?.role === 'ADMIN' })
@@ -69,6 +71,7 @@ export function DashboardPage() {
   )
 }
 
+/** Prioriza o próximo compromisso do cliente e os atalhos para novas reservas. */
 function ClientHome({ name, next, isLoading, error }: { name: string; next: Appointment | null; isLoading: boolean; error: unknown }) {
 
   return (
@@ -98,6 +101,7 @@ function ClientHome({ name, next, isLoading, error }: { name: string; next: Appo
   )
 }
 
+/** Resume os atendimentos do dia sem buscar dados administrativos do estabelecimento. */
 function ProfessionalHome({ name, establishmentName, today, isLoading, error }: { name: string; establishmentName: string | null; today?: { confirmedCount: number; next: Appointment | null }; isLoading: boolean; error: unknown }) {
   const next = today?.next
 

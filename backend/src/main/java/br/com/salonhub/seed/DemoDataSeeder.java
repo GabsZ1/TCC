@@ -250,6 +250,7 @@ public class DemoDataSeeder {
 
     // ---------- agendamentos ----------
 
+    /** Distribui reservas passadas e futuras conforme a ocupação prevista para a unidade de demonstração. */
     private int createAppointments(SeededEstablishment seeded, List<User> clients, LocalDate today, double busyness) {
         User administrator = userRepository.findByEmailIgnoreCase("admin@" + seeded.slug() + ".demo").orElseThrow();
         List<Appointment> created = new ArrayList<>();

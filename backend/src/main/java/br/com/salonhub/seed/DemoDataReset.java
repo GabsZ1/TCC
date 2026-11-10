@@ -1,7 +1,7 @@
 package br.com.salonhub.seed;
 
 import br.com.salonhub.repository.MediaRepository;
-import br.com.salonhub.service.MediaService;
+import br.com.salonhub.service.media.MediaService;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Profile;

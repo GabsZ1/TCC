@@ -1,3 +1,4 @@
+/** Organiza a busca, o cadastro e o histórico dos clientes do estabelecimento. */
 import { useEffect, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
@@ -10,6 +11,7 @@ import { getApiErrorMessage } from '@/lib/apiError'
 import { formatPhone, isValidPhone, PHONE_MASK } from '@/lib/phone'
 import { createCustomer, createCustomerAppointment, fetchBookingOptions, fetchCustomerAppointments, fetchCustomerDuplicates, fetchCustomerSuggestions, fetchCustomers, fetchInternalAvailability, keepCustomersSeparate, mergeCustomers, updateCustomer, type Customer } from './customersApi'
 
+/** Combina busca, cadastro e decisões sobre duplicidade no escopo do estabelecimento. */
 export function CustomersPage() {
   const queryClient = useQueryClient()
   const { user } = useAuth()

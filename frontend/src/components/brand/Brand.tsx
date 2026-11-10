@@ -1,9 +1,11 @@
+/** Exibe a identidade visual da aplicação nos tamanhos usados pelas telas. */
 interface BrandProps {
   compact?: boolean
   inverse?: boolean
   className?: string
 }
 
+/** Mostra a marca nas variações de tamanho usadas pela navegação e pelos formulários. */
 export function Brand({ compact = false, inverse = false, className = '' }: BrandProps) {
   return (
     <div className={`inline-flex items-center gap-3 ${className}`} aria-label="Meu Espaço">

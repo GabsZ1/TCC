@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import java.time.DayOfWeek;
 import java.time.LocalTime;
 
+/** Representa a jornada semanal específica de um profissional. */
 @Entity
 @Table(name = "professional_business_hours", uniqueConstraints =
         @UniqueConstraint(columnNames = {"professional_id", "day_of_week"}))
@@ -36,6 +37,7 @@ public class ProfessionalBusinessHour {
     @Column(name = "closing_time")
     private LocalTime closingTime;
 
+    /** Cria a configuração de jornada para um dia da semana. */
     public static ProfessionalBusinessHour create(
             User professional, DayOfWeek dayOfWeek, boolean closed,
             LocalTime openingTime, LocalTime closingTime) {
@@ -46,6 +48,7 @@ public class ProfessionalBusinessHour {
         return hour;
     }
 
+    /** Altera a jornada do dia, inclusive herança do expediente e fechamento. */
     public void update(boolean closed, LocalTime openingTime, LocalTime closingTime) {
         this.closed = closed;
         this.openingTime = closed ? null : openingTime;

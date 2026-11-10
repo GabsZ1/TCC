@@ -1,3 +1,4 @@
+/** Converte e valida períodos de bloqueio para exibição e envio à API. */
 import { addBusinessDays } from '@/lib/dateTime'
 
 /** A API recebe um intervalo semiaberto; o dia final escolhido na tela é inclusivo. */

@@ -1,3 +1,4 @@
+/** Mostra os dados do estabelecimento consultados antes de iniciar uma reserva. */
 import { useQuery } from '@tanstack/react-query'
 import { AtSign, Clock3, MapPin, MessageCircle, Phone, Scissors } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -14,6 +15,7 @@ interface Props {
   onClose: () => void
 }
 
+/** Consulta o perfil público e reúne contato, localização, equipe e acesso à reserva. */
 export function EstablishmentDetailsModal({ establishmentId, establishmentName, onClose }: Props) {
   const navigate = useNavigate()
   const profileQuery = useQuery({
@@ -109,6 +111,7 @@ function formatAddress(profile: Awaited<ReturnType<typeof fetchEstablishmentProf
   const street = [profile.street, profile.streetNumber].filter(Boolean).join(', ')
   return [street, profile.addressComplement, profile.neighborhood, [profile.city, profile.state].filter(Boolean).join(' - ')].filter(Boolean).join(' · ')
 }
+/** Monta o endereço de busca do mapa a partir dos dados disponíveis no perfil. */
 function formatMapAddress(profile: Awaited<ReturnType<typeof fetchEstablishmentProfile>>) {
   if (!profile.street || !profile.streetNumber || !profile.city || !profile.state) return null
   return [profile.street, profile.streetNumber, profile.neighborhood, profile.city, profile.state, profile.postalCode, 'Brasil']

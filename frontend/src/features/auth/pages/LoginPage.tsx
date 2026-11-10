@@ -1,3 +1,4 @@
+/** Autentica o usuário e encaminha a sessão ao destino adequado. */
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from 'lucide-react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
@@ -8,6 +9,7 @@ import { getApiErrorMessage } from '@/lib/apiError'
 import { postLoginPath } from '@/features/auth/postLoginPath'
 import { REDIRECT_PARAM, SESSION_ENDED_PARAM, SESSION_ENDED_VALUE } from '@/lib/session'
 
+/** Exibe o formulário e informa quando a sessão anterior expirou ou foi encerrada. */
 export function LoginPage() {
   const { login } = useAuth()
   const navigate = useNavigate()
@@ -26,6 +28,7 @@ export function LoginPage() {
     emailRef.current?.focus()
   }, [])
 
+  /** Retoma a rota solicitada antes do login quando ela é compatível com o papel autenticado. */
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
     setError(null)

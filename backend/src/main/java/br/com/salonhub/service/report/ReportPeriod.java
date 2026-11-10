@@ -10,6 +10,7 @@ import java.time.YearMonth;
 /** Período dos relatórios: as duas datas juntas, ou o mês corrente quando nenhuma é informada. */
 public record ReportPeriod(LocalDate start, LocalDate end) {
 
+    /** Exige as duas datas juntas ou usa o mês corrente como período padrão. */
     public static ReportPeriod resolve(LocalDate startDate, LocalDate endDate, Clock clock) {
         if ((startDate == null) != (endDate == null)) {
             throw new InvalidRequestException("Informe a data inicial e a data final para filtrar por período.");
@@ -24,10 +25,12 @@ public record ReportPeriod(LocalDate start, LocalDate end) {
         return new ReportPeriod(currentMonth.atDay(1), currentMonth.atEndOfMonth());
     }
 
+    /** Converte a data inicial para o início incluído na consulta. */
     public LocalDateTime startInclusive() {
         return start.atStartOfDay();
     }
 
+    /** Converte a data final para o primeiro instante fora do período. */
     public LocalDateTime endExclusive() {
         return end.plusDays(1).atStartOfDay();
     }

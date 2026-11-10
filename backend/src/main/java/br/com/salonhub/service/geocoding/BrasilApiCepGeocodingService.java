@@ -27,6 +27,7 @@ public class BrasilApiCepGeocodingService {
         this.client = client;
     }
 
+    /** Usa o CEP como alternativa quando a busca pelo endereço completo não encontrou coordenadas. */
     public Optional<Coordinates> geocodePostalCode(String postalCode) {
         if (postalCode == null || !postalCode.matches("\\d{8}")) return Optional.empty();
         try {

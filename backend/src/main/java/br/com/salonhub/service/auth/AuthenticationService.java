@@ -10,7 +10,6 @@ import br.com.salonhub.entity.UserRole;
 import br.com.salonhub.exception.UnauthorizedException;
 import br.com.salonhub.exception.InvalidRequestException;
 import br.com.salonhub.repository.UserRepository;
-import br.com.salonhub.service.TokenService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -18,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Locale;
 
+/** Autentica credenciais e produz a sessão usada nas requisições protegidas. */
 @Service
 @RequiredArgsConstructor
 public class AuthenticationService {
@@ -27,6 +27,7 @@ public class AuthenticationService {
     private final TokenService tokenService;
     private final AuthenticationRateLimiter rateLimiter;
 
+    /** Valida credenciais e estado da conta antes de emitir a sessão e registrar a tentativa. */
     @Transactional(readOnly = true)
     public LoginResponse authenticate(LoginRequest request, String clientIp) {
         String email = request.email().trim().toLowerCase(Locale.ROOT);
@@ -54,6 +55,7 @@ public class AuthenticationService {
         return issueSession(user);
     }
 
+    /** Troca a senha provisória e conclui a ativação da conta do funcionário. */
     @Transactional
     public void completeFirstAccess(FirstAccessRequest request) {
         Long userId = tokenService.validateFirstAccess(request.token());
@@ -114,6 +116,7 @@ public class AuthenticationService {
         return issueSession(user);
     }
 
+    /** Recarrega a conta ativa para devolver o papel e o estabelecimento atuais. */
     @Transactional(readOnly = true)
     public AuthenticatedUserResponse getCurrentUser(Long userId) {
         User user = userRepository.findById(userId)

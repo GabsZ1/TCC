@@ -9,7 +9,7 @@ import br.com.salonhub.exception.InvalidRequestException;
 import br.com.salonhub.repository.AppointmentRepository;
 import br.com.salonhub.repository.CompletedAppointmentsTotalsRow;
 import br.com.salonhub.repository.EstablishmentServiceRepository;
-import br.com.salonhub.service.TenantAuthorizationService;
+import br.com.salonhub.service.tenant.TenantAuthorizationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.data.domain.PageRequest;
@@ -42,6 +42,7 @@ public class ProfessionalCompletedServicesService {
     private final TenantAuthorizationService tenantAuthorizationService;
     private final Clock clock;
 
+    /** Usa o mês corrente por padrão e calcula os totais sobre todo o filtro, além da página exibida. */
     @Transactional(readOnly = true)
     public ProfessionalCompletedServicesResponse findMine(
             Long userId, LocalDate startDate, LocalDate endDate, Long serviceId, int page, int size) {

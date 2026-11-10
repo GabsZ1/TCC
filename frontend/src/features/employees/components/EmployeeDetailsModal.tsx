@@ -1,3 +1,4 @@
+/** Mostra os dados de um funcionário e as ações administrativas disponíveis. */
 import { useQuery } from '@tanstack/react-query'
 import { CheckCircle2, IdCard, MapPin, Phone, Scissors } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'

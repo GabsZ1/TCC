@@ -1,10 +1,10 @@
+/* Reúne tokens visuais e estilos compartilhados pelas páginas e componentes. */
 @import "tailwindcss";
 
 /*
- * SalonHub — visual system v3
- * Direction: editorial utility / cobalt blue.
- * The product serves salons, barbershops, spas and beauty studios, so the
- * interface avoids gendered colors and generic "AI SaaS" gradients.
+ * Sistema visual do SalonHub: composição editorial e azul cobalto.
+ * A interface atende salões, barbearias, spas e estúdios de beleza; por isso,
+ * usa cores neutras em relação a gênero e evita gradientes decorativos genéricos.
  */
 :root {
   color-scheme: light;
@@ -384,7 +384,7 @@ button:disabled { cursor: default; }
   }
 }
 
-/* FullCalendar visually belongs to the product instead of looking embedded. */
+/* Integra visualmente o FullCalendar aos demais componentes do produto. */
 .professional-calendar {
   --fc-border-color: var(--border);
   --fc-button-bg-color: var(--primary-600);

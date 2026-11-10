@@ -28,6 +28,7 @@ public class EmailLayout {
         return brandName;
     }
 
+    /** Produz texto simples e HTML a partir do mesmo conteúdo para manter as versões equivalentes. */
     public EmailContent.Rendered render(EmailContent content) {
         return new EmailContent.Rendered(plainText(content), html(content));
     }

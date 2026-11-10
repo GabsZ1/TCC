@@ -1,3 +1,4 @@
+/** Padroniza a estrutura e o comportamento das janelas sobrepostas. */
 import { useEffect, useId, useRef, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 
@@ -10,6 +11,7 @@ interface ModalProps {
   size?: 'md' | 'lg' | 'xl'
 }
 
+/** Mantém foco, fechamento por teclado e camada visual comuns aos diálogos. */
 export function Modal({ title, onClose, children, size = 'md' }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
   const onCloseRef = useRef(onClose)
@@ -27,6 +29,7 @@ export function Modal({ title, onClose, children, size = 'md' }: ModalProps) {
     const firstFocusable = dialog?.querySelector<HTMLElement>(focusableSelector)
     ;(firstFocusable ?? dialog)?.focus()
 
+    /** Mantém o foco dentro do diálogo e permite fechá-lo com Escape. */
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
         event.preventDefault()

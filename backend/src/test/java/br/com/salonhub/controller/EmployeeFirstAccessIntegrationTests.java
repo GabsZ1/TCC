@@ -25,6 +25,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/** Verifica a ativação da conta do funcionário no primeiro acesso. */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional

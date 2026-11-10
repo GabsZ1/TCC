@@ -1,3 +1,4 @@
+/** Expõe o contexto de autenticação aos componentes com uma interface única. */
 import { useContext } from 'react'
 import { AuthContext } from '@/contexts/authStore'
 

@@ -1,6 +1,6 @@
 package br.com.salonhub.service.report;
 
-import br.com.salonhub.service.TenantAuthorizationService;
+import br.com.salonhub.service.tenant.TenantAuthorizationService;
 
 import br.com.salonhub.dto.report.AppointmentsReportEntry;
 import br.com.salonhub.dto.report.AppointmentsReportResponse;
@@ -35,6 +35,7 @@ public class AppointmentsReportService {
     private final TenantAuthorizationService tenantAuthorizationService;
     private final Clock clock;
 
+    /** Reúne registros e totais de agendamentos para o período solicitado. */
     @Transactional(readOnly = true)
     public AppointmentsReportResponse getReport(
             Long administratorId, LocalDate startDate, LocalDate endDate, Long professionalId) {
@@ -61,6 +62,7 @@ public class AppointmentsReportService {
                 percentage(noShows, outcomes));
     }
 
+    /** Calcula indicadores da linha usando apenas os estados que compõem o denominador. */
     private AppointmentsReportEntry toEntry(AppointmentsReportRow row) {
         long completed = row.getCompletedCount();
         long cancelled = row.getCancelledCount();

@@ -1,6 +1,6 @@
 package br.com.salonhub.service.report;
 
-import br.com.salonhub.service.TenantAuthorizationService;
+import br.com.salonhub.service.tenant.TenantAuthorizationService;
 
 import br.com.salonhub.dto.report.FinancialReportResponse;
 import br.com.salonhub.entity.User;
@@ -31,6 +31,7 @@ public class FinancialReportService {
     private final TenantAuthorizationService tenantAuthorizationService;
     private final Clock clock;
 
+    /** Agrega os valores financeiros do período dentro do estabelecimento autorizado. */
     @Transactional(readOnly = true)
     public FinancialReportResponse getReport(Long administratorId, LocalDate startDate, LocalDate endDate,
                                              Long professionalId, Long serviceId) {

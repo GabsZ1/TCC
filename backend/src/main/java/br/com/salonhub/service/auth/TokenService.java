@@ -1,0 +1,112 @@
+package br.com.salonhub.service.auth;
+
+import br.com.salonhub.entity.User;
+import br.com.salonhub.security.SessionVersionValidator;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.JwtClaimsSet;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
+import org.springframework.security.oauth2.jwt.JwsHeader;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtException;
+import org.springframework.stereotype.Service;
+
+import java.time.Clock;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+
+/** Emite e valida os tokens usados para autenticar requisições. */
+@Service
+public class TokenService {
+
+    private final JwtEncoder jwtEncoder;
+    private final JwtDecoder jwtDecoder;
+    private final Clock clock;
+
+    public TokenService(
+            JwtEncoder jwtEncoder,
+            @Qualifier("firstAccessJwtDecoder") JwtDecoder jwtDecoder,
+            Clock clock) {
+        this.jwtEncoder = jwtEncoder;
+        this.jwtDecoder = jwtDecoder;
+        this.clock = clock;
+    }
+
+    @Value("${app.jwt.expiration-minutes}")
+    private long expirationMinutes;
+
+    @Value("${app.first-access.expiration-hours:24}")
+    private long firstAccessExpirationHours;
+
+    /** Emite a sessão com papel, estabelecimento e versão usada para invalidar tokens antigos. */
+    public GeneratedToken generate(User user) {
+        Instant issuedAt = Instant.now(clock);
+        Instant expiresAt = issuedAt.plus(expirationMinutes, ChronoUnit.MINUTES);
+
+        JwtClaimsSet.Builder claimsBuilder = JwtClaimsSet.builder()
+                .issuer("salonhub")
+                .issuedAt(issuedAt)
+                .expiresAt(expiresAt)
+                .subject(user.getId().toString())
+                .claim("userId", user.getId())
+                .claim("role", user.getRole().name())
+                .claim("email", user.getEmail())
+                .claim(SessionVersionValidator.CLAIM, user.getSessionVersion());
+
+        if (user.getEstablishment() != null) {
+            claimsBuilder.claim("establishmentId", user.getEstablishment().getId());
+        }
+
+        JwtClaimsSet claims = claimsBuilder.build();
+
+        JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
+        String value = jwtEncoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
+        return new GeneratedToken(value, expiresAt);
+    }
+
+    /** Emite um token de propósito restrito para definir a senha inicial do funcionário. */
+    public GeneratedToken generateFirstAccess(User user) {
+        Instant issuedAt = Instant.now(clock);
+        Instant expiresAt = issuedAt.plus(firstAccessExpirationHours, ChronoUnit.HOURS);
+        JwtClaimsSet claims = JwtClaimsSet.builder()
+                .issuer("salonhub")
+                .issuedAt(issuedAt)
+                .expiresAt(expiresAt)
+                .subject(user.getId().toString())
+                .claim("purpose", "FIRST_ACCESS")
+                .claim("version", user.getFirstAccessVersion())
+                .build();
+        JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
+        String value = jwtEncoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
+        return new GeneratedToken(value, expiresAt);
+    }
+
+    /** Extrai a versão do convite para rejeitar links anteriores ao convite mais recente. */
+    public Integer firstAccessVersion(String token) {
+        try {
+            Jwt jwt = jwtDecoder.decode(token);
+            if (!"FIRST_ACCESS".equals(jwt.getClaimAsString("purpose"))) return null;
+            Object version = jwt.getClaim("version");
+            return version instanceof Number ? ((Number) version).intValue() : 0;
+        } catch (JwtException | IllegalArgumentException exception) { return null; }
+    }
+
+    /** Valida a finalidade do token de primeiro acesso e devolve a conta associada. */
+    public Long validateFirstAccess(String token) {
+        try {
+            Jwt jwt = jwtDecoder.decode(token);
+            if (!"FIRST_ACCESS".equals(jwt.getClaimAsString("purpose"))) {
+                throw new IllegalArgumentException("Token inválido");
+            }
+            return Long.valueOf(jwt.getSubject());
+        } catch (JwtException | IllegalArgumentException exception) {
+            return null;
+        }
+    }
+
+    public record GeneratedToken(String value, Instant expiresAt) {
+    }
+}

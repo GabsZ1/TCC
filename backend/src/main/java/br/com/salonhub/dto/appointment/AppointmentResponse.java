@@ -6,6 +6,7 @@ import br.com.salonhub.entity.AppointmentStatus;
 import java.time.LocalDateTime;
 import java.math.BigDecimal;
 
+/** Define os dados devolvidos pela API no fluxo de agendamentos, sem expor as entidades persistidas. */
 public record AppointmentResponse(
         Long id,
         Long establishmentId,

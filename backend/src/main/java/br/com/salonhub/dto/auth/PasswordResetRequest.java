@@ -3,6 +3,7 @@ package br.com.salonhub.dto.auth;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
+/** Define os dados recebidos pela API no fluxo de autenticação e suas validações de entrada. */
 public record PasswordResetRequest(
         @NotBlank(message = "O link de recuperação é inválido")
         String token,

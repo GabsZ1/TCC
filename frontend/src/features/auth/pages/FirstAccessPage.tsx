@@ -1,3 +1,4 @@
+/** Conclui a ativação da conta de um funcionário em seu primeiro acesso. */
 import { useState, type FormEvent } from 'react'
 import { ArrowRight, CheckCircle2, KeyRound } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router-dom'
@@ -5,6 +6,7 @@ import { AuthShell } from '@/features/auth/components/AuthShell'
 import { completeFirstAccess } from '@/features/auth/services/authApi'
 import { getApiErrorMessage } from '@/lib/apiError'
 
+/** Usa o convite recebido para definir a primeira senha do funcionário. */
 export function FirstAccessPage() {
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token') ?? ''
@@ -14,6 +16,7 @@ export function FirstAccessPage() {
   const [completed, setCompleted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
+  /** Envia a senha inicial junto ao token recebido e encaminha ao login após ativação. */
   async function submit(event: FormEvent) {
     event.preventDefault()
     if (!token) return setError('Link de primeiro acesso inválido.')

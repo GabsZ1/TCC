@@ -1,3 +1,4 @@
+/** Mostra os detalhes operacionais de um estabelecimento para a administração do sistema. */
 import { useQuery } from '@tanstack/react-query'
 import { AtSign, CalendarCheck, CalendarClock, Clock3, Mail, MapPin, MessageCircle, Phone, Scissors, ShieldCheck, UsersRound } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
@@ -29,6 +30,7 @@ export function SystemEstablishmentDetailsModal({ establishmentId, establishment
   )
 }
 
+/** Apresenta os dados da unidade e os estados que a administração global pode controlar. */
 function DetailsContent({ data }: { data: SystemEstablishmentDetails }) {
   const { establishment, stats, profile } = data
   const address = profile ? formatAddress(profile) : ''

@@ -1,3 +1,4 @@
+/** Consulta e altera os dados operacionais e de perfil do estabelecimento. */
 import { api } from '@/lib/api'
 
 export interface Establishment {

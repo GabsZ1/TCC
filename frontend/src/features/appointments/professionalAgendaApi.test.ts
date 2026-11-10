@@ -1,3 +1,4 @@
+/** Protege por testes o comportamento de professionalAgendaApi, incluindo os cenários de regressão deste módulo. */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from '@/lib/api'
 import { fetchProfessionalSchedule, updateProfessionalSchedule, createCalendarEvent } from './professionalAgendaApi'

@@ -1,3 +1,4 @@
+/** Solicita o motivo e confirma o cancelamento feito pela administração. */
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { Modal } from '@/components/ui/Modal'
@@ -10,6 +11,7 @@ interface AdminCancelAppointmentModalProps {
   onClose: () => void
 }
 
+/** Solicita um motivo antes de confirmar o cancelamento administrativo. */
 export function AdminCancelAppointmentModal({ appointment, onCancelled, onClose }: AdminCancelAppointmentModalProps) {
   const [reason, setReason] = useState('')
   const mutation = useMutation({

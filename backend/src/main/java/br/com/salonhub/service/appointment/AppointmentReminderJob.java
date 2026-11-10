@@ -24,6 +24,7 @@ public class AppointmentReminderJob {
 
     @Scheduled(initialDelayString = "${app.notifications.reminders.initial-delay-ms:60000}",
             fixedDelayString = "${app.notifications.reminders.interval-ms:600000}")
+    /** Aciona o envio periódico dos lembretes sem misturar a agenda do job com a regra de seleção. */
     public void sendReminders() {
         try {
             int sent = reminderService.sendDueReminders();

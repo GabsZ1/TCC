@@ -4,6 +4,7 @@ import br.com.salonhub.entity.ProfessionalCalendarEvent;
 
 import java.time.LocalDateTime;
 
+/** Define os dados devolvidos pela API no fluxo de agenda do profissional, sem expor as entidades persistidas. */
 public record CalendarEventResponse(
         Long id,
         String title,

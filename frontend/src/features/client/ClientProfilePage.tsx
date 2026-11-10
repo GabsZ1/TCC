@@ -1,3 +1,4 @@
+/** Apresenta o perfil de um cliente no contexto do estabelecimento. */
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
@@ -196,6 +197,7 @@ export function ClientProfilePage() {
   )
 }
 
+/** Confirma a senha antes de encerrar a conta e cancelar reservas futuras. */
 function CloseAccountDialog({ onCancel, onClosed }: { onCancel: () => void; onClosed: () => void }) {
   const [password, setPassword] = useState('')
   const mutation = useMutation({ mutationFn: closeClientAccount, onSuccess: onClosed })

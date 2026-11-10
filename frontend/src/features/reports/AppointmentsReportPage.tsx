@@ -1,3 +1,4 @@
+/** Apresenta os agendamentos filtrados e seus indicadores no período escolhido. */
 import { useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { CalendarCheck, CalendarRange, CalendarX2, UserCheck, UserX, UsersRound } from 'lucide-react'
@@ -8,6 +9,7 @@ import { getApiErrorMessage } from '@/lib/apiError'
 
 const REPORT_KEY = 'appointments-report'
 
+/** Exibe totais e registros do período filtrado para a equipe administrativa. */
 export function AppointmentsReportPage({ embedded = false }: { embedded?: boolean } = {}) {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
@@ -21,6 +23,7 @@ export function AppointmentsReportPage({ embedded = false }: { embedded?: boolea
     queryFn: () => fetchAppointmentsReport(filters),
   })
 
+  /** Só aplica um período completo e cronologicamente válido à consulta do relatório. */
   function applyFilters(event: FormEvent) {
     event.preventDefault()
     if (Boolean(startDate) !== Boolean(endDate)) {

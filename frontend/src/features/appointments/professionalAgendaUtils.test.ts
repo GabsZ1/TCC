@@ -1,3 +1,4 @@
+/** Protege por testes o comportamento de professionalAgendaUtils, incluindo os cenários de regressão deste módulo. */
 import { describe, expect, it } from 'vitest'
 import { filterAgendaItems, findAgendaConflict, normalizeEventInput, rangeAfterStartChange } from './professionalAgendaUtils'
 import type { ProfessionalAgendaItem } from './professionalAgendaApi'

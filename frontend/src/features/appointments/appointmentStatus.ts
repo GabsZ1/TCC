@@ -1,3 +1,4 @@
+/** Converte os estados de agendamento em rótulos e apresentações consistentes na interface. */
 import type { Appointment } from '@/features/appointments/appointmentsApi'
 
 /** Nome amigável de cada status para exibir ao usuário. */

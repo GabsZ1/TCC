@@ -15,6 +15,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
+/** Calcula a disponibilidade combinando expediente, jornada, eventos e reservas existentes. */
 @Service
 @RequiredArgsConstructor
 public class ProfessionalAvailabilityService {
@@ -42,6 +43,7 @@ public class ProfessionalAvailabilityService {
         return requireWorkingHours(establishmentHour, ownHour);
     }
 
+    /** Obtém a interseção entre expediente do estabelecimento e jornada do profissional. */
     public WorkingHours requireWorkingHours(
             EstablishmentBusinessHour establishmentHour, ProfessionalBusinessHour ownHour) {
         if (establishmentHour == null || establishmentHour.isClosed()) {
@@ -70,6 +72,7 @@ public class ProfessionalAvailabilityService {
         return a.isBefore(b) ? a : b;
     }
 
+    /** Recusa intervalos fora da jornada ou cobertos por bloqueios e eventos da agenda. */
     public void validateAvailable(User professional, LocalDateTime startsAt, LocalDateTime endsAt) {
         WorkingHours hours = requireWorkingHours(professional, startsAt.toLocalDate());
         boolean changesDay = !startsAt.toLocalDate().equals(endsAt.toLocalDate());

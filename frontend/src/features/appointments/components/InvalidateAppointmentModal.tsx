@@ -1,3 +1,4 @@
+/** Coleta o motivo usado para invalidar um atendimento já concluído. */
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { Modal } from '@/components/ui/Modal'

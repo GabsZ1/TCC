@@ -1,3 +1,4 @@
+/** Protege por testes o comportamento de noShowPolicy, incluindo os cenários de regressão deste módulo. */
 import { describe, expect, it } from 'vitest'
 import { canMarkNoShow } from './noShowPolicy'
 

@@ -1,8 +1,10 @@
+/** Renderiza uma foto da galeria com o tratamento visual de carregamento e falha. */
 import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ImageIcon } from 'lucide-react'
 import { fetchGalleryImage } from './establishmentGalleryApi'
 
+/** Carrega uma foto da galeria e lida com a ausência da imagem. */
 export function GalleryPhotoImage({ establishmentId, photoId, mine = false, lazy = false, alt, className }: {
   establishmentId: number
   photoId: number

@@ -7,6 +7,7 @@ import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 import java.time.Clock;
 
+/** Registra os componentes usados na validação das requisições. */
 @Configuration
 public class ValidationConfig {
 

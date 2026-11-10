@@ -1,5 +1,6 @@
 package br.com.salonhub.security;
 
+import br.com.salonhub.service.tenant.TenantAuthorizationService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.beans.factory.annotation.Qualifier;

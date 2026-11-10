@@ -16,6 +16,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/** Verifica a geração de PDF para os dados do estabelecimento. */
 class EstablishmentPdfControllerTests {
     @Test
     void downloadsPdfWithSameFiltersAsReport() {

@@ -1,6 +1,8 @@
+/** Reúne os campos e mensagens usados na criação ou alteração de senha. */
 import { useState } from 'react'
 import { CheckCircle2, Circle, Eye, EyeOff } from 'lucide-react'
 
+/** Mostra as regras de senha junto ao campo usado nos fluxos de cadastro. */
 export function PasswordField({ id, label, value, onChange, autoComplete, maxLength, invalid = false }: {
   id: string
   label: string

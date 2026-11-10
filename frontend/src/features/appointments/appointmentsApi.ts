@@ -1,3 +1,4 @@
+/** Centraliza as consultas e alterações de agendamentos consumidas pelas telas do cliente. */
 import { api } from '@/lib/api'
 
 export interface CatalogService {

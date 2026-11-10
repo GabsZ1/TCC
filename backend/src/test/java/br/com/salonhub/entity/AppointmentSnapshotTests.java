@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/** Verifica a preservação dos valores do serviço registrados na reserva. */
 class AppointmentSnapshotTests {
 
     @Test

@@ -1,3 +1,4 @@
+/** Gerencia bloqueios de calendário que impedem novas reservas em determinados períodos. */
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
@@ -19,6 +20,7 @@ const currentMonth = () => {
   return { start, end: `${endYear}-${String(endMonth).padStart(2, '0')}-01` }
 }
 
+/** Consulta, cria e remove intervalos em que novas reservas não podem ser feitas. */
 export function EstablishmentBlocksPage() {
   const queryClient = useQueryClient()
   const [period] = useState(currentMonth)

@@ -3,6 +3,7 @@ package br.com.salonhub.dto.auth;
 import br.com.salonhub.entity.User;
 import br.com.salonhub.entity.UserRole;
 
+/** Define os dados devolvidos pela API no fluxo de autenticação, sem expor as entidades persistidas. */
 public record AuthenticatedUserResponse(
         Long id,
         String name,

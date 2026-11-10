@@ -1,3 +1,4 @@
+/** Edita as informações públicas apresentadas aos clientes. */
 import { useRef, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AtSign, Images, MapPin, Phone, Save, Store } from 'lucide-react'
@@ -16,6 +17,7 @@ import {
 
 const QUERY_KEY = ['my-establishment-profile']
 
+/** Gerencia capa ou logotipo com prévia e ações de troca e remoção. */
 function ProfileImageControl({ profile, kind }: { profile: EstablishmentProfile; kind: ImageKind }) {
   const queryClient = useQueryClient()
   const fileInput = useRef<HTMLInputElement>(null)
@@ -50,6 +52,7 @@ function ProfileImageControl({ profile, kind }: { profile: EstablishmentProfile;
   </div>
 }
 
+/** Edita os dados públicos e sincroniza endereço, coordenadas e imagens do perfil. */
 export function EstablishmentProfilePage() {
   const queryClient = useQueryClient()
   const profileQuery = useQuery({ queryKey: QUERY_KEY, queryFn: fetchMyEstablishmentProfile })

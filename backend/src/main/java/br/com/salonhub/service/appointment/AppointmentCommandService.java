@@ -20,8 +20,8 @@ import br.com.salonhub.repository.CustomerRepository;
 import br.com.salonhub.repository.EstablishmentRepository;
 import br.com.salonhub.repository.EstablishmentServiceRepository;
 import br.com.salonhub.repository.UserRepository;
-import br.com.salonhub.service.TenantAuthorizationService;
-import br.com.salonhub.service.CustomerResolutionService;
+import br.com.salonhub.service.tenant.TenantAuthorizationService;
+import br.com.salonhub.service.customer.CustomerResolutionService;
 import br.com.salonhub.service.professionalagenda.ProfessionalAvailabilityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -31,6 +31,11 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
 
+/**
+ * Coordena as alterações no ciclo de vida dos agendamentos. As operações validam o
+ * escopo do estabelecimento, bloqueiam os registros envolvidos e só então gravam
+ * a mudança e disparam as notificações cabíveis.
+ */
 @Service
 @RequiredArgsConstructor
 public class AppointmentCommandService {
@@ -46,6 +51,7 @@ public class AppointmentCommandService {
     private final AppointmentNotifier notifier;
     private final Clock clock;
 
+    /** Agenda para o próprio cliente, respeitando a antecedência e os horários da reserva online. */
     @Transactional
     public AppointmentResponse create(Long clientId, Long establishmentId, AppointmentCreateRequest request) {
         User client = lockClient(clientId);
@@ -66,6 +72,7 @@ public class AppointmentCommandService {
         return AppointmentResponse.fromEntity(saved);
     }
 
+    /** Permite à equipe agendar para um cliente do estabelecimento, inclusive fora da janela online. */
     @Transactional
     public AppointmentResponse createForCustomer(Long administratorId, Long customerId,
                                                  AppointmentCreateRequest request) {
@@ -94,12 +101,13 @@ public class AppointmentCommandService {
         return AppointmentResponse.fromEntity(saved);
     }
 
+    /** Edita uma reserva futura do cliente, preservando a duração histórica se o serviço não mudou. */
     @Transactional
     public AppointmentResponse update(Long clientId, Long appointmentId, AppointmentCreateRequest request) {
         User client = lockClient(clientId);
 
-        // This first read only discovers the establishment needed by the global lock order.
-        // State and ownership are checked again after the appointment row is locked.
+        // A primeira leitura só identifica o estabelecimento para manter a ordem dos bloqueios.
+        // Estado e titularidade são conferidos de novo após bloquear o agendamento.
         Long establishmentId = appointmentRepository
                 .findEstablishmentIdByIdAndClientId(appointmentId, client.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Agendamento não encontrado."));
@@ -183,6 +191,7 @@ public class AppointmentCommandService {
         return AppointmentResponse.fromEntity(appointment);
     }
 
+    /** Cancela uma reserva futura do próprio cliente e comunica o estabelecimento. */
     @Transactional
     public AppointmentResponse cancel(Long clientId, Long appointmentId) {
         User client = tenantAuthorizationService.requireClient(clientId);
@@ -197,6 +206,7 @@ public class AppointmentCommandService {
         return AppointmentResponse.fromEntity(appointment);
     }
 
+    /** Registra o cancelamento administrativo com motivo e autoria para auditoria. */
     @Transactional
     public AppointmentResponse cancelAsAdministrator(Long administratorId, Long appointmentId, String reason) {
         User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
@@ -210,6 +220,7 @@ public class AppointmentCommandService {
         notifier.cancelledByEstablishment(appointment, administrator);
         return AppointmentResponse.fromEntity(appointment);
     }
+    /** Conclui um atendimento iniciado apenas para o profissional responsável ou o administrador. */
     @Transactional
     public AppointmentResponse complete(Long userId, Long appointmentId) {
         User user = tenantAuthorizationService.requireEstablishmentStaff(userId);
@@ -233,6 +244,7 @@ public class AppointmentCommandService {
      */
     public static final Duration NO_SHOW_TOLERANCE = Duration.ofMinutes(15);
 
+    /** Registra manualmente a falta após o período de tolerância definido pela política. */
     @Transactional
     public AppointmentResponse markNoShow(Long userId, Long appointmentId) {
         User user = tenantAuthorizationService.requireEstablishmentStaff(userId);
@@ -250,6 +262,7 @@ public class AppointmentCommandService {
         return AppointmentResponse.fromEntity(appointment);
     }
 
+    /** Retira um atendimento concluído dos resultados válidos, preservando o motivo da decisão. */
     @Transactional
     public AppointmentResponse invalidate(Long administratorId, Long appointmentId, String reason) {
         User administrator = tenantAuthorizationService.requireAdministrator(administratorId);
@@ -275,6 +288,11 @@ public class AppointmentCommandService {
         }
     }
 
+    /**
+     * Aplica as regras comuns às reservas e remarcações: grade de horários, expediente
+     * do profissional e ausência de conflito tanto para ele quanto para o cliente.
+     * Na edição, ignora o próprio agendamento ao procurar sobreposições.
+     */
     private void validateSchedule(
             Establishment establishment,
             User professional,

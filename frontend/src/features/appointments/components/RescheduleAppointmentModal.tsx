@@ -1,3 +1,4 @@
+/** Conduz a remarcação administrativa e a possível troca de profissional ou serviço. */
 import { useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Modal } from '@/components/ui/Modal'
@@ -8,6 +9,7 @@ import { businessToday } from '@/lib/dateTime'
 
 interface Props { appointment: Appointment; onRescheduled: () => void; onClose: () => void }
 
+/** Conduz a remarcação pela equipe mantendo visíveis os conflitos e horários permitidos. */
 export function RescheduleAppointmentModal({ appointment, onRescheduled, onClose }: Props) {
   const [serviceId, setServiceId] = useState(String(appointment.serviceId))
   const [professionalId, setProfessionalId] = useState('')

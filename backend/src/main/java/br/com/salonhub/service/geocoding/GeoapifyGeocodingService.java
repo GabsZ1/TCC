@@ -6,6 +6,7 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
+/** Consulta coordenadas de endereços no provedor Geoapify. */
 @Service
 public class GeoapifyGeocodingService implements GeocodingService {
     private final String apiKey; private final RestClient client;
@@ -17,6 +18,7 @@ public class GeoapifyGeocodingService implements GeocodingService {
         this.apiKey = apiKey;
         this.client = RestClient.builder().baseUrl(baseUrl).requestFactory(requestFactory).build();
     }
+    /** Consulta coordenadas externas e devolve ausência de resultado sem inventar localização. */
     public Optional<Coordinates> geocode(String address) {
         if (apiKey == null || apiKey.isBlank() || address == null || address.isBlank()) return Optional.empty();
         try {

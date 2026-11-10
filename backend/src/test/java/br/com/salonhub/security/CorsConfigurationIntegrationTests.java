@@ -16,6 +16,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/** Verifica as origens e métodos permitidos pela configuração CORS. */
 @SpringBootTest(properties = "app.cors.allowed-origins=https://app.salonhub.example")
 @AutoConfigureMockMvc
 class CorsConfigurationIntegrationTests {

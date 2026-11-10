@@ -35,6 +35,7 @@ public class ReportPdfExporter {
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final Locale PT_BR = Locale.forLanguageTag("pt-BR");
 
+    /** Monta o PDF de comissões com resumo e linhas do período. */
     public byte[] commission(CommissionReportResponse report) {
         return render("Relatório de comissões", report.periodStart(), report.periodEnd(), pdf -> {
             pdf.metric("Comissão total", money(report.totalCommission()));
@@ -48,6 +49,7 @@ public class ReportPdfExporter {
         });
     }
 
+    /** Monta o PDF financeiro com totais e detalhamento disponíveis. */
     public byte[] financial(FinancialReportResponse report) {
         return render("Relatório financeiro", report.periodStart(), report.periodEnd(), pdf -> {
             pdf.metric("Faturamento bruto", money(report.grossRevenue()));
@@ -65,6 +67,7 @@ public class ReportPdfExporter {
         });
     }
 
+    /** Monta o PDF de agendamentos a partir dos filtros aplicados. */
     public byte[] appointments(AppointmentsReportResponse report) {
         return render("Agenda e comparecimento", report.periodStart(), report.periodEnd(), pdf -> {
             pdf.metric("Confirmados", String.valueOf(report.totalConfirmed()));
@@ -89,6 +92,7 @@ public class ReportPdfExporter {
         });
     }
 
+    /** Monta o PDF dos atendimentos concluídos do estabelecimento. */
     public byte[] completed(CompletedAppointmentsResponse report, List<CompletedAppointmentEntry> entries) {
         return render("Atendimentos realizados", report.startDate(), report.endDate(), pdf -> {
             pdf.metric("Atendimentos finalizados", String.valueOf(report.totalElements()));

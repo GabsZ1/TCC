@@ -8,6 +8,11 @@ import { EstablishmentImage } from '@/features/establishment/EstablishmentImage'
 import { getApiErrorMessage } from '@/lib/apiError'
 import { addBusinessDays, businessToday, formatBusinessDate } from '@/lib/dateTime'
 
+/**
+ * Conduz a reserva em três escolhas dependentes: serviço, profissional e horário.
+ * Cada escolha redefine os dados posteriores para impedir o envio de uma combinação
+ * que já não corresponda à disponibilidade consultada.
+ */
 export function BookingPage() {
   const { establishmentId: rawId } = useParams()
   const establishmentId = Number(rawId)
@@ -23,6 +28,7 @@ export function BookingPage() {
   const establishments = useQuery({ queryKey: ['active-establishments'], queryFn: fetchActiveEstablishments })
   const profile = useQuery({ queryKey: ['establishment-profile', establishmentId], queryFn: () => fetchEstablishmentProfile(establishmentId), enabled: establishmentId > 0 })
   const professionals = useQuery({ queryKey: ['catalog-professionals', establishmentId, serviceId], queryFn: () => fetchCatalogProfessionals(establishmentId, serviceId), enabled: establishmentId > 0 && !!serviceId })
+  // A consulta só ocorre quando as três escolhas que definem a agenda estão completas.
   const availability = useQuery({
     queryKey: ['availability', establishmentId, serviceId, professionalId, date],
     queryFn: () => fetchAvailability(establishmentId, serviceId!, professionalId!, date),
@@ -33,6 +39,7 @@ export function BookingPage() {
   const selectedProfessional = useMemo(() => professionals.data?.find((item) => item.id === professionalId), [professionals.data, professionalId])
   const establishment = establishments.data?.find((item) => item.id === establishmentId)
 
+  // Após a confirmação, invalida o cache da lista pessoal para recarregá-la na próxima consulta.
   const createMutation = useMutation({
     mutationFn: () => createAppointment(establishmentId, serviceId!, professionalId!, `${date}T${normalizeTime(time!)}`),
     onSuccess: () => {

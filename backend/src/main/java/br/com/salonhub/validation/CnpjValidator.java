@@ -4,6 +4,7 @@ import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 import java.util.Locale;
 
+/** Confere formato e dígitos verificadores de CNPJs numéricos ou alfanuméricos. */
 public class CnpjValidator implements ConstraintValidator<ValidCnpj, String> {
 
     private static final int[] FIRST_DIGIT_WEIGHTS = {5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2};

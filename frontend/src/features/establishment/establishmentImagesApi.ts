@@ -1,3 +1,4 @@
+/** Centraliza as rotas de envio e consulta das imagens do estabelecimento. */
 import { api } from '@/lib/api'
 
 export type ImageKind = 'logo' | 'capa'

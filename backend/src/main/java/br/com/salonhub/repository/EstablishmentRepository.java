@@ -11,6 +11,7 @@ import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
 
+/** Declara as consultas de estabelecimentos usadas pela camada de serviço. */
 public interface EstablishmentRepository extends JpaRepository<Establishment, Long> {
 
     boolean existsByCnpj(String cnpj);

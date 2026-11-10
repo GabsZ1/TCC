@@ -5,7 +5,7 @@ import br.com.salonhub.entity.User;
 import br.com.salonhub.entity.UserRole;
 import br.com.salonhub.repository.EstablishmentRepository;
 import br.com.salonhub.repository.UserRepository;
-import br.com.salonhub.service.TokenService;
+import br.com.salonhub.service.auth.TokenService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;

@@ -1,3 +1,4 @@
+/** Consulta e altera a agenda, os horários e os eventos do profissional. */
 import { api } from '@/lib/api'
 
 export type WeekDay = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY'

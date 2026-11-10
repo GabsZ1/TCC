@@ -34,6 +34,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDate;
 import java.util.List;
 
+/** Expõe as operações HTTP de agendamentos e encaminha as regras de negócio aos serviços. */
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
@@ -42,6 +43,7 @@ public class AppointmentController {
     private final AppointmentCommandService commandService;
     private final AppointmentQueryService queryService;
 
+    /** Recebe uma reserva online do cliente para o estabelecimento selecionado. */
     @PreAuthorize(AccessRules.CLIENT)
     @PostMapping("/estabelecimentos/{establishmentId}/agendamentos")
     @ResponseStatus(HttpStatus.CREATED)
@@ -52,6 +54,7 @@ public class AppointmentController {
         return commandService.create(currentUserId(jwt), establishmentId, request);
     }
 
+    /** Permite à equipe criar uma reserva para um cliente cadastrado na unidade. */
     @PreAuthorize(AccessRules.ESTABLISHMENT_STAFF)
     @PostMapping("/agendamentos/estabelecimento/me/clientes/{customerId}")
     @ResponseStatus(HttpStatus.CREATED)
@@ -60,6 +63,7 @@ public class AppointmentController {
         return commandService.createForCustomer(currentUserId(jwt), customerId, request);
     }
 
+    /** Expõe à equipe os horários possíveis para um cliente e serviço específicos. */
     @PreAuthorize(AccessRules.ESTABLISHMENT_STAFF)
     @GetMapping("/agendamentos/estabelecimento/me/clientes/{customerId}/disponibilidade")
     public AvailabilityResponse findInternalAvailability(@AuthenticationPrincipal Jwt jwt,
@@ -69,6 +73,7 @@ public class AppointmentController {
         return queryService.findInternalAvailability(currentUserId(jwt), customerId, serviceId, professionalId, date, appointmentId);
     }
 
+    /** Lista reservas vinculadas ao cliente da sessão. */
     @PreAuthorize(AccessRules.CLIENT)
     @GetMapping("/agendamentos/me")
     public PagedResponse<AppointmentResponse> findMine(@AuthenticationPrincipal Jwt jwt,
@@ -77,12 +82,14 @@ public class AppointmentController {
                 Math.max(0, page), Math.max(1, Math.min(size, 100))));
     }
 
+    /** Devolve o próximo compromisso confirmado do cliente autenticado. */
     @PreAuthorize(AccessRules.CLIENT)
     @GetMapping("/agendamentos/me/proximo")
     public AppointmentResponse findNextForClient(@AuthenticationPrincipal Jwt jwt) {
         return queryService.findNextForClient(currentUserId(jwt));
     }
 
+    /** Separa próximas reservas e histórico com paginação. */
     @PreAuthorize(AccessRules.CLIENT)
     @GetMapping("/agendamentos/me/pagina")
     public PagedResponse<AppointmentResponse> findMinePage(@AuthenticationPrincipal Jwt jwt,
@@ -92,12 +99,14 @@ public class AppointmentController {
                 Math.max(0, page), Math.max(1, Math.min(size, 100))));
     }
 
+    /** Resume o dia do profissional autenticado para a página inicial. */
     @PreAuthorize(AccessRules.PROFESSIONAL)
     @GetMapping("/agendamentos/profissional/me/hoje")
     public AppointmentQueryService.ProfessionalToday findTodayForProfessional(@AuthenticationPrincipal Jwt jwt) {
         return queryService.findTodayForProfessional(currentUserId(jwt));
     }
 
+    /** Recebe alterações de uma reserva futura do próprio cliente. */
     @PreAuthorize(AccessRules.CLIENT)
     @PutMapping("/agendamentos/{appointmentId}")
     public AppointmentResponse update(
@@ -107,6 +116,7 @@ public class AppointmentController {
         return commandService.update(currentUserId(jwt), appointmentId, request);
     }
 
+    /** Cancela uma reserva futura solicitada pelo próprio cliente. */
     @PreAuthorize(AccessRules.CLIENT)
     @PatchMapping("/agendamentos/{appointmentId}/cancelamento")
     public AppointmentResponse cancel(
@@ -115,6 +125,7 @@ public class AppointmentController {
         return commandService.cancel(currentUserId(jwt), appointmentId);
     }
 
+    /** Cancela com motivo uma reserva da unidade administrada. */
     @PreAuthorize(AccessRules.ADMIN)
     @PatchMapping("/agendamentos/{appointmentId}/cancelamento-administrativo")
     public AppointmentResponse cancelAsAdministrator(
@@ -133,6 +144,7 @@ public class AppointmentController {
         return commandService.rescheduleAsAdministrator(currentUserId(jwt), appointmentId, request);
     }
 
+    /** Conclui um atendimento pelo profissional responsável ou pela administração. */
     @PreAuthorize(AccessRules.ESTABLISHMENT_STAFF)
     @PatchMapping("/agendamentos/{appointmentId}/conclusao")
     public AppointmentResponse complete(
@@ -141,12 +153,14 @@ public class AppointmentController {
         return commandService.complete(currentUserId(jwt), appointmentId);
     }
 
+    /** Registra a falta do cliente após o intervalo de tolerância. */
     @PreAuthorize(AccessRules.ESTABLISHMENT_STAFF)
     @PatchMapping("/agendamentos/{appointmentId}/falta")
     public AppointmentResponse markNoShow(@AuthenticationPrincipal Jwt jwt, @PathVariable Long appointmentId) {
         return commandService.markNoShow(currentUserId(jwt), appointmentId);
     }
 
+    /** Invalida um atendimento concluído mediante justificativa administrativa. */
     @PreAuthorize(AccessRules.ADMIN)
     @PatchMapping("/agendamentos/{appointmentId}/invalidacao")
     public AppointmentResponse invalidate(
@@ -156,6 +170,7 @@ public class AppointmentController {
         return commandService.invalidate(currentUserId(jwt), appointmentId, request.reason());
     }
 
+    /** Lista os atendimentos atribuídos ao profissional da sessão. */
     @PreAuthorize(AccessRules.PROFESSIONAL)
     @GetMapping("/agendamentos/profissional/me")
     public PagedResponse<AppointmentResponse> findMineAsProfessional(@AuthenticationPrincipal Jwt jwt,
@@ -173,6 +188,7 @@ public class AppointmentController {
                 Math.max(0, page), Math.max(1, Math.min(size, 100))));
     }
 
+    /** Lista reservas da unidade conforme filtros administrativos. */
     @PreAuthorize(AccessRules.ADMIN)
     @GetMapping("/agendamentos/estabelecimento/me")
     public PagedResponse<AppointmentResponse> findEstablishmentAgenda(
@@ -186,6 +202,7 @@ public class AppointmentController {
                 Math.max(0, page), Math.max(1, Math.min(size, 100))));
     }
 
+    /** Expõe a disponibilidade da equipe para a agenda administrativa. */
     @PreAuthorize(AccessRules.ADMIN)
     @GetMapping("/agendamentos/estabelecimento/me/disponibilidade-equipe")
     public List<AdministrativeProfessionalAvailabilityResponse> findTeamAvailability(
@@ -195,6 +212,7 @@ public class AppointmentController {
         return queryService.findTeamAvailability(currentUserId(jwt), date, professionalId);
     }
 
+    /** Expõe os horários de reserva online para serviço e profissional selecionados. */
     @PreAuthorize(AccessRules.CLIENT)
     @GetMapping("/estabelecimentos/{establishmentId}/agendamentos/disponibilidade")
     public AvailabilityResponse findAvailability(

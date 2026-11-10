@@ -1,3 +1,4 @@
+/** Busca os valores de comissão do período e os arquivos de exportação. */
 import { api } from '@/lib/api'
 
 export interface CommissionReportEntry {

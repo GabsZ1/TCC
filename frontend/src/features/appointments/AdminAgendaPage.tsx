@@ -1,3 +1,4 @@
+/** Reúne a agenda administrativa e as ações sobre os atendimentos do estabelecimento. */
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CalendarDays, Clock3, LockKeyhole, Scissors, User } from 'lucide-react'
@@ -16,6 +17,7 @@ type StatusFilter = '' | Appointment['status']
 
 const AGENDA_QUERY_KEY = 'establishment-agenda'
 
+/** Cruza filtros da agenda com disponibilidade da equipe e ações sobre cada reserva. */
 export function AdminAgendaPage() {
   const queryClient = useQueryClient()
   const [date, setDate] = useState(businessToday())
@@ -45,6 +47,7 @@ export function AdminAgendaPage() {
     refetchInterval: 30_000,
   })
 
+  /** Atualiza também a fila de atendimentos pendentes após uma mudança de estado. */
   function refreshAgenda() {
     queryClient.invalidateQueries({ queryKey: [AGENDA_QUERY_KEY] })
     queryClient.invalidateQueries({ queryKey: PENDING_CLOSURE_KEY })
@@ -132,6 +135,7 @@ export function AdminAgendaPage() {
   )
 }
 
+/** Confirma a conclusão de um atendimento que já começou. */
 function CompleteAppointmentDialog({
   appointment,
   onClose,
@@ -162,6 +166,7 @@ function NoShowDialog({ appointment, onClose, onMarked }: { appointment: Appoint
     onConfirm={() => mutation.mutate()} onCancel={onClose} />
 }
 
+/** Traduz estado e horário da reserva nas ações operacionais disponíveis à equipe. */
 function AppointmentCard({
   appointment,
   onComplete,

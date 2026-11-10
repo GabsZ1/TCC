@@ -13,6 +13,7 @@ import java.time.OffsetDateTime;
 import java.math.BigDecimal;
 import java.util.Objects;
 
+/** Guarda os dados públicos apresentados no perfil do estabelecimento. */
 @Entity
 @Table(name = "establishment_profiles")
 @Getter
@@ -37,7 +38,9 @@ public class EstablishmentProfile {
     @JoinColumn(name = "cover_id")
     private Media cover;
 
+    /** Escolhe capa ou logotipo conforme o tipo solicitado. */
     public Media image(String kind) { return "logo".equals(kind) ? logo : cover; }
+    /** Substitui a referência à mídia da capa ou do logotipo. */
     public void replaceImage(String kind, Media image) {
         if ("logo".equals(kind)) logo = image;
         else cover = image;
@@ -90,6 +93,7 @@ public class EstablishmentProfile {
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
+    /** Invalida as coordenadas antigas quando qualquer parte relevante do endereço muda. */
     public void update(
             String aboutUs,
             String instagram,
@@ -119,6 +123,8 @@ public class EstablishmentProfile {
         if (addressChanged) { latitude = null; longitude = null; }
     }
 
+    /** Indica se o endereço já possui as duas coordenadas necessárias para a busca próxima. */
     public boolean hasLocation() { return latitude != null && longitude != null; }
+    /** Grava as coordenadas calculadas a partir do endereço atual. */
     public void updateLocation(BigDecimal latitude, BigDecimal longitude) { this.latitude = latitude; this.longitude = longitude; }
 }

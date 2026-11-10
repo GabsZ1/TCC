@@ -24,6 +24,7 @@ import static org.assertj.core.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+/** Verifica criação, atualização e desativação dos serviços. */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional

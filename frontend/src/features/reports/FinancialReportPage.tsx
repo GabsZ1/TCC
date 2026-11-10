@@ -1,3 +1,4 @@
+/** Apresenta receitas e totais financeiros para o período selecionado. */
 import { useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { BadgeDollarSign, CalendarCheck, CalendarRange, Receipt, TrendingUp, Wallet } from 'lucide-react'
@@ -27,6 +28,7 @@ export function FinancialReportPage() {
     queryFn: () => fetchFinancialReport(filters),
   })
 
+  /** Valida o intervalo antes de atualizar a consulta financeira. */
   function applyFilters(event: FormEvent) {
     event.preventDefault()
     if (Boolean(startDate) !== Boolean(endDate)) {
@@ -116,6 +118,7 @@ export function FinancialReportPage() {
   )
 }
 
+/** Detalha os valores que compõem o total financeiro do período. */
 function BreakdownTable({ title, nameLabel, lines, total }: { title: string; nameLabel: string; lines: FinancialReportLine[]; total: number }) {
   return (
     <section className="surface-card overflow-hidden">

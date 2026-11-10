@@ -9,7 +9,7 @@ import br.com.salonhub.repository.EstablishmentServiceRepository;
 import br.com.salonhub.repository.EstablishmentProfileRepository;
 import br.com.salonhub.repository.EstablishmentGalleryPhotoRepository;
 import br.com.salonhub.repository.UserRepository;
-import br.com.salonhub.service.TokenService;
+import br.com.salonhub.service.auth.TokenService;
 import br.com.salonhub.service.geocoding.Coordinates;
 import br.com.salonhub.service.geocoding.GeocodingService;
 import br.com.salonhub.service.geocoding.BrasilApiCepGeocodingService;
@@ -43,6 +43,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/** Verifica a atualização e a consulta do perfil público. */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional

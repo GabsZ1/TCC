@@ -1,3 +1,4 @@
+/** Lista os serviços concluídos pelo profissional e seus valores associados. */
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { BadgeDollarSign, CalendarRange, CircleDollarSign, ClipboardCheck, RotateCcw, X } from 'lucide-react'
@@ -34,6 +35,7 @@ export function MyCompletedServicesPage() {
   const hasActiveFilters = Boolean(filters.startDate || filters.serviceId)
   const selectedServiceName = data?.availableServices.find((service) => service.id === filters.serviceId)?.name
 
+  /** Atualiza a consulta apenas depois de validar o intervalo de datas informado. */
   function applyFilters(event: FormEvent) {
     event.preventDefault()
     if (Boolean(startDate) !== Boolean(endDate)) {
@@ -182,6 +184,7 @@ export function MyCompletedServicesPage() {
   )
 }
 
+/** Mostra valor do serviço e comissão de um atendimento concluído. */
 function EntryCard({ entry }: { entry: CompletedServiceEntry }) {
   return (
     <li className="surface-card p-4">
@@ -218,6 +221,7 @@ function StateCard({ children, error = false }: { children: ReactNode; error?: b
   return <div className={`mt-6 rounded-2xl border bg-background-50 p-8 text-center ${error ? 'border-danger-500/30 text-danger-600' : 'border-background-300 text-text-600'}`}>{children}</div>
 }
 
+/** Resume um total financeiro ou quantitativo do período selecionado. */
 function SummaryCard({ icon: Icon, label, value, bordered = false, highlight = false }: {
   icon: typeof CalendarRange
   label: string

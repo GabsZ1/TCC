@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.OffsetDateTime;
 
+/** Guarda o token temporário usado na redefinição de senha. */
 @Entity
 @Table(name = "password_reset_tokens")
 @Getter
@@ -40,14 +41,17 @@ public class PasswordResetToken {
         this.expiresAt = expiresAt;
     }
 
+    /** Indica se o link já foi consumido e não pode ser reutilizado. */
     public boolean isUsed() {
         return usedAt != null;
     }
 
+    /** Compara a expiração do link ao relógio informado. */
     public boolean isExpired(OffsetDateTime now) {
         return !expiresAt.isAfter(now);
     }
 
+    /** Marca o link como consumido para impedir uma segunda redefinição. */
     public void markUsed(OffsetDateTime now) {
         this.usedAt = now;
     }

@@ -1,3 +1,4 @@
+/** Centraliza as operações HTTP de funcionários e de seus serviços. */
 import { api } from '@/lib/api'
 import type { UserRole } from '@/types/auth'
 import type { SalonService } from '@/features/services/servicesApi'

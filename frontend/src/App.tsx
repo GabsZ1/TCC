@@ -1,3 +1,4 @@
+/** Define as rotas e associa cada área da aplicação às suas regras de acesso. */
 import { lazy, Suspense } from 'react'
 import { Link, Routes, Route } from 'react-router-dom'
 import { ProtectedRoute } from '@/routes/ProtectedRoute'
@@ -30,6 +31,7 @@ const ChangePasswordPage = lazy(() => import('@/features/auth/pages/ChangePasswo
 const SystemEstablishmentsPage = lazy(() => import('@/features/system-admin/SystemEstablishmentsPage').then((module) => ({ default: module.SystemEstablishmentsPage })))
 const CustomersPage = lazy(() => import('@/features/customers/CustomersPage').then((module) => ({ default: module.CustomersPage })))
 
+/** Monta as rotas sob carregamento gradual e aplica a proteção exigida por cada área. */
 function App() {
   return (
     <Suspense fallback={<RouteLoading />}>

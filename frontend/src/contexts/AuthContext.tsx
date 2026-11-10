@@ -1,3 +1,4 @@
+/** Disponibiliza a sessão autenticada e as ações de entrada e saída para a árvore de componentes. */
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { api, clearStoredToken, getStoredToken, setStoredToken } from '@/lib/api'
@@ -10,6 +11,7 @@ const INACTIVITY_LIMIT_MS = 30 * 60 * 1000
 // Intervalo mínimo entre tentativas de renovar o token (evita repetir em caso de falha de rede).
 const RENEW_RETRY_MS = 60 * 1000
 
+/** Carrega a sessão, expõe entrada e saída e mantém o restante da interface sincronizado. */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
   const [user, setUser] = useState<AuthenticatedUser | null>(null)

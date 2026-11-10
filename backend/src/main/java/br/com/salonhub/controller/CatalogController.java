@@ -5,8 +5,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 
 import br.com.salonhub.dto.catalog.CatalogProfessionalResponse;
 import br.com.salonhub.dto.catalog.CatalogServiceResponse;
-import br.com.salonhub.service.CatalogService;
-import br.com.salonhub.service.EmployeePhotoService;
+import br.com.salonhub.service.catalog.CatalogService;
+import br.com.salonhub.service.employee.EmployeePhotoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.CacheControl;
 import org.springframework.http.MediaType;
@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
+/** Expõe as operações HTTP de catálogo público e encaminha as regras de negócio aos serviços. */
 @PreAuthorize(AccessRules.AUTHENTICATED)
 @RestController
 @RequestMapping("/api/estabelecimentos/{establishmentId}/catalogo")
@@ -28,11 +29,13 @@ public class CatalogController {
     private final CatalogService catalogService;
     private final EmployeePhotoService employeePhotoService;
 
+    /** Expõe o catálogo ativo de um estabelecimento ao cliente. */
     @GetMapping("/servicos")
     public List<CatalogServiceResponse> findServices(@PathVariable Long establishmentId) {
         return catalogService.findServices(establishmentId);
     }
 
+    /** Lista profissionais disponíveis para o serviço escolhido. */
     @GetMapping("/funcionarios")
     public List<CatalogProfessionalResponse> findProfessionals(
             @PathVariable Long establishmentId,

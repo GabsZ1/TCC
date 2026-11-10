@@ -1,9 +1,11 @@
+/** Mostra os serviços atribuídos ao profissional autenticado. */
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Clock3 } from 'lucide-react'
 import { fetchMyProfessionalServices } from '@/features/employees/services/employeesApi'
 import { getApiErrorMessage } from '@/lib/apiError'
 
+/** Mostra ao profissional apenas os serviços que pode executar. */
 export function MyServicesPage() {
   const servicesQuery = useQuery({ queryKey: ['my-professional-services'], queryFn: fetchMyProfessionalServices })
   const services = useMemo(

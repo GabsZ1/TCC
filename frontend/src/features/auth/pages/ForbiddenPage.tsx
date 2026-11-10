@@ -1,7 +1,9 @@
+/** Explica a falta de permissão quando a rota não corresponde ao papel do usuário. */
 import { ArrowLeft, ShieldX } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Brand } from '@/components/brand/Brand'
 
+/** Oferece uma saída de navegação quando o papel do usuário não permite a rota. */
 export function ForbiddenPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-background-100 px-4 py-12">

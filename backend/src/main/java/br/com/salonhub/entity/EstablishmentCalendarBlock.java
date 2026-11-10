@@ -10,6 +10,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 
+/** Representa um intervalo indisponível na agenda do estabelecimento. */
 @Entity
 @Table(name = "establishment_calendar_blocks")
 @Getter
@@ -31,6 +32,7 @@ public class EstablishmentCalendarBlock {
     @UpdateTimestamp @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
+    /** Cria um intervalo indisponível com o motivo informado pela administração. */
     public static EstablishmentCalendarBlock create(Establishment establishment, LocalDateTime startsAt,
             LocalDateTime endsAt, String reason) {
         EstablishmentCalendarBlock block = new EstablishmentCalendarBlock();
@@ -39,6 +41,7 @@ public class EstablishmentCalendarBlock {
         return block;
     }
 
+    /** Altera intervalo e motivo de um bloqueio existente. */
     public void update(LocalDateTime startsAt, LocalDateTime endsAt, String reason) {
         this.startsAt = startsAt;
         this.endsAt = endsAt;

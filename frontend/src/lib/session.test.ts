@@ -1,3 +1,4 @@
+/** Protege por testes o comportamento de session, incluindo os cenários de regressão deste módulo. */
 import { describe, expect, it } from 'vitest'
 import { loginPathAfterSessionEnded, shouldRenewToken, tokenExpiresAt } from './session'
 

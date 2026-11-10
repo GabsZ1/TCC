@@ -1,5 +1,7 @@
+/** Traduz erros de validação de formulários para mensagens em português. */
 const localizedInputs = new WeakSet<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>()
 
+/** Converte mensagens técnicas de validação em instruções compreensíveis no formulário. */
 export function localizeFormValidation() {
   document.addEventListener('invalid', (event) => {
     const field = event.target

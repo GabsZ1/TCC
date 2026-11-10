@@ -1,3 +1,4 @@
+/** Centraliza as operações HTTP do catálogo de serviços. */
 import { api } from '@/lib/api'
 
 export interface SalonService {

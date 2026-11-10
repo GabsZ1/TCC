@@ -1,3 +1,4 @@
+/** Transforma respostas de exportação em arquivos baixados pelo navegador. */
 import { api } from '@/lib/api'
 
 /** Baixa um arquivo de uma rota autenticada da API (o token vai no cabeçalho, por isso não dá para usar um link direto). */

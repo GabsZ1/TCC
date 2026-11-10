@@ -1,3 +1,4 @@
+/** Converte datas e horários respeitando as regras de apresentação do negócio. */
 export const BUSINESS_TIME_ZONE = 'America/Sao_Paulo'
 
 type DateStyle = Intl.DateTimeFormatOptions['dateStyle']

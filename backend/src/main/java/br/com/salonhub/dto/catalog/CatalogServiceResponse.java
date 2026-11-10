@@ -4,6 +4,7 @@ import br.com.salonhub.entity.EstablishmentService;
 
 import java.math.BigDecimal;
 
+/** Define os dados devolvidos pela API no fluxo de catálogo público, sem expor as entidades persistidas. */
 public record CatalogServiceResponse(
         Long id,
         String name,

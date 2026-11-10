@@ -20,6 +20,7 @@ import javax.crypto.spec.SecretKeySpec;
 import java.util.Base64;
 import java.time.Clock;
 
+/** Configura a emissão e a validação dos tokens JWT. */
 @Configuration
 public class JwtConfig {
 
@@ -60,6 +61,7 @@ public class JwtConfig {
         return decoder;
     }
 
+    /** Valida tempo e versão da sessão e rejeita tokens emitidos só para primeiro acesso. */
     @Bean("authenticationJwtDecoder")
     @Primary
     JwtDecoder authenticationJwtDecoder(SecretKey secretKey, Clock clock, UserRepository userRepository) {

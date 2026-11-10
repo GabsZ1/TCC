@@ -12,6 +12,7 @@ import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
 
+/** Declara as consultas de usuários usadas pela camada de serviço. */
 public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsByEmailIgnoreCase(String email);

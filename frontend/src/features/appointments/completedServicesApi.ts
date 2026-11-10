@@ -1,3 +1,4 @@
+/** Consulta os atendimentos concluídos e os dados exibidos ao profissional. */
 import { api } from '@/lib/api'
 
 export interface CompletedServiceEntry {

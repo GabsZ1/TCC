@@ -1,9 +1,11 @@
+/** Apresenta as fotos públicas do estabelecimento na experiência de agendamento. */
 import { useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, Images } from 'lucide-react'
 import { GalleryPhotoImage } from '@/features/establishment/GalleryPhotoImage'
 import { fetchGallery } from '@/features/establishment/establishmentGalleryApi'
 
+/** Carrega as fotos públicas e permite percorrê-las no perfil consultado pelo cliente. */
 export function EstablishmentPublicGallery({ establishmentId, establishmentName }: { establishmentId: number; establishmentName: string }) {
   const gallery = useQuery({
     queryKey: ['establishment-gallery', establishmentId, false],

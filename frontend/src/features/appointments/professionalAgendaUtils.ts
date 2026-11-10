@@ -1,3 +1,4 @@
+/** Transforma datas e eventos da agenda em estruturas adequadas à visualização. */
 import type { CalendarEventInput, ProfessionalAgendaItem } from './professionalAgendaApi'
 import { addBusinessDays, addMinutesToBusinessLocalDateTime, businessLocalDateTimeDifferenceMs } from '@/lib/dateTime'
 

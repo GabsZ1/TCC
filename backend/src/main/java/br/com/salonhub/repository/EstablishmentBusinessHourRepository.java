@@ -7,6 +7,7 @@ import java.time.DayOfWeek;
 import java.util.List;
 import java.util.Optional;
 
+/** Declara as consultas de estabelecimentos usadas pela camada de serviço. */
 public interface EstablishmentBusinessHourRepository extends JpaRepository<EstablishmentBusinessHour, Long> {
     List<EstablishmentBusinessHour> findByEstablishmentIdOrderByDayOfWeek(Long establishmentId);
     Optional<EstablishmentBusinessHour> findByEstablishmentIdAndDayOfWeek(Long establishmentId, DayOfWeek dayOfWeek);

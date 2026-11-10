@@ -1,3 +1,4 @@
+/** Inicia a recuperação de acesso por e-mail. */
 import { useState, type FormEvent } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { ArrowLeft, MailCheck, Mail } from 'lucide-react'

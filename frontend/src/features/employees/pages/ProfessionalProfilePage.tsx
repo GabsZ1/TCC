@@ -1,3 +1,4 @@
+/** Permite ao profissional consultar e atualizar o próprio perfil. */
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
@@ -195,6 +196,7 @@ export function ProfessionalProfilePage() {
   )
 }
 
+/** Mostra as alterações propostas antes de salvar o perfil profissional. */
 function ConfirmSaveDialog({ form, emailChanged, isSaving, errorMessage, onCancel, onConfirm }: {
   form: FormState
   emailChanged: boolean
@@ -231,6 +233,7 @@ function ConfirmSaveDialog({ form, emailChanged, isSaving, errorMessage, onCance
   )
 }
 
+/** Coordena envio e remoção da foto exibida no perfil e no catálogo. */
 function PhotoCard({ employee, onChanged }: { employee: Employee; onChanged: (message: string) => void }) {
   const queryClient = useQueryClient()
   const input = useRef<HTMLInputElement>(null)

@@ -3,6 +3,7 @@ package br.com.salonhub.dto.establishment;
 import br.com.salonhub.entity.Establishment;
 import java.util.List;
 
+/** Define os dados devolvidos pela API no fluxo de estabelecimentos, sem expor as entidades persistidas. */
 public record EstablishmentResponse(
         Long id,
         String name,

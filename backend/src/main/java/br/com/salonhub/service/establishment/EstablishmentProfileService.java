@@ -1,0 +1,145 @@
+package br.com.salonhub.service.establishment;
+
+import br.com.salonhub.service.tenant.TenantAuthorizationService;
+import br.com.salonhub.dto.catalog.CatalogProfessionalResponse;
+import br.com.salonhub.dto.catalog.CatalogServiceResponse;
+import br.com.salonhub.dto.establishment.EstablishmentProfileRequest;
+import br.com.salonhub.dto.establishment.EstablishmentProfileResponse;
+import br.com.salonhub.dto.establishment.BusinessHourResponse;
+import br.com.salonhub.entity.Establishment;
+import br.com.salonhub.entity.EstablishmentProfile;
+import br.com.salonhub.entity.UserRole;
+import br.com.salonhub.service.geocoding.GeocodingService;
+import br.com.salonhub.service.geocoding.BrasilApiCepGeocodingService;
+import br.com.salonhub.exception.ConflictException;
+import br.com.salonhub.exception.ResourceNotFoundException;
+import br.com.salonhub.repository.EstablishmentProfileRepository;
+import br.com.salonhub.repository.EstablishmentBusinessHourRepository;
+import br.com.salonhub.repository.EstablishmentRepository;
+import br.com.salonhub.repository.EstablishmentServiceRepository;
+import br.com.salonhub.repository.UserRepository;
+import br.com.salonhub.validation.PhoneNumbers;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Locale;
+
+/** Atualiza as informações públicas do perfil do estabelecimento. */
+@Service
+@RequiredArgsConstructor
+public class EstablishmentProfileService {
+
+    private final EstablishmentProfileRepository profileRepository;
+    private final EstablishmentBusinessHourRepository businessHourRepository;
+    private final EstablishmentRepository establishmentRepository;
+    private final EstablishmentServiceRepository serviceRepository;
+    private final UserRepository userRepository;
+    private final TenantAuthorizationService tenantAuthorizationService;
+    private final GeocodingService geocodingService;
+    private final BrasilApiCepGeocodingService brasilApiCepGeocodingService;
+
+    /** Expõe o perfil somente quando o estabelecimento está aceitando novas reservas. */
+    @Transactional(readOnly = true)
+    public EstablishmentProfileResponse findPublic(Long establishmentId) {
+        Establishment establishment = establishmentRepository.findById(establishmentId)
+                .filter(Establishment::acceptsNewAppointments)
+                .orElseThrow(() -> new ResourceNotFoundException("Estabelecimento não encontrado."));
+        return response(establishment, profileRepository.findByEstablishmentId(establishmentId).orElse(null));
+    }
+
+    /** Mostra o perfil da própria unidade mesmo quando ele não está público. */
+    @Transactional(readOnly = true)
+    public EstablishmentProfileResponse findMine(Long administratorId) {
+        Establishment establishment = tenantAuthorizationService
+                .requireAdministrator(administratorId).getEstablishment();
+        return response(establishment, profileRepository.findByEstablishmentId(establishment.getId()).orElse(null));
+    }
+
+    /** Atualiza o perfil e recalcula a localização quando o endereço mudou ou ainda não tem coordenadas. */
+    @Transactional
+    public EstablishmentProfileResponse updateMine(Long administratorId, EstablishmentProfileRequest request) {
+        Establishment establishment = tenantAuthorizationService
+                .requireAdministrator(administratorId).getEstablishment();
+        if (!establishment.isActive()) {
+            throw new ConflictException("Não é possível editar o perfil de um estabelecimento desativado.");
+        }
+        EstablishmentProfile profile = profileRepository.findByEstablishmentId(establishment.getId())
+                .orElseGet(() -> EstablishmentProfile.builder().establishment(establishment).build());
+        String previousAddress = addressOf(profile);
+        profile.update(
+                normalize(request.aboutUs()),
+                normalizeInstagram(request.instagram()),
+                normalizePhone(request.whatsapp()),
+                normalizePhone(request.phone()),
+                digits(request.postalCode()),
+                normalize(request.street()),
+                normalize(request.streetNumber()),
+                normalize(request.addressComplement()),
+                normalize(request.neighborhood()),
+                normalize(request.city()),
+                normalizeState(request.state()));
+        String currentAddress = addressOf(profile);
+        if (!currentAddress.isBlank() && (!previousAddress.equals(currentAddress) || !profile.hasLocation())) {
+            var coordinates = geocodingService.geocode(currentAddress);
+            if (coordinates.isEmpty()) {
+                coordinates = brasilApiCepGeocodingService.geocodePostalCode(profile.getPostalCode());
+            }
+            coordinates.ifPresent(c -> profile.updateLocation(c.latitude(), c.longitude()));
+        }
+        profileRepository.save(profile);
+        return response(establishment, profile);
+    }
+
+    private EstablishmentProfileResponse response(Establishment establishment, EstablishmentProfile profile) {
+        var businessHours = businessHourRepository
+                .findByEstablishmentIdOrderByDayOfWeek(establishment.getId())
+                .stream().map(BusinessHourResponse::fromEntity).toList();
+        var professionals = userRepository
+                .findByEstablishmentIdAndRoleAndActiveTrue(establishment.getId(), UserRole.PROFESSIONAL)
+                .stream().map(CatalogProfessionalResponse::fromEntity).toList();
+        var services = serviceRepository.findByEstablishmentIdAndActiveTrue(establishment.getId())
+                .stream().map(CatalogServiceResponse::fromEntity).toList();
+        return EstablishmentProfileResponse.from(establishment, profile, businessHours, professionals, services);
+    }
+
+    private String addressOf(EstablishmentProfile profile) {
+        if (profile.getStreet() == null || profile.getStreetNumber() == null
+                || profile.getCity() == null || profile.getState() == null) return "";
+        return java.util.stream.Stream.of(profile.getStreet(), profile.getStreetNumber(), profile.getNeighborhood(),
+                profile.getCity(), profile.getState(), profile.getPostalCode(), "Brasil")
+                .filter(v -> v != null && !v.isBlank()).collect(java.util.stream.Collectors.joining(", "));
+    }
+    private String normalize(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private String normalizeInstagram(String value) {
+        String normalized = normalize(value);
+        if (normalized == null) return null;
+        normalized = normalized.replaceFirst("(?i)^https?://(www\\.)?instagram\\.com/", "");
+        normalized = normalized.replaceFirst("^@", "").replaceAll("/+$", "");
+        return normalized.isBlank() ? null : normalized;
+    }
+
+    private String normalizePhone(String value) {
+        String normalized = normalize(value);
+        if (normalized == null) return null;
+        if (!PhoneNumbers.hasOnlyPhoneFormattingCharacters(normalized)) {
+            throw new br.com.salonhub.exception.InvalidRequestException("Informe um telefone válido!");
+        }
+        String phone = PhoneNumbers.normalize(normalized);
+        if (phone == null) throw new br.com.salonhub.exception.InvalidRequestException("Informe um telefone vÃ¡lido!");
+        return phone;
+    }
+
+    private String digits(String value) {
+        String normalized = normalize(value);
+        return normalized == null ? null : normalized.replaceAll("\\D", "");
+    }
+
+    private String normalizeState(String value) {
+        String normalized = normalize(value);
+        return normalized == null ? null : normalized.toUpperCase(Locale.ROOT);
+    }
+}

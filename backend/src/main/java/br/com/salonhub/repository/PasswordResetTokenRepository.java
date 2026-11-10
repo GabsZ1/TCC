@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
+/** Declara as consultas de autenticação usadas pela camada de serviço. */
 public interface PasswordResetTokenRepository extends JpaRepository<PasswordResetToken, Long> {
 
     Optional<PasswordResetToken> findTopByUserIdOrderByCreatedAtDesc(Long userId);

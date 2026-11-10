@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+/** Declara as consultas de agenda e atuação dos profissionais usadas pela camada de serviço. */
 public interface ProfessionalCalendarEventRepository extends JpaRepository<ProfessionalCalendarEvent, Long> {
     boolean existsByProfessionalIdAndStartsAtLessThanAndEndsAtGreaterThan(
             Long professionalId, LocalDateTime periodEnd, LocalDateTime periodStart);

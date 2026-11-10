@@ -1,3 +1,4 @@
+/** Consulta e exporta os valores do relatório financeiro. */
 import { api } from '@/lib/api'
 
 export interface FinancialReportLine {

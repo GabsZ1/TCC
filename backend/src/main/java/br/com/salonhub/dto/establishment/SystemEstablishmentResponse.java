@@ -4,6 +4,7 @@ import br.com.salonhub.entity.Establishment;
 
 import java.time.OffsetDateTime;
 
+/** Define os dados devolvidos pela API no fluxo de estabelecimentos, sem expor as entidades persistidas. */
 public record SystemEstablishmentResponse(
         Long id,
         String name,

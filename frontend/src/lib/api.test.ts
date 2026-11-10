@@ -1,3 +1,4 @@
+/** Protege por testes o comportamento de api, incluindo os cenários de regressão deste módulo. */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AxiosError } from 'axios'
 import { api } from './api'

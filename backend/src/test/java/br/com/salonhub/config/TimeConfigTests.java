@@ -9,6 +9,7 @@ import java.time.ZoneId;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/** Verifica o relógio configurado para as regras de horário. */
 class TimeConfigTests {
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()

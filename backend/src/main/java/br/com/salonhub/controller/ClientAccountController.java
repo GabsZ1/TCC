@@ -6,7 +6,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import br.com.salonhub.dto.client.ClientAccountClosureRequest;
 import br.com.salonhub.dto.client.ClientProfileResponse;
 import br.com.salonhub.dto.client.ClientProfileUpdateRequest;
-import br.com.salonhub.service.ClientAccountService;
+import br.com.salonhub.service.account.ClientAccountService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+/** Expõe as operações HTTP de conta do cliente e encaminha as regras de negócio aos serviços. */
 @PreAuthorize(AccessRules.CLIENT)
 @RestController
 @RequestMapping("/api/clientes/me")
@@ -32,6 +33,7 @@ public class ClientAccountController {
 
     private final ClientAccountService clientAccountService;
 
+    /** Consulta apenas o perfil da conta cliente autenticada. */
     @GetMapping
     @Operation(summary = "Ver meu perfil (US 2.25)")
     @ApiResponse(responseCode = "200", description = "Perfil do cliente autenticado")
@@ -40,6 +42,7 @@ public class ClientAccountController {
         return clientAccountService.getProfile(Long.valueOf(jwt.getSubject()));
     }
 
+    /** Atualiza os dados da própria conta cliente. */
     @PutMapping
     @Operation(summary = "Editar meu perfil (US 2.24)")
     @ApiResponse(responseCode = "200", description = "Perfil atualizado")
@@ -50,6 +53,7 @@ public class ClientAccountController {
         return clientAccountService.updateProfile(Long.valueOf(jwt.getSubject()), request);
     }
 
+    /** Confirma a senha antes de encerrar a conta do cliente. */
     @DeleteMapping
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Excluir minha conta (US 2.26)", description = "Exige a senha atual como confirmação.")

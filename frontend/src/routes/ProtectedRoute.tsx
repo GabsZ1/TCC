@@ -1,3 +1,4 @@
+/** Restringe rotas conforme a autenticação e o papel exigido pela página. */
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import type { UserRole } from '@/types/auth'
@@ -7,6 +8,7 @@ interface ProtectedRouteProps {
   allowedRoles?: UserRole[]
 }
 
+/** Encaminha ao login ou à página de acesso negado conforme a sessão e o papel. */
 export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
   const { isAuthenticated, isLoading, user } = useAuth()
   const location = useLocation()

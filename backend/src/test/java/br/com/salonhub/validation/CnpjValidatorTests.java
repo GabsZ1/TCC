@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/** Verifica a aceitação e rejeição dos formatos de CNPJ. */
 class CnpjValidatorTests {
     private final CnpjValidator validator = new CnpjValidator();
 

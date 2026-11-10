@@ -3,6 +3,7 @@ package br.com.salonhub.dto.service;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 
+/** Define os dados recebidos pela API no fluxo de serviços e suas validações de entrada. */
 public record EstablishmentServiceRequest(
         @NotBlank(message = "O nome do serviço é obrigatório")
         @Size(max = 100, message = "O nome deve ter no máximo 100 caracteres")

@@ -1,3 +1,4 @@
+/** Lista e administra os serviços oferecidos pelo estabelecimento. */
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Clock3, Pencil, Plus, Power, RotateCcw, Scissors, Search, WalletCards, X } from 'lucide-react'
@@ -9,6 +10,7 @@ import { getApiErrorMessage } from '@/lib/apiError'
 const QUERY_KEY = ['services', 'administrative']
 type StatusFilter = 'all' | 'active' | 'inactive'
 
+/** Mantém catálogo, filtros e ações de ativação ou desativação em uma visão administrativa. */
 export function ServicesPage() {
   const queryClient = useQueryClient()
   const [editing, setEditing] = useState<SalonService | 'new' | null>(null)

@@ -1,3 +1,4 @@
+/** Organiza os compromissos e a configuração de jornada do profissional. */
 import { useEffect, useMemo, useRef, useState } from 'react'
 import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
@@ -23,6 +24,7 @@ interface VisibleRange { startsAt: string; endsAt: string }
 interface EventEditorState { event: ProfessionalAgendaItem | null; startsAt: string; endsAt: string; allDay: boolean }
 type CalendarView = 'day' | 'week' | 'month'
 
+/** Reúne compromissos, jornada e eventos do profissional na mesma agenda. */
 export function ProfessionalAgendaPage() {
   const { professionalId: professionalIdParam } = useParams()
   const professionalId = professionalIdParam ? Number(professionalIdParam) : undefined
@@ -175,6 +177,7 @@ export function ProfessionalAgendaPage() {
   </div>
 }
 
+/** Edita eventos da agenda com validação de período e opção de dia inteiro. */
 function EventEditor({ professionalId, initial, agendaItems, timeZone, onClose, onSaved, onDelete }: { professionalId?: number; initial: EventEditorState; agendaItems: ProfessionalAgendaItem[]; timeZone: string; onClose: () => void; onSaved: () => void; onDelete?: () => void }) {
   const [title, setTitle] = useState(initial.event?.title ?? '')
   const [description, setDescription] = useState(initial.event?.description ?? '')
@@ -194,6 +197,7 @@ function EventEditor({ professionalId, initial, agendaItems, timeZone, onClose, 
     setStartsAt(value)
     setEndsAt(nextRange.endsAt)
   }
+  /** Alterna o evento entre dia inteiro e horário definido ajustando os campos dependentes. */
   function changeAllDay(checked: boolean) {
     setAllDay(checked)
     if (checked) {
@@ -263,6 +267,7 @@ function modeOf(hour: ProfessionalHour): ScheduleMode {
   return hour.closed ? 'closed' : 'custom'
 }
 
+/** Edita a jornada semanal e envia o conjunto de horários como uma configuração. */
 function ScheduleForm({ professionalId, initial, onClose, onSaved }: { professionalId?: number; initial: ProfessionalHour[]; onClose: () => void; onSaved: () => void }) {
   const [hours, setHours] = useState(initial)
   const inputs = useMemo<ProfessionalHourInput[]>(() => hours.map((hour) => {
@@ -278,6 +283,7 @@ function ScheduleForm({ professionalId, initial, onClose, onSaved }: { professio
   const invalidDay = hours.find((hour) => modeOf(hour) === 'custom' && customHourError(hour))
   const mutation = useMutation({ mutationFn: () => updateProfessionalSchedule(inputs, professionalId), onSuccess: onSaved })
 
+  /** Muda o modo de edição preservando apenas os valores válidos para o novo modo. */
   function selectMode(index: number, mode: ScheduleMode) {
     setHours((current) => current.map((hour, itemIndex) => {
       if (itemIndex !== index) return hour
@@ -356,6 +362,7 @@ function ScheduleForm({ professionalId, initial, onClose, onSaved }: { professio
   </Modal>
 }
 
+/** Mostra um compromisso selecionado e oferece as ações permitidas sobre ele. */
 function AppointmentDetails({ item, timeZone, onClose, onCompleted }: { item: ProfessionalAgendaItem; timeZone: string; onClose: () => void; onCompleted: () => void }) {
   const now = useCurrentLocalTime(timeZone, item.status === 'CONFIRMED')
   const [confirming, setConfirming] = useState<'complete' | 'no-show' | null>(null)
@@ -378,6 +385,7 @@ function AppointmentDetails({ item, timeZone, onClose, onCompleted }: { item: Pr
 }
 
 function DeleteEventDialog({ professionalId, event, onClose, onDeleted }: { professionalId?: number; event: ProfessionalAgendaItem; onClose: () => void; onDeleted: () => void }) { const mutation = useMutation({ mutationFn: () => deleteCalendarEvent(event.id, professionalId), onSuccess: onDeleted }); return <ConfirmDialog title="Excluir compromisso" message={`Deseja excluir “${event.title}”?`} confirmLabel="Excluir compromisso" isLoading={mutation.isPending} errorMessage={mutation.isError ? getApiErrorMessage(mutation.error, 'Não foi possível excluir o compromisso.') : null} onConfirm={() => mutation.mutate()} onCancel={onClose} /> }
+/** Converte o compromisso recebido da API para o formato exigido pelo calendário. */
 function toCalendarEvent(item: ProfessionalAgendaItem, view: CalendarView): EventInput {
   const appointment = item.type === 'APPOINTMENT'
   const fillsDayColumn = view !== 'month' && item.allDay
@@ -429,6 +437,7 @@ function DateTimeField({ label, value, onChange, allDay, min }: { label: string;
   const time = alignTimeToFiveMinutes(value.slice(11, 16))
   return <div className="min-w-0"><span className="text-sm font-medium text-text-800">{label}</span><div className="mt-2 grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto]"><input aria-label={`Data de ${label.toLowerCase()}`} type="date" value={date} min={min?.slice(0, 10)} onChange={(event) => onChange(`${event.target.value}T${time}`)} required className="min-w-0 w-full rounded-xl border border-background-300 bg-background-50 px-3 py-2.5 text-sm text-text-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" /><TimeSelect label={label} value={time} onChange={(nextTime) => onChange(`${date}T${nextTime}`)} /></div></div>
 }
+/** Controla o fim do evento respeitando a seleção de dia inteiro. */
 function EndDateTimeField({ value, onChange, startsAt, allDay, min }: { value: string; onChange: (value: string) => void; startsAt: string; allDay: boolean; min: string }) {
   if (allDay) return <DateTimeField label="Término" value={value} onChange={onChange} allDay min={min} />
   const startDate = startsAt.slice(0, 10)
@@ -452,6 +461,7 @@ function EndDateTimeField({ value, onChange, startsAt, allDay, min }: { value: s
   }
   return <div className="min-w-0"><span className="text-sm font-medium text-text-800">Término</span><div className="mt-2 grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto]"><input aria-label="Data de término" type="date" value={endDate} min={startDate} onChange={(event) => changeDate(event.target.value)} required className="min-w-0 w-full rounded-xl border border-background-300 bg-background-50 px-3 py-2.5 text-sm text-text-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" /><TimeSelect label="Término" value={currentTime} min={minTime} onChange={changeTime} /></div></div>
 }
+/** Apresenta horários válidos para o campo temporal do evento. */
 function TimeSelect({ label, value, min, onChange }: { label: string; value: string; min?: string; onChange: (value: string) => void }) {
   const alignedValue = alignTimeToFiveMinutes(value)
   const [hour, minute] = alignedValue.split(':')
@@ -504,6 +514,7 @@ function useCurrentLocalTime(timeZone: string, enabled: boolean) {
   }, [enabled])
   return useMemo(() => localDateTimeInZone(timeZone, tick), [tick, timeZone])
 }
+/** Calcula a faixa de horas que o calendário precisa mostrar para os itens do período. */
 function calendarVisibleHours(items: ProfessionalAgendaItem[], hours: ProfessionalHour[]) {
   const ranges: Array<[number, number]> = []
   hours.filter((hour) => !hour.closed && hour.openingTime && hour.closingTime).forEach((hour) => {

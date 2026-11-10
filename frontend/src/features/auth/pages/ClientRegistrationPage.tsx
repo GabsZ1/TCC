@@ -1,3 +1,4 @@
+/** Coleta e envia os dados necessários para cadastrar um cliente. */
 import { useState, type FormEvent } from 'react'
 import { ArrowRight, Mail, Phone, UserRound } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -22,6 +23,7 @@ export function ClientRegistrationPage() {
 
   const confirmationMismatch = confirmation.length > 0 && password !== confirmation
 
+  /** Monta a requisição de cadastro e encaminha o cliente para a entrada após sucesso. */
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError(null)
@@ -95,6 +97,7 @@ function Required() {
   return <span className="font-bold text-danger-600" aria-hidden="true">*</span>
 }
 
+/** Padroniza os campos de identificação do cadastro de cliente. */
 function ClientField({ label, icon, value, onChange, ...props }: Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'value'> & {
   label: string
   icon?: React.ReactNode

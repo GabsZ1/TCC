@@ -1,3 +1,4 @@
+/** Protege por testes o comportamento de dateTime, incluindo os cenários de regressão deste módulo. */
 import { describe, expect, it } from 'vitest'
 import { addBusinessDays, addMinutesToBusinessLocalDateTime, businessToday, formatBusinessDateTime, hasBusinessLocalDateTimeStarted, calendarDateToBusinessLocalDateTime, formatBusinessDateWithWeekday, isBusinessLocalDateTimeFuture } from './dateTime'
 

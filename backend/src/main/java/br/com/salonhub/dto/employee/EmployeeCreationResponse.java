@@ -3,6 +3,7 @@ package br.com.salonhub.dto.employee;
 import br.com.salonhub.entity.User;
 import br.com.salonhub.entity.UserRole;
 
+/** Define os dados devolvidos pela API no fluxo de funcionários, sem expor as entidades persistidas. */
 public record EmployeeCreationResponse(
         Long id,
         String name,

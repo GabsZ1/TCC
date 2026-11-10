@@ -19,7 +19,7 @@ import br.com.salonhub.repository.CustomerRepository;
 import br.com.salonhub.repository.EstablishmentRepository;
 import br.com.salonhub.repository.EstablishmentServiceRepository;
 import br.com.salonhub.repository.UserRepository;
-import br.com.salonhub.service.TenantAuthorizationService;
+import br.com.salonhub.service.tenant.TenantAuthorizationService;
 import br.com.salonhub.service.professionalagenda.ProfessionalAvailabilityService;
 import br.com.salonhub.entity.ProfessionalCalendarEvent;
 import br.com.salonhub.entity.EstablishmentCalendarBlock;
@@ -46,6 +46,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/** Consulta agendamentos dentro do escopo permitido a cada papel. */
 @Service
 @RequiredArgsConstructor
 public class AppointmentQueryService {
@@ -63,6 +64,7 @@ public class AppointmentQueryService {
     private final ProfessionalBusinessHourRepository professionalHourRepository;
     private final EstablishmentBusinessHourRepository establishmentHourRepository;
 
+    /** Lista as reservas vinculadas à conta do cliente, inclusive as já encerradas. */
     @Transactional(readOnly = true)
     public Page<AppointmentResponse> findMine(Long clientId, int page, int size) {
         User client = tenantAuthorizationService.requireClient(clientId);
@@ -70,6 +72,7 @@ public class AppointmentQueryService {
                 client.getId(), PageRequest.of(page, size)).map(AppointmentResponse::fromEntity);
     }
 
+    /** Busca a próxima reserva confirmada que ainda não começou. */
     @Transactional(readOnly = true)
     public AppointmentResponse findNextForClient(Long clientId) {
         User client = tenantAuthorizationService.requireClient(clientId);
@@ -78,6 +81,7 @@ public class AppointmentQueryService {
                 .map(AppointmentResponse::fromEntity).orElse(null);
     }
 
+    /** Separa próximas reservas e histórico do cliente antes de aplicar a paginação. */
     @Transactional(readOnly = true)
     public Page<AppointmentResponse> findMinePage(Long clientId, boolean history, int page, int size) {
         User client = tenantAuthorizationService.requireClient(clientId);
@@ -91,6 +95,7 @@ public class AppointmentQueryService {
 
     public record ProfessionalToday(long confirmedCount, AppointmentResponse next) {}
 
+    /** Resume os atendimentos confirmados de hoje e o próximo ainda em curso ou por iniciar. */
     @Transactional(readOnly = true)
     public ProfessionalToday findTodayForProfessional(Long professionalId) {
         User professional = tenantAuthorizationService.requireProfessional(professionalId);
@@ -106,6 +111,7 @@ public class AppointmentQueryService {
         return new ProfessionalToday(count, next);
     }
 
+    /** Lista o histórico de reservas atribuídas ao profissional autenticado. */
     @Transactional(readOnly = true)
     public Page<AppointmentResponse> findMineAsProfessional(Long professionalId, int page, int size) {
         User professional = tenantAuthorizationService.requireProfessional(professionalId);
@@ -129,6 +135,7 @@ public class AppointmentQueryService {
         return pending.map(AppointmentResponse::fromEntity);
     }
 
+    /** Consulta a agenda do estabelecimento respeitando filtros e escopo administrativo. */
     @Transactional(readOnly = true)
     public Page<AppointmentResponse> findEstablishmentAgenda(
             Long administratorId, LocalDate date, Long professionalId, AppointmentStatus status, int page, int size) {
@@ -144,6 +151,7 @@ public class AppointmentQueryService {
                         status, PageRequest.of(page, size)).map(AppointmentResponse::fromEntity);
     }
 
+    /** Monta a disponibilidade da equipe para a visão administrativa da agenda. */
     @Transactional(readOnly = true)
     public List<AdministrativeProfessionalAvailabilityResponse> findTeamAvailability(
             Long administratorId, LocalDate date, Long professionalId) {
@@ -192,6 +200,7 @@ public class AppointmentQueryService {
         }).toList();
     }
 
+    /** Calcula horários de reserva online considerando serviço, profissional e regras de antecedência. */
     @Transactional(readOnly = true)
     public AvailabilityResponse findAvailability(
             Long clientId,
@@ -249,6 +258,7 @@ public class AppointmentQueryService {
         return new AvailabilityResponse(date, durationMinutes, availableTimes);
     }
 
+    /** Calcula horários para a equipe com as regras próprias do agendamento interno. */
     @Transactional(readOnly = true)
     public AvailabilityResponse findInternalAvailability(Long staffId, Long customerId, Long serviceId,
                                                         Long professionalId, LocalDate date, Long appointmentId) {
@@ -306,6 +316,10 @@ public class AppointmentQueryService {
                 LocalDateTime.now(clock), null, appointmentId, AppointmentSlotPolicy.INTERNAL_SLOT_INTERVAL_MINUTES));
     }
 
+    /**
+     * Percorre a grade do expediente e aceita apenas horários dentro da antecedência
+     * e sem sobreposição com reservas, eventos ou bloqueios.
+     */
     private List<LocalTime> calculateAvailableTimes(
             LocalDate date,
             int durationMinutes,

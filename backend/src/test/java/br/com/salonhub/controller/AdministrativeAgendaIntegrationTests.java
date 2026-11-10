@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+/** Verifica a agenda administrativa e os horários oferecidos à equipe. */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional

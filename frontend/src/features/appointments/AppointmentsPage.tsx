@@ -1,3 +1,4 @@
+/** Mostra os agendamentos do cliente e oferece as ações permitidas para cada estado. */
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowRight, CalendarPlus, ChevronLeft, ChevronRight, Clock3, Eye, MapPin, Scissors, Search, UserRound } from 'lucide-react'
@@ -14,6 +15,7 @@ const QUERY_KEY = ['my-appointments']
 const ESTABLISHMENTS_PER_PAGE = 6
 type AppointmentSection = 'upcoming' | 'history'
 
+/** Separa próximas reservas e histórico e apresenta somente as ações permitidas em cada estado. */
 export function AppointmentsPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()

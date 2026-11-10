@@ -1,3 +1,4 @@
+/** Busca os indicadores usados no painel do estabelecimento. */
 import { api } from '@/lib/api'
 
 export interface DashboardSummary {

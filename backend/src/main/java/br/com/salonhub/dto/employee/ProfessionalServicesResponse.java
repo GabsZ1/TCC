@@ -5,6 +5,7 @@ import br.com.salonhub.entity.User;
 
 import java.util.List;
 
+/** Define os dados devolvidos pela API no fluxo de funcionários, sem expor as entidades persistidas. */
 public record ProfessionalServicesResponse(
         Long professionalId,
         boolean allServices,

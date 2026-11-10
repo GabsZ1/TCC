@@ -1,3 +1,4 @@
+/** Consulta as rotas restritas de administração dos estabelecimentos. */
 import { api } from '@/lib/api'
 
 export interface SystemEstablishment {

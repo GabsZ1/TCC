@@ -18,7 +18,7 @@ public final class PhoneNumbers {
         return digits.matches("[1-9][0-9]{9,10}") ? digits : null;
     }
 
-    /** Accepts only digits and standard phone formatting characters. */
+    /** Aceita apenas dígitos e caracteres usuais de formatação de telefone. */
     public static boolean hasOnlyPhoneFormattingCharacters(String value) {
         return value != null && value.matches("[0-9+()\\s-]+");
     }

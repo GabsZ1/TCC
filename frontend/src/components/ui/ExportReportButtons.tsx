@@ -1,3 +1,4 @@
+/** Oferece os formatos de exportação disponíveis para os relatórios. */
 import { useState } from 'react'
 import { Download } from 'lucide-react'
 import { downloadFromApi } from '@/lib/download'

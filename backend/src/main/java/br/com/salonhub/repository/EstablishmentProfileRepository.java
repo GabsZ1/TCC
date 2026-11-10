@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.Collection;
 import java.util.List;
 
+/** Declara as consultas de estabelecimentos usadas pela camada de serviço. */
 public interface EstablishmentProfileRepository extends JpaRepository<EstablishmentProfile, Long> {
     Optional<EstablishmentProfile> findByEstablishmentId(Long establishmentId);
     List<EstablishmentProfile> findByEstablishmentIdIn(Collection<Long> establishmentIds);

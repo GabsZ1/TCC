@@ -1,3 +1,4 @@
+/** Consulta e exporta os atendimentos concluídos do estabelecimento. */
 import { api } from '@/lib/api'
 
 export interface CompletedAppointmentEntry {

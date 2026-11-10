@@ -1,3 +1,4 @@
+/** Monta a navegação da área autenticada conforme o papel e a sessão do usuário. */
 import { useCallback, useEffect, useRef, useState, type ComponentType } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import {
@@ -27,6 +28,7 @@ type NavItem = {
   group?: 'Visão geral' | 'Operação' | 'Gestão' | 'Conta'
 }
 
+/** Escolhe navegação e atalhos a partir da sessão e do papel autenticado. */
 export function AppLayout() {
   const { user, logout } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -108,6 +110,7 @@ export function AppLayout() {
   )
 }
 
+/** Apresenta as seções disponíveis para o papel atual na navegação lateral. */
 function DesktopSidebar({ items, user, onLogout }: { items: NavItem[]; user: ReturnType<typeof useAuth>['user']; onLogout: () => void }) {
   const groups = Array.from(new Set(items.map((item) => item.group)))
 
@@ -157,6 +160,7 @@ function DesktopSidebar({ items, user, onLogout }: { items: NavItem[]; user: Ret
   )
 }
 
+/** Marca a rota ativa e padroniza os links da navegação lateral. */
 function SidebarLink({ item, onNavigate }: { item: NavItem; onNavigate?: () => void }) {
   const Icon = item.icon
   return (
@@ -183,6 +187,7 @@ function SidebarLink({ item, onNavigate }: { item: NavItem; onNavigate?: () => v
   )
 }
 
+/** Reproduz a navegação permitida em telas pequenas e fecha o painel ao navegar. */
 function MobileDrawer({ items, user, onClose, onLogout }: { items: NavItem[]; user: ReturnType<typeof useAuth>['user']; onClose: () => void; onLogout: () => void }) {
   const drawerRef = useRef<HTMLElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
@@ -193,6 +198,7 @@ function MobileDrawer({ items, user, onClose, onLogout }: { items: NavItem[]; us
     document.body.style.overflow = 'hidden'
     closeButtonRef.current?.focus()
 
+    /** Fecha o painel com Escape e mantém a navegação por Tab dentro dele. */
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
         event.preventDefault()

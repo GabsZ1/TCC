@@ -1,3 +1,4 @@
+/** Carrega a imagem de capa ou o logotipo com uma alternativa quando indisponível. */
 import { useQuery } from '@tanstack/react-query'
 import { fetchEstablishmentImage, type ImageKind } from './establishmentImagesApi'
 

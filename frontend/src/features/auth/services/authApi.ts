@@ -1,3 +1,4 @@
+/** Centraliza as requisições de autenticação, cadastro e recuperação de senha. */
 import { api } from '@/lib/api'
 import type { AuthenticatedUser, LoginResponse } from '@/types/auth'
 

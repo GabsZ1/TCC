@@ -1,3 +1,4 @@
+/** Conduz a troca de senha de um usuário já autenticado. */
 import { useState, type FormEvent } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { CheckCircle2, KeyRound, ShieldCheck } from 'lucide-react'

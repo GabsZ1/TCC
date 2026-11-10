@@ -1,3 +1,4 @@
+/** Permite ao cliente alterar uma reserva futura com as opções ainda disponíveis. */
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Clock3 } from 'lucide-react'
@@ -12,6 +13,7 @@ interface AppointmentEditModalProps {
   onClose: () => void
 }
 
+/** Reconsulta opções ao mudar serviço ou profissional antes de salvar uma reserva. */
 export function AppointmentEditModal({ appointment, onUpdated, onClose }: AppointmentEditModalProps) {
   const [serviceId, setServiceId] = useState(appointment.serviceId)
   const [professionalId, setProfessionalId] = useState(appointment.professionalId)

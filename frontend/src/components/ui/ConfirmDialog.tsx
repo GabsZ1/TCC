@@ -1,3 +1,4 @@
+/** Pede confirmação explícita antes de uma ação que altera dados. */
 import { useState } from 'react'
 import { AlertTriangle } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
@@ -14,6 +15,7 @@ interface ConfirmDialogProps {
   errorMessage?: string | null
 }
 
+/** Padroniza a confirmação de ações com consequências sobre dados persistidos. */
 export function ConfirmDialog({
   title,
   message,

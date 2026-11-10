@@ -1,3 +1,4 @@
+/** Consulta e altera o perfil e o encerramento da conta do cliente. */
 import { api } from '@/lib/api'
 
 export interface ClientProfile {

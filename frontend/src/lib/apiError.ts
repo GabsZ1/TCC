@@ -1,3 +1,4 @@
+/** Extrai mensagens úteis dos erros devolvidos pela API. */
 import axios from 'axios'
 
 export interface ApiErrorBody {

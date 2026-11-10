@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import java.util.Optional;
 
+/** Declara as consultas de estabelecimentos usadas pela camada de serviço. */
 public interface EstablishmentGalleryPhotoRepository extends JpaRepository<EstablishmentGalleryPhoto, Long> {
     List<EstablishmentGalleryPhoto> findByEstablishmentIdOrderByDisplayOrderAscIdAsc(Long establishmentId);
     Optional<EstablishmentGalleryPhoto> findByIdAndEstablishmentId(Long id, Long establishmentId);

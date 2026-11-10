@@ -1,3 +1,4 @@
+/** Lista a equipe e coordena as ações de cadastro, edição e desativação. */
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -24,6 +25,7 @@ import { ProfessionalServicesModal } from '@/features/employees/components/Profe
 const EMPLOYEES_QUERY_KEY = ['employees']
 type ModalState = { mode: 'create' } | { mode: 'edit'; employee: Employee } | null
 
+/** Coordena a lista, os formulários e as ações de ciclo de vida da equipe. */
 export function EmployeesListPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -78,6 +80,7 @@ export function EmployeesListPage() {
     onError: (err) => setFormError(getApiErrorMessage(err, 'Não foi possível atualizar o funcionário.')),
   })
 
+  // Exclusão exige duas confirmações; a desativação continua disponível para quem tem histórico.
   const removeMutation = useMutation({
     mutationFn: removeEmployee,
     onSuccess: (result) => {
@@ -131,6 +134,7 @@ export function EmployeesListPage() {
     updateMutation.mutate({ id: modalState.employee.id, input: values })
   }
 
+  /** Avança da confirmação inicial para a confirmação definitiva de exclusão. */
   function handleFirstConfirmDelete() {
     if (!employeeToDelete) return
     setEmployeeToPermanentlyConfirm(employeeToDelete)
@@ -152,6 +156,7 @@ export function EmployeesListPage() {
   const isChangingLifecycle = removeMutation.isPending || deactivateMutation.isPending || reactivateMutation.isPending
   const isSavingForm = createMutation.isPending || updateMutation.isPending
 
+  /** Exibe apenas as ações cabíveis ao estado atual e ao primeiro acesso do funcionário. */
   function employeeActions(employee: Employee, includeDetails = true) {
     return <div className="flex flex-wrap justify-end gap-1">
       {includeDetails && <ActionButton label="Detalhes" onClick={() => setDetailsEmployee(employee)}><Eye size={16} /></ActionButton>}

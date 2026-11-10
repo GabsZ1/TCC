@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 
+/** Expõe as operações HTTP de agenda e atuação dos profissionais e encaminha as regras de negócio aos serviços. */
 @PreAuthorize(AccessRules.PROFESSIONAL)
 @RestController
 @RequestMapping("/api/profissionais/me/atendimentos-realizados")
@@ -33,6 +34,7 @@ public class ProfessionalCompletedServicesController {
             summary = "Meus atendimentos realizados",
             description = "Atendimentos concluídos do profissional autenticado, com resumo de valores e comissões. "
                     + "Sem período, considera o mês corrente.")
+    /** Consulta serviços concluídos e totais do profissional da sessão. */
     @ApiResponse(responseCode = "200", description = "Consulta realizada")
     @ApiResponse(responseCode = "400", description = "Período incompleto/inválido ou serviço inexistente")
     @ApiResponse(responseCode = "403", description = "Usuário não é profissional")

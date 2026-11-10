@@ -1,3 +1,4 @@
+# Sobe banco, captura de e-mails e armazenamento de imagens para o ambiente local.
 services:
   postgres:
     image: postgres:16

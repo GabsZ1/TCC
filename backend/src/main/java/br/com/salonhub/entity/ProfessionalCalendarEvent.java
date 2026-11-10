@@ -10,6 +10,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 
+/** Representa um evento que ocupa um intervalo da agenda profissional. */
 @Entity
 @Table(name = "professional_calendar_events")
 @Getter
@@ -51,6 +52,7 @@ public class ProfessionalCalendarEvent {
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
+    /** Cria um evento que ocupa um período da agenda profissional. */
     public static ProfessionalCalendarEvent create(
             Establishment establishment, User professional, String title, String description,
             LocalDateTime startsAt, LocalDateTime endsAt, boolean allDay) {
@@ -61,6 +63,7 @@ public class ProfessionalCalendarEvent {
         return event;
     }
 
+    /** Altera período, descrição e modo de dia inteiro do evento. */
     public void update(String title, String description, LocalDateTime startsAt, LocalDateTime endsAt, boolean allDay) {
         this.title = title.trim();
         this.description = description == null || description.isBlank() ? null : description.trim();

@@ -1,3 +1,4 @@
+/** Consulta e exporta o relatório de agendamentos do período. */
 import { api } from '@/lib/api'
 
 export interface AppointmentsReportEntry {

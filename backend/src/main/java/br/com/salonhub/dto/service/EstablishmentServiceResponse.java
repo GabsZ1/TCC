@@ -3,6 +3,7 @@ package br.com.salonhub.dto.service;
 import br.com.salonhub.entity.EstablishmentService;
 import java.math.BigDecimal;
 
+/** Define os dados devolvidos pela API no fluxo de serviços, sem expor as entidades persistidas. */
 public record EstablishmentServiceResponse(
         Long id,
         String name,

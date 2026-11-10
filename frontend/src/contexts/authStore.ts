@@ -1,3 +1,4 @@
+/** Compartilha o estado da sessão com código que executa fora dos componentes React. */
 import { createContext } from 'react'
 import type { AuthenticatedUser, LoginCredentials } from '@/types/auth'
 

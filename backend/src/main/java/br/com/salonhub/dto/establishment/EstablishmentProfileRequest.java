@@ -3,6 +3,7 @@ package br.com.salonhub.dto.establishment;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
+/** Define os dados recebidos pela API no fluxo de estabelecimentos e suas validações de entrada. */
 public record EstablishmentProfileRequest(
         @Size(max = 3000, message = "O Quem Somos deve ter no máximo 3000 caracteres")
         String aboutUs,

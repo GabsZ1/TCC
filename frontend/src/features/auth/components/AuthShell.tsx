@@ -1,3 +1,4 @@
+/** Padroniza a estrutura visual das páginas públicas de autenticação. */
 import type { ReactNode } from 'react'
 import { CalendarDays, Clock3, Scissors } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -9,6 +10,7 @@ interface AuthShellProps {
   subtitle: string
   children: ReactNode
   maxWidth?: 'sm' | 'md' | 'lg'
+  scrollFormOnDesktop?: boolean
 }
 
 const widths = {
@@ -17,10 +19,11 @@ const widths = {
   lg: 'max-w-[48rem]',
 }
 
-export function AuthShell({ eyebrow, title, subtitle, children, maxWidth = 'md' }: AuthShellProps) {
+/** Aplica o mesmo layout e contexto visual aos formulários públicos de acesso. */
+export function AuthShell({ eyebrow, title, subtitle, children, maxWidth = 'md', scrollFormOnDesktop = false }: AuthShellProps) {
   return (
-    <main className="min-h-screen bg-background-50 lg:grid lg:grid-cols-[minmax(27rem,.92fr)_minmax(34rem,1.08fr)]">
-      <aside className="relative hidden min-h-screen overflow-hidden bg-[var(--sidebar-bg)] px-10 py-9 text-white lg:flex lg:flex-col xl:px-14 xl:py-11">
+    <main className={`min-h-screen bg-background-50 lg:grid lg:grid-cols-[minmax(27rem,.92fr)_minmax(34rem,1.08fr)] ${scrollFormOnDesktop ? 'lg:h-dvh lg:min-h-0 lg:overflow-hidden' : ''}`}>
+      <aside className={`relative hidden min-h-screen overflow-hidden bg-[var(--sidebar-bg)] px-10 py-9 text-white lg:flex lg:flex-col xl:px-14 xl:py-11 ${scrollFormOnDesktop ? 'lg:h-full lg:min-h-0' : ''}`}>
         <div className="absolute inset-y-0 left-0 w-[4px] bg-primary-500" aria-hidden="true" />
         <div className="pointer-events-none absolute -right-24 top-24 text-[16rem] font-extrabold leading-none tracking-[-.12em] text-white/[0.025]" aria-hidden="true">SH</div>
 
@@ -57,7 +60,7 @@ export function AuthShell({ eyebrow, title, subtitle, children, maxWidth = 'md' 
         </div>
       </aside>
 
-      <section className="relative flex min-h-screen min-w-0 items-center justify-center px-4 py-10 sm:px-8 sm:py-16 lg:px-12 xl:px-16">
+      <section className={`relative flex min-h-screen min-w-0 items-center justify-center px-4 py-10 sm:px-8 sm:py-16 lg:px-12 xl:px-16 ${scrollFormOnDesktop ? 'lg:h-full lg:min-h-0 lg:items-start lg:overflow-y-auto lg:overscroll-contain' : ''}`}>
         <div className={`w-full ${widths[maxWidth]}`}>
           <Link to="/login" className="mb-10 inline-flex lg:hidden"><Brand /></Link>
 
