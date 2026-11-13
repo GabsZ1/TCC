@@ -20,20 +20,19 @@ export function EmployeeDetailsModal({ employee, onClose, onEdit }: { employee: 
     <Modal title="Detalhes do funcionário" onClose={onClose} size="lg">
       <div className="space-y-5 sm:space-y-6">
         <section className="overflow-hidden rounded-2xl border border-background-300 bg-white">
-          <div className="h-20 bg-gradient-to-r from-primary-900 via-primary-700 to-secondary-600 sm:h-24" aria-hidden="true" />
-          <div className="flex flex-col gap-3 px-4 pb-5 sm:flex-row sm:items-end sm:gap-5 sm:px-6">
-            <div className="-mt-10 w-fit rounded-[1.25rem] border-4 border-white bg-white shadow-md sm:-mt-12">
-              <EmployeeAvatar id={employee.id} name={employee.name} hasPhoto={employee.hasPhoto} size="xl" />
-            </div>
-            <div className="min-w-0 flex-1 sm:pb-1">
-              <h3 className="break-words text-xl font-extrabold tracking-tight text-text-950 sm:text-2xl">{employee.name}</h3>
+          <div className="flex items-start gap-4 p-4 sm:items-center sm:gap-5 sm:p-6">
+            <EmployeeAvatar id={employee.id} name={employee.name} hasPhoto={employee.hasPhoto} size="xl" />
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <h3 className="min-w-0 break-words text-xl font-extrabold tracking-tight text-text-950 sm:text-2xl">{employee.name}</h3>
+                <span className={`status-pill shrink-0 ${employee.active ? 'bg-success-50 text-success-700' : 'bg-background-200 text-text-600'}`}>
+                  <span className={`size-1.5 rounded-full ${employee.active ? 'bg-success-500' : 'bg-text-400'}`} />
+                  {employee.active ? 'Ativo' : 'Desativado'}
+                </span>
+              </div>
               <p className="mt-1 break-words text-sm text-text-600">{employee.occupation || 'Ocupação não informada'}</p>
               {employee.establishmentName && <p className="mt-1 flex items-center gap-1.5 text-xs text-text-500"><MapPin size={13} /> {employee.establishmentName}</p>}
             </div>
-            <span className={`status-pill self-start sm:mb-1 ${employee.active ? 'bg-success-50 text-success-700' : 'bg-background-200 text-text-600'}`}>
-              <span className={`size-1.5 rounded-full ${employee.active ? 'bg-success-500' : 'bg-text-400'}`} />
-              {employee.active ? 'Ativo' : 'Desativado'}
-            </span>
           </div>
         </section>
 

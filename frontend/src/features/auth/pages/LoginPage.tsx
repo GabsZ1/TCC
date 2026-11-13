@@ -77,6 +77,7 @@ export function LoginPage() {
             ref={emailRef}
             id="email"
             type="email"
+            maxLength={150}
             autoComplete="email"
             required
             value={email}
@@ -97,6 +98,7 @@ export function LoginPage() {
           <input
             id="password"
             type={showPassword ? 'text' : 'password'}
+            maxLength={72}
             autoComplete="current-password"
             required
             value={password}

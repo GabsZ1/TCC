@@ -170,7 +170,7 @@ public class EmployeeService {
     }
 
     /**
-     * Edição pelo administrador: o nome, e o CPF/data de admissão só se ainda estiverem
+     * Edição pelo administrador: nome e ocupação; CPF/data de admissão só se ainda estiverem
      * vazios (depois de gravados ficam travados para todos).
      */
     @Transactional
@@ -203,6 +203,12 @@ public class EmployeeService {
         }
 
         employee.renameEmployee(request.name().trim());
+        if (request.occupation() != null) {
+            if (request.occupation().isBlank()) {
+                throw new InvalidRequestException("A ocupação é obrigatória.");
+            }
+            employee.updateEmployeeOccupation(request.occupation().trim());
+        }
         employee.fillEmployeeDocuments(cpf, hireDate);
         return toResponse(employee);
     }
@@ -213,7 +219,7 @@ public class EmployeeService {
         return toResponse(tenantAuthorizationService.requireProfessional(professionalId));
     }
 
-    /** O funcionário atualiza e-mail (com a senha atual), ocupação e contatos. */
+    /** O funcionário atualiza e-mail (com a senha atual) e contatos. */
     @Transactional
     public EmployeeResponse updateMyProfile(Long professionalId, EmployeeSelfProfileUpdateRequest request) {
         User professional = userRepository.findByIdForUpdate(
@@ -232,7 +238,6 @@ public class EmployeeService {
 
         professional.updateOwnEmployeeProfile(
                 email,
-                request.occupation().trim(),
                 normalizePhone(request.phone()),
                 normalizeInstagram(request.instagram()),
                 request.address() == null || request.address().isBlank() ? null : request.address().trim());

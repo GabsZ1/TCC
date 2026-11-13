@@ -47,10 +47,10 @@ export function ServiceFormModal({ service, isSubmitting, errorMessage, onSubmit
         <ServiceField name="name" label="Nome do serviço" defaultValue={service?.name} maxLength={100} placeholder="Ex.: Corte feminino" />
         <ServiceField name="description" label="Descrição (opcional)" defaultValue={service?.description ?? ''} required={false} maxLength={255} placeholder="Uma descrição curta para identificar o serviço" />
         <div className="grid gap-3 min-[380px]:grid-cols-2">
-          <ServiceField name="price" label="Valor" type="number" min="0.01" max="99999999.99" step="0.01" defaultValue={service?.price} icon={<Wallet size={15} />} prefix="R$" />
-          <ServiceField name="durationMinutes" label="Duração" type="number" min="1" max="1440" defaultValue={service?.durationMinutes ?? 30} icon={<Clock3 size={15} />} suffix="min" />
+          <ServiceField name="price" label="Valor" type="text" inputMode="decimal" pattern="[0-9]+([.][0-9]{1,2})?" maxLength={11} onInput={onlyDecimal} defaultValue={service?.price} icon={<Wallet size={15} />} prefix="R$" />
+          <ServiceField name="durationMinutes" label="Duração" type="text" inputMode="numeric" pattern="[0-9]+" maxLength={4} onInput={onlyDigits} defaultValue={service?.durationMinutes ?? 30} icon={<Clock3 size={15} />} suffix="min" />
         </div>
-        <ServiceField name="commissionPercentage" label="Comissão (opcional)" type="number" min="0" max="100" step="0.01" defaultValue={service?.commissionPercentage ?? 0} required={false} icon={<Percent size={15} />} suffix="%" />
+        <ServiceField name="commissionPercentage" label="Comissão (opcional)" type="text" inputMode="decimal" pattern="[0-9]+([.][0-9]{1,2})?" maxLength={6} onInput={onlyDecimal} defaultValue={service?.commissionPercentage ?? 0} required={false} icon={<Percent size={15} />} suffix="%" />
         {(error || errorMessage) && <p role="alert" className="rounded-xl border border-danger-500/20 bg-danger-50 px-4 py-3 text-sm text-danger-600">{error ?? errorMessage}</p>}
         <div className="flex flex-col-reverse gap-3 border-t border-background-300 pt-5 sm:flex-row sm:justify-end">
           <button type="button" onClick={onClose} className="secondary-button">Cancelar</button>
@@ -59,6 +59,15 @@ export function ServiceFormModal({ service, isSubmitting, errorMessage, onSubmit
       </form>
     </Modal>
   )
+}
+
+function onlyDigits(event: React.FormEvent<HTMLInputElement>) {
+  event.currentTarget.value = event.currentTarget.value.replace(/\D/g, '')
+}
+
+function onlyDecimal(event: React.FormEvent<HTMLInputElement>) {
+  const [integer, ...fraction] = event.currentTarget.value.replace(',', '.').replace(/[^\d.]/g, '').split('.')
+  event.currentTarget.value = fraction.length ? `${integer}.${fraction.join('').slice(0, 2)}` : integer
 }
 
 function ServiceField({ label, required = true, icon, prefix, suffix, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: string; name: string; icon?: React.ReactNode; prefix?: string; suffix?: string }) {

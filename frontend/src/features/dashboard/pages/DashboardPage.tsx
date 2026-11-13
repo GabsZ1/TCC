@@ -29,6 +29,7 @@ export function DashboardPage() {
   if (user?.role === 'PROFESSIONAL') return <ProfessionalHome name={user.name} establishmentName={user.establishmentName} today={professionalToday.data} isLoading={professionalToday.isLoading} error={professionalToday.isError ? professionalToday.error : null} />
 
   const firstName = user?.name?.split(' ')[0] ?? 'Olá'
+  const showDashboardMetrics = !dashboard.isLoading && !dashboard.isError && dashboard.data != null
 
   return (
     <div className="page-shell">
@@ -51,10 +52,10 @@ export function DashboardPage() {
       )}
 
       <section className="surface-card mt-7 grid overflow-hidden sm:grid-cols-2 lg:grid-cols-4">
-        <MetricLine icon={CalendarDays} label="Agendamentos hoje" helper="horários marcados para hoje" value={dashboard.isLoading ? '—' : String(dashboard.data?.todaysAppointments ?? 0)} />
-        <MetricLine icon={CalendarCheck} label="Concluídos hoje" helper="finalizados hoje" value={dashboard.isLoading ? '—' : String(dashboard.data?.todaysCompletedServices ?? 0)} bordered />
-        <MetricLine icon={Clock3} label="Pendentes de fechamento" helper="confirmados já encerrados" value={dashboard.isLoading ? '—' : String(dashboard.data?.pendingClosure ?? 0)} bordered />
-        <MetricLine icon={Wallet} label="Realizado hoje" helper="atendimentos concluídos" value={dashboard.isLoading ? '—' : formatMoney(dashboard.data?.todaysRevenue ?? 0)} bordered />
+        <MetricLine icon={CalendarDays} label="Agendamentos hoje" helper="horários marcados para hoje" value={showDashboardMetrics ? String(dashboard.data.todaysAppointments) : '—'} />
+        <MetricLine icon={CalendarCheck} label="Concluídos hoje" helper="finalizados hoje" value={showDashboardMetrics ? String(dashboard.data.todaysCompletedServices) : '—'} bordered />
+        <MetricLine icon={Clock3} label="Pendentes de fechamento" helper="confirmados já encerrados" value={showDashboardMetrics ? String(dashboard.data.pendingClosure) : '—'} bordered />
+        <MetricLine icon={Wallet} label="Realizado hoje" helper="atendimentos concluídos" value={showDashboardMetrics ? formatMoney(dashboard.data.todaysRevenue) : '—'} bordered />
       </section>
 
       <section className="surface-card mt-5 p-5 sm:p-6">

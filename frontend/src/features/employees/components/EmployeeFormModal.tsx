@@ -24,7 +24,7 @@ const createSchema = z.object({
 const editSchema = z.object({
   name: z.string().trim().min(1, 'Nome é um campo obrigatório!').max(150),
   email: z.string(),
-  occupation: z.string(),
+  occupation: z.string().trim().min(1, 'Ocupação é um campo obrigatório!').max(80),
   cpf: cpfField,
   hireDate: hireDateField,
 })
@@ -42,9 +42,9 @@ interface EmployeeFormModalProps {
 /**
  * Cadastro/edição pelo administrador.
  * - Cadastro: nome, e-mail, ocupação, CPF e data de admissão (todos obrigatórios).
- * - Edição: só o nome; CPF e data de admissão ficam travados depois de gravados e só
+ * - Edição: nome e ocupação; CPF e data de admissão ficam travados depois de gravados e só
  *   podem ser preenchidos se ainda estiverem vazios (funcionários antigos).
- * - Contatos, foto, e-mail e ocupação passam a ser do próprio funcionário ("Meu perfil").
+ * - Contatos, foto e e-mail são do próprio funcionário ("Meu perfil").
  * Sempre que CPF/data de admissão forem gravados há dupla confirmação: revisão + redigitar o CPF.
  */
 export function EmployeeFormModal({ employee, isSubmitting, errorMessage, onCreate, onUpdate, onClose }: EmployeeFormModalProps) {
@@ -75,6 +75,7 @@ export function EmployeeFormModal({ employee, isSubmitting, errorMessage, onCrea
     }
     onUpdate({
       name: values.name.trim(),
+      occupation: values.occupation.trim(),
       cpf: !cpfLocked && values.cpf ? cpfDigits(values.cpf) : undefined,
       hireDate: !hireDateLocked && values.hireDate ? values.hireDate : undefined,
     })
@@ -100,27 +101,28 @@ export function EmployeeFormModal({ employee, isSubmitting, errorMessage, onCrea
       <form onSubmit={handleSubmit(submit)} noValidate>
         <p className="mb-5 text-sm leading-6 text-text-600">
           {isEditing
-            ? 'O administrador altera o nome. E-mail, ocupação, contatos e foto são atualizados pelo próprio funcionário em "Meu perfil".'
+            ? 'O administrador altera nome e ocupação. E-mail, contatos e foto são atualizados pelo próprio funcionário em "Meu perfil".'
             : 'O funcionário receberá por e-mail o link para definir a senha. Depois, ele mesmo completa contatos e foto no perfil.'}
           {' '}Campos com <span className="font-bold text-danger-600">*</span> são obrigatórios.
         </p>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Nome" required error={errors.name?.message} className="sm:col-span-2">
-            <input type="text" autoFocus {...register('name')} className={inputClass(errors.name)} placeholder="Nome completo" />
+            <input type="text" autoFocus maxLength={150} {...register('name')} className={inputClass(errors.name)} placeholder="Nome completo" />
           </Field>
 
           {!isEditing && (
             <>
               <Field label="E-mail" required error={errors.email?.message}>
-                <input type="email" {...register('email')} className={inputClass(errors.email)} placeholder="profissional@exemplo.com" />
-              </Field>
-              <Field label="Ocupação" required error={errors.occupation?.message}>
-                <input list="employee-occupations" {...register('occupation')} className={inputClass(errors.occupation)} placeholder="Ex.: Cabeleireiro(a)" />
-                <datalist id="employee-occupations">{OCCUPATION_SUGGESTIONS.map((occupation) => <option key={occupation} value={occupation} />)}</datalist>
+                <input type="email" maxLength={150} {...register('email')} className={inputClass(errors.email)} placeholder="profissional@exemplo.com" />
               </Field>
             </>
           )}
+
+          <Field label="Ocupação" required error={errors.occupation?.message}>
+            <input list="employee-occupations" maxLength={80} {...register('occupation')} className={inputClass(errors.occupation)} placeholder="Ex.: Cabeleireiro(a)" />
+            <datalist id="employee-occupations">{OCCUPATION_SUGGESTIONS.map((occupation) => <option key={occupation} value={occupation} />)}</datalist>
+          </Field>
 
           {cpfLocked ? (
             <LockedField label="CPF" value={formatCpf(employee?.cpf)} />
@@ -179,7 +181,7 @@ function ReviewDialog({ values, isEditing, recordsDocuments, isSubmitting, error
       <dl className="divide-y divide-background-300 rounded-xl border border-background-300 text-sm">
         <ReviewRow label="Nome" value={values.name.trim()} />
         {!isEditing && <ReviewRow label="E-mail" value={values.email.trim()} />}
-        {!isEditing && <ReviewRow label="Ocupação" value={values.occupation.trim()} />}
+        <ReviewRow label="Ocupação" value={values.occupation.trim()} />
         {values.cpf && <ReviewRow label="CPF" value={formatCpf(cpfToConfirm)} highlight={recordsDocuments} />}
         {values.hireDate && <ReviewRow label="Data de admissão" value={formatDate(values.hireDate)} highlight={recordsDocuments} />}
       </dl>

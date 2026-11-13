@@ -47,6 +47,7 @@ export function ConfirmDialog({
           </label>
           <input
             type="text"
+            maxLength={confirmationText?.length}
             value={typedValue}
             onChange={(event) => setTypedValue(event.target.value)}
             autoFocus

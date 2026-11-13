@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 /**
- * Perfil do próprio funcionário: e-mail de acesso, ocupação e contatos.
+ * Perfil do próprio funcionário: e-mail de acesso e contatos.
  * Trocar o e-mail exige a senha atual ({@code currentPassword}).
  */
 public record EmployeeSelfProfileUpdateRequest(
@@ -13,10 +13,6 @@ public record EmployeeSelfProfileUpdateRequest(
         @Email(message = "Email inválido")
         @Size(max = 150, message = "O e-mail deve ter no máximo 150 caracteres")
         String email,
-
-        @NotBlank(message = "A ocupação é obrigatória")
-        @Size(max = 80, message = "A ocupação deve ter no máximo 80 caracteres")
-        String occupation,
 
         @Size(max = 20, message = "Informe um telefone válido!")
         String phone,

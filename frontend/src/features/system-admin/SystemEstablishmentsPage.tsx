@@ -65,7 +65,7 @@ export function SystemEstablishmentsPage() {
       <section className="surface-card mt-7 overflow-hidden">
         <div className="flex flex-col gap-4 border-b border-background-300 p-5 sm:flex-row sm:items-center sm:justify-between">
           <div><h2 className="font-semibold text-text-900">Todos os estabelecimentos</h2><p className="mt-1 text-sm text-text-500">{filtered.length} de {establishments.data?.length ?? 0} cadastro(s)</p></div>
-          <label className="relative block sm:w-80"><span className="sr-only">Buscar estabelecimento por nome ou CNPJ</span><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-400" size={17} /><input type="search" value={search} onChange={(event) => { setSearch(event.target.value); setPage(0) }} placeholder="Buscar por nome ou CNPJ" className="w-full rounded-xl border border-background-300 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" /></label>
+          <label className="relative block sm:w-80"><span className="sr-only">Buscar estabelecimento por nome ou CNPJ</span><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-400" size={17} /><input type="search" maxLength={150} value={search} onChange={(event) => { setSearch(event.target.value); setPage(0) }} placeholder="Buscar por nome ou CNPJ" className="w-full rounded-xl border border-background-300 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" /></label>
         </div>
         {establishments.isLoading && <State>Carregando estabelecimentos...</State>}
         {establishments.isError && <State error>{getApiErrorMessage(establishments.error, 'Não foi possível carregar os estabelecimentos.')}</State>}

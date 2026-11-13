@@ -1,9 +1,11 @@
 /** Edita as informações públicas apresentadas aos clientes. */
 import { useRef, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { IMaskInput } from 'react-imask'
 import { AtSign, Images, MapPin, Phone, Save, Store } from 'lucide-react'
 import { getApiErrorMessage } from '@/lib/apiError'
 import { CepNotFoundError, cepDigits, formatCep, lookupCep } from '@/lib/cep'
+import { PHONE_MASK, formatPhone } from '@/lib/phone'
 import { EstablishmentImage } from './EstablishmentImage'
 import { EstablishmentGalleryManager } from './EstablishmentGalleryManager'
 import { EstablishmentSectionHeader } from './EstablishmentSectionHeader'
@@ -172,21 +174,21 @@ export function EstablishmentProfilePage() {
             <p className="mt-2 text-sm text-text-600">Ao salvar, o sistema tenta localizar o endereço. Sem um serviço de geocodificação configurado, usa as coordenadas aproximadas do CEP quando disponíveis.</p>
             {profile?.locationAvailable && <p className="mt-2 text-xs font-medium text-success-700">Localização salva no banco de dados.</p>}
             <div className="mt-4 grid gap-5 sm:grid-cols-6">
-              <ProfileField label="CEP" value={formatCep(currentForm.postalCode)} onChange={changePostalCode} placeholder="00000-000" inputMode="numeric" className="sm:col-span-2" hint={cepStatus?.text ?? 'Digite o CEP para preencher o endereço.'} hintTone={cepStatus?.tone} />
+              <ProfileField label="CEP" value={formatCep(currentForm.postalCode)} onChange={changePostalCode} maxLength={9} placeholder="00000-000" inputMode="numeric" className="sm:col-span-2" hint={cepStatus?.text ?? 'Digite o CEP para preencher o endereço.'} hintTone={cepStatus?.tone} />
               <ProfileField label="Logradouro" value={currentForm.street} onChange={(value) => updateField('street', value)} maxLength={150} placeholder="Rua, avenida..." className="sm:col-span-4" />
               <ProfileField label="Número" value={currentForm.streetNumber} onChange={(value) => updateField('streetNumber', value)} maxLength={20} className="sm:col-span-2" inputRef={streetNumberInput} />
               <ProfileField label="Complemento" value={currentForm.addressComplement} onChange={(value) => updateField('addressComplement', value)} maxLength={100} className="sm:col-span-4" />
               <ProfileField label="Bairro" value={currentForm.neighborhood} onChange={(value) => updateField('neighborhood', value)} maxLength={100} className="sm:col-span-2" />
               <ProfileField label="Cidade" value={currentForm.city} onChange={(value) => updateField('city', value)} maxLength={100} className="sm:col-span-3" />
-              <ProfileField label="UF" value={currentForm.state} onChange={(value) => updateField('state', value.toUpperCase().slice(0, 2))} pattern="AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO" placeholder="SP" className="sm:col-span-1" />
+              <ProfileField label="UF" value={currentForm.state} onChange={(value) => updateField('state', value.toUpperCase().slice(0, 2))} maxLength={2} pattern="AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO" placeholder="SP" className="sm:col-span-1" />
             </div>
           </section>
 
           <section className="surface-card p-5 sm:p-6">
             <EstablishmentSectionHeader icon={<Phone size={20} />} title="Contato público" description="Canais que os clientes podem usar para falar com o estabelecimento." />
             <div className="mt-4 grid gap-5 sm:grid-cols-3">
-              <ProfileField label="WhatsApp" value={currentForm.whatsapp} onChange={(value) => updateField('whatsapp', value)} maxLength={20} placeholder="(00) 00000-0000" />
-              <ProfileField label="Telefone" value={currentForm.phone} onChange={(value) => updateField('phone', value)} maxLength={20} placeholder="(00) 0000-0000" />
+              <PhoneField label="WhatsApp" value={currentForm.whatsapp} onChange={(value) => updateField('whatsapp', value)} />
+              <PhoneField label="Telefone" value={currentForm.phone} onChange={(value) => updateField('phone', value)} />
               <ProfileField label="Instagram" value={currentForm.instagram} onChange={(value) => updateField('instagram', value)} maxLength={100} placeholder="@seuperfil" icon={<AtSign size={15} />} />
             </div>
           </section>
@@ -217,6 +219,9 @@ interface ProfileFieldProps {
 }
 function ProfileField({ label, value, onChange, placeholder, className = '', icon, inputMode, inputRef, maxLength, pattern, hint, hintTone = 'info' }: ProfileFieldProps) {
   return <label className={`block ${className}`}><span className="flex items-center gap-1.5 text-sm font-medium text-text-800">{icon}{label}</span><input ref={inputRef} value={value ?? ''} inputMode={inputMode} maxLength={maxLength} pattern={pattern} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="mt-2 w-full rounded-xl border border-background-300 px-3.5 py-3 text-text-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 disabled:bg-background-100" />{hint && <span role={hintTone === 'error' ? 'alert' : 'status'} className={`mt-1.5 block text-xs ${hintTone === 'error' ? 'text-danger-600' : 'text-text-500'}`}>{hint}</span>}</label>
+}
+function PhoneField({ label, value, onChange }: { label: string; value: string | null; onChange: (value: string) => void }) {
+  return <label className="block"><span className="text-sm font-medium text-text-800">{label}</span><IMaskInput mask={PHONE_MASK} value={formatPhone(value)} onAccept={(next: string) => onChange(next)} inputMode="tel" maxLength={20} placeholder="(00) 00000-0000" className="mt-2 w-full rounded-xl border border-background-300 px-3.5 py-3 text-text-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 disabled:bg-background-100" /></label>
 }
 function PageContainer({ children }: { children: React.ReactNode }) { return <div className="page-shell">{children}</div> }
 function StateCard({ children, error = false }: { children: React.ReactNode; error?: boolean }) { return <div className={`rounded-2xl border bg-background-50 p-8 text-center ${error ? 'border-danger-500/30 text-danger-600' : 'border-background-300 text-text-600'}`}>{children}</div> }

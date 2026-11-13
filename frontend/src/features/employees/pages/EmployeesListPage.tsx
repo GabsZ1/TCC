@@ -1,8 +1,8 @@
 /** Lista a equipe e coordena as ações de cadastro, edição e desativação. */
-import { useMemo, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Copy, Eye, Pencil, Plus, Power, RotateCcw, Scissors, Trash2, UserCheck, UsersRound, UserX } from 'lucide-react'
+import { CalendarDays, ChevronDown, Eye, Pencil, Plus, PowerOff, RotateCcw, Scissors, Send, Trash2, UserCheck, UsersRound, UserX } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { getApiErrorMessage } from '@/lib/apiError'
 import {
@@ -38,6 +38,8 @@ export function EmployeesListPage() {
   const [removalMessage, setRemovalMessage] = useState<string | null>(null)
   const [servicesEmployee, setServicesEmployee] = useState<Employee | null>(null)
   const [detailsEmployee, setDetailsEmployee] = useState<Employee | null>(null)
+  const [expandedEmployeeId, setExpandedEmployeeId] = useState<number | null>(null)
+  const [expandedDesktopEmployeeId, setExpandedDesktopEmployeeId] = useState<number | null>(null)
 
   const { data: employees, isLoading, isError, error } = useQuery({
     queryKey: EMPLOYEES_QUERY_KEY,
@@ -157,19 +159,19 @@ export function EmployeesListPage() {
   const isSavingForm = createMutation.isPending || updateMutation.isPending
 
   /** Exibe apenas as ações cabíveis ao estado atual e ao primeiro acesso do funcionário. */
-  function employeeActions(employee: Employee, includeDetails = true) {
-    return <div className="flex flex-wrap justify-end gap-1">
-      {includeDetails && <ActionButton label="Detalhes" onClick={() => setDetailsEmployee(employee)}><Eye size={16} /></ActionButton>}
-      <ActionButton label="Serviços" onClick={() => setServicesEmployee(employee)}><Scissors size={16} /></ActionButton>
-      <ActionButton label="Gerenciar agenda" onClick={() => navigate(`/funcionarios/${employee.id}/agenda`)}><UsersRound size={16} /></ActionButton>
-      {!employee.passwordInitialized && <ActionButton label="Reenviar convite" disabled={resendMutation.isPending} onClick={() => resendMutation.mutate(employee.id)}><Copy size={16} /></ActionButton>}
-      <ActionButton label="Editar" onClick={() => { setRemovalMessage(null); setModalState({ mode: 'edit', employee }) }}><Pencil size={16} /></ActionButton>
+  function employeeActions(employee: Employee, mode: 'desktop-icons' | 'desktop-labels' | 'mobile-labels' = 'desktop-icons') {
+    return <div className={mode === 'desktop-icons' ? 'flex flex-wrap justify-end gap-1' : mode === 'desktop-labels' ? 'grid grid-cols-2 gap-2 lg:grid-cols-4' : 'grid grid-cols-2 gap-2'}>
+      <ActionButton label="Detalhes" mode={mode} onClick={() => setDetailsEmployee(employee)}><Eye size={17} /></ActionButton>
+      <ActionButton label="Serviços" mode={mode} onClick={() => setServicesEmployee(employee)}><Scissors size={17} /></ActionButton>
+      <ActionButton label="Gerenciar agenda" mode={mode} onClick={() => navigate(`/funcionarios/${employee.id}/agenda`)}><CalendarDays size={17} /></ActionButton>
+      {!employee.passwordInitialized && <ActionButton label="Reenviar convite" mode={mode} disabled={resendMutation.isPending} onClick={() => resendMutation.mutate(employee.id)}><Send size={17} /></ActionButton>}
+      <ActionButton label="Editar" mode={mode} onClick={() => { setRemovalMessage(null); setModalState({ mode: 'edit', employee }) }}><Pencil size={17} /></ActionButton>
       {employee.active ? (
-        <ActionButton label="Desativar" danger disabled={isChangingLifecycle} onClick={() => { setDeleteError(null); setRemovalMessage(null); setEmployeeToDeactivate(employee) }}><Power size={16} /></ActionButton>
+        <ActionButton label="Desativar" mode={mode} danger disabled={isChangingLifecycle} onClick={() => { setDeleteError(null); setRemovalMessage(null); setEmployeeToDeactivate(employee) }}><PowerOff size={17} /></ActionButton>
       ) : (
-        <ActionButton label="Reativar" success disabled={isChangingLifecycle} onClick={() => { setDeleteError(null); setRemovalMessage(null); reactivateMutation.mutate(employee.id) }}><RotateCcw size={16} /></ActionButton>
+        <ActionButton label="Reativar" mode={mode} success disabled={isChangingLifecycle} onClick={() => { setDeleteError(null); setRemovalMessage(null); reactivateMutation.mutate(employee.id) }}><RotateCcw size={17} /></ActionButton>
       )}
-      <ActionButton label="Excluir definitivamente" danger disabled={isChangingLifecycle} onClick={() => { setDeleteError(null); setRemovalMessage(null); setEmployeeToDelete(employee) }}><Trash2 size={16} /></ActionButton>
+      <ActionButton label="Excluir definitivamente" mode={mode} danger disabled={isChangingLifecycle} onClick={() => { setDeleteError(null); setRemovalMessage(null); setEmployeeToDelete(employee) }}><Trash2 size={17} /></ActionButton>
     </div>
   }
 
@@ -221,9 +223,20 @@ export function EmployeesListPage() {
               <span className={`status-pill shrink-0 ${employee.active ? 'bg-success-50 text-success-700' : 'bg-background-200 text-text-600'}`}>{employee.active ? 'Ativo' : 'Desativado'}</span>
             </div>
             <p className="mt-3 text-sm text-text-600">{employee.occupation || 'Ocupação não informada'}</p>
-            <div className="mt-4 flex items-center justify-between gap-2 border-t border-background-300 pt-3">
-              <button type="button" onClick={() => setDetailsEmployee(employee)} className="secondary-button min-h-11 justify-center"><Eye size={16} /> Detalhes</button>
-              {employeeActions(employee, false)}
+            <div className="mt-4 border-t border-background-300 pt-3">
+              <button
+                type="button"
+                className="secondary-button w-full justify-between"
+                aria-expanded={expandedEmployeeId === employee.id}
+                aria-controls={`employee-actions-${employee.id}`}
+                onClick={() => setExpandedEmployeeId((current) => current === employee.id ? null : employee.id)}
+              >
+                {expandedEmployeeId === employee.id ? 'Ocultar opções' : 'Mostrar opções'}
+                <ChevronDown size={18} className={`transition-transform ${expandedEmployeeId === employee.id ? 'rotate-180' : ''}`} aria-hidden="true" />
+              </button>
+              <div id={`employee-actions-${employee.id}`} hidden={expandedEmployeeId !== employee.id} className="mt-3">
+                {employeeActions(employee, 'mobile-labels')}
+              </div>
             </div>
           </article>)}
         </div>
@@ -244,7 +257,8 @@ export function EmployeesListPage() {
               {!isLoading && !isError && sortedEmployees.length === 0 && <TableMessage>Nenhum funcionário cadastrado ainda.</TableMessage>}
 
               {!isLoading && !isError && sortedEmployees.map((employee) => (
-                <tr key={employee.id} className="group bg-background-50 hover:bg-background-100/50">
+                <Fragment key={employee.id}>
+                <tr className="group bg-background-50 hover:bg-background-100/50">
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-3">
                       <EmployeeAvatar id={employee.id} name={employee.name} hasPhoto={employee.hasPhoto} />
@@ -262,9 +276,32 @@ export function EmployeesListPage() {
                     </span>
                   </td>
                   <td className="px-5 py-4">
-                    {employeeActions(employee)}
+                    <div className="flex items-center justify-end gap-2">
+                      {expandedDesktopEmployeeId !== employee.id && employeeActions(employee)}
+                      <button
+                        type="button"
+                        className="inline-flex min-h-9 shrink-0 items-center gap-1 rounded-md px-2 text-xs font-semibold text-primary-700 hover:bg-primary-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
+                        aria-expanded={expandedDesktopEmployeeId === employee.id}
+                        aria-controls={`desktop-employee-actions-${employee.id}`}
+                        onClick={() => setExpandedDesktopEmployeeId((current) => current === employee.id ? null : employee.id)}
+                      >
+                        {expandedDesktopEmployeeId === employee.id ? 'Recolher' : 'Expandir'}
+                        <ChevronDown size={15} className={`transition-transform ${expandedDesktopEmployeeId === employee.id ? 'rotate-180' : ''}`} aria-hidden="true" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
+                {expandedDesktopEmployeeId === employee.id && (
+                  <tr className="bg-background-100/60">
+                    <td colSpan={4} className="px-5 pb-5 pt-2">
+                      <div id={`desktop-employee-actions-${employee.id}`}>
+                        <p className="mb-3 text-xs font-semibold text-text-600">Ações de {employee.name}</p>
+                        {employeeActions(employee, 'desktop-labels')}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               ))}
             </tbody>
           </table>
@@ -296,9 +333,13 @@ function MiniMetric({ icon, label, value, tone = 'primary', bordered = false }: 
   return <div className={`flex items-center gap-3 p-4 sm:p-5 ${bordered ? 'border-t border-background-300 sm:border-l sm:border-t-0' : ''}`}><span className={`grid size-8 place-items-center ${iconStyle}`}>{icon}</span><div><p className="text-xl font-extrabold tracking-[-0.04em] text-text-950">{value}</p><p className="text-xs font-semibold text-text-500">{label}</p></div></div>
 }
 
-function ActionButton({ label, onClick, children, danger = false, success = false, disabled = false }: { label: string; onClick: () => void; children: React.ReactNode; danger?: boolean; success?: boolean; disabled?: boolean }) {
+function ActionButton({ label, onClick, children, mode = 'desktop-icons', danger = false, success = false, disabled = false }: { label: string; onClick: () => void; children: React.ReactNode; mode?: 'desktop-icons' | 'desktop-labels' | 'mobile-labels'; danger?: boolean; success?: boolean; disabled?: boolean }) {
   const tone = danger ? 'hover:bg-danger-50 hover:text-danger-600' : success ? 'hover:bg-success-50 hover:text-success-700' : 'hover:bg-primary-50 hover:text-primary-700'
-  return <button type="button" disabled={disabled} onClick={onClick} className={`grid size-11 place-items-center rounded-xl text-text-500 sm:size-9 ${tone} disabled:cursor-not-allowed disabled:opacity-40`} title={label} aria-label={label}>{children}</button>
+  const foreground = danger ? 'text-danger-600' : success ? 'text-success-700' : 'text-text-600'
+  const size = mode !== 'desktop-icons'
+    ? 'flex min-h-11 w-full items-center justify-center gap-2 border border-background-300 bg-background-50 px-2 py-2 text-center text-xs font-semibold leading-tight'
+    : 'grid size-9 place-items-center'
+  return <button type="button" disabled={disabled} onClick={onClick} className={`${size} rounded-xl ${foreground} ${tone} focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500 disabled:cursor-not-allowed disabled:opacity-40`} title={label} aria-label={label}>{children}{mode !== 'desktop-icons' && <span>{label}</span>}</button>
 }
 
 function TableMessage({ children, error = false }: { children: React.ReactNode; error?: boolean }) {

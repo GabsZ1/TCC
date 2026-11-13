@@ -30,9 +30,10 @@ export interface EmployeeCreateInput {
   hireDate: string
 }
 
-/** Edição pelo administrador: o nome e, só se estiverem vazios, CPF e data de admissão. */
+/** Edição pelo administrador: nome, ocupação e, só se estiverem vazios, CPF e data de admissão. */
 export interface EmployeeUpdateInput {
   name: string
+  occupation: string
   cpf?: string
   hireDate?: string
 }
@@ -40,7 +41,6 @@ export interface EmployeeUpdateInput {
 /** Perfil do próprio funcionário. Trocar o e-mail exige a senha atual. */
 export interface EmployeeSelfProfileInput {
   email: string
-  occupation: string
   phone?: string
   instagram?: string
   address?: string

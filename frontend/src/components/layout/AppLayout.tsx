@@ -1,10 +1,12 @@
 /** Monta a navegação da área autenticada conforme o papel e a sessão do usuário. */
 import { useCallback, useEffect, useRef, useState, type ComponentType } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
   BadgeDollarSign,
   Building2,
   CalendarDays,
+  CalendarOff,
+  ChevronDown,
   ClipboardList,
   House,
   KeyRound,
@@ -21,11 +23,13 @@ import {
 import { Brand } from '@/components/brand/Brand'
 import { useAuth } from '@/hooks/useAuth'
 
+type NavGroup = 'Agenda' | 'Cadastros' | 'Relatórios' | 'Estabelecimento' | 'Conta'
+
 type NavItem = {
   to: string
   label: string
   icon: ComponentType<{ size?: number; strokeWidth?: number; className?: string }>
-  group?: 'Visão geral' | 'Operação' | 'Gestão' | 'Conta'
+  group?: NavGroup
 }
 
 /** Escolhe navegação e atalhos a partir da sessão e do papel autenticado. */
@@ -36,37 +40,37 @@ export function AppLayout() {
 
   const roleNavItems: NavItem[] = user?.role === 'SYSTEM_ADMIN'
     ? [
-        { to: '/', label: 'Início', icon: House, group: 'Visão geral' },
-        { to: '/admin/estabelecimentos', label: 'Estabelecimentos', icon: Building2, group: 'Gestão' },
+        { to: '/', label: 'Início', icon: House },
+        { to: '/admin/estabelecimentos', label: 'Estabelecimentos', icon: Building2, group: 'Estabelecimento' },
       ]
     : user?.role === 'ADMIN'
       ? [
-          { to: '/', label: 'Início', icon: House, group: 'Visão geral' },
-          { to: '/agenda', label: 'Agenda', icon: CalendarDays, group: 'Operação' },
-          { to: '/estabelecimento/bloqueios', label: 'Bloqueios', icon: CalendarDays, group: 'Operação' },
-          { to: '/relatorio-atendimentos', label: 'Atendimentos', icon: ClipboardList, group: 'Operação' },
-          { to: '/relatorio-comissoes', label: 'Comissões', icon: BadgeDollarSign, group: 'Operação' },
-          { to: '/relatorio-financeiro', label: 'Financeiro', icon: TrendingUp, group: 'Operação' },
-          { to: '/funcionarios', label: 'Equipe', icon: UsersRound, group: 'Gestão' },
-          { to: '/clientes', label: 'Clientes', icon: UserRound, group: 'Gestão' },
-          { to: '/servicos', label: 'Serviços', icon: Scissors, group: 'Gestão' },
-          { to: '/perfil-estabelecimento', label: 'Perfil público', icon: Store, group: 'Gestão' },
-          { to: '/estabelecimento', label: 'Configurações', icon: Settings, group: 'Gestão' },
+          { to: '/', label: 'Início', icon: House },
+          { to: '/agenda', label: 'Agenda', icon: CalendarDays, group: 'Agenda' },
+          { to: '/estabelecimento/bloqueios', label: 'Bloqueios', icon: CalendarOff, group: 'Agenda' },
+          { to: '/funcionarios', label: 'Equipe', icon: UsersRound, group: 'Cadastros' },
+          { to: '/clientes', label: 'Clientes e agendamentos', icon: UserRound, group: 'Cadastros' },
+          { to: '/servicos', label: 'Serviços', icon: Scissors, group: 'Cadastros' },
+          { to: '/relatorio-atendimentos', label: 'Atendimentos', icon: ClipboardList, group: 'Relatórios' },
+          { to: '/relatorio-comissoes', label: 'Comissões', icon: BadgeDollarSign, group: 'Relatórios' },
+          { to: '/relatorio-financeiro', label: 'Financeiro', icon: TrendingUp, group: 'Relatórios' },
+          { to: '/perfil-estabelecimento', label: 'Perfil público', icon: Store, group: 'Estabelecimento' },
+          { to: '/estabelecimento', label: 'Configurações', icon: Settings, group: 'Estabelecimento' },
         ]
       : user?.role === 'CLIENT'
         ? [
-            { to: '/', label: 'Início', icon: House, group: 'Visão geral' },
-            { to: '/agendamentos', label: 'Meus agendamentos', icon: CalendarDays, group: 'Operação' },
+            { to: '/', label: 'Início', icon: House },
+            { to: '/agendamentos', label: 'Meus agendamentos', icon: CalendarDays, group: 'Agenda' },
           ]
         : user?.role === 'PROFESSIONAL'
           ? [
-              { to: '/', label: 'Início', icon: House, group: 'Visão geral' },
-              { to: '/minha-agenda', label: 'Minha agenda', icon: CalendarDays, group: 'Operação' },
-              { to: '/clientes', label: 'Clientes', icon: UserRound, group: 'Gestão' },
-              { to: '/meus-atendimentos', label: 'Atendimentos realizados', icon: BadgeDollarSign, group: 'Operação' },
-              { to: '/meus-servicos', label: 'Meus serviços', icon: Scissors, group: 'Gestão' },
+              { to: '/', label: 'Início', icon: House },
+              { to: '/minha-agenda', label: 'Minha agenda', icon: CalendarDays, group: 'Agenda' },
+              { to: '/clientes', label: 'Clientes e agendamentos', icon: UserRound, group: 'Cadastros' },
+              { to: '/meus-servicos', label: 'Meus serviços', icon: Scissors, group: 'Cadastros' },
+              { to: '/meus-atendimentos', label: 'Atendimentos realizados', icon: BadgeDollarSign, group: 'Relatórios' },
             ]
-          : [{ to: '/', label: 'Início', icon: House, group: 'Visão geral' }]
+          : [{ to: '/', label: 'Início', icon: House }]
 
   const navItems: NavItem[] = [
     ...roleNavItems,
@@ -112,8 +116,6 @@ export function AppLayout() {
 
 /** Apresenta as seções disponíveis para o papel atual na navegação lateral. */
 function DesktopSidebar({ items, user, onLogout }: { items: NavItem[]; user: ReturnType<typeof useAuth>['user']; onLogout: () => void }) {
-  const groups = Array.from(new Set(items.map((item) => item.group)))
-
   return (
     <aside className="relative hidden w-[16.5rem] shrink-0 flex-col overflow-hidden bg-[var(--sidebar-bg)] md:flex md:h-screen">
       <div className="absolute inset-y-0 left-0 w-[3px] bg-primary-500" aria-hidden="true" />
@@ -128,14 +130,7 @@ function DesktopSidebar({ items, user, onLogout }: { items: NavItem[]; user: Ret
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 pb-5">
-        {groups.map((group) => (
-          <div key={group ?? 'nav'} className="mb-5">
-            <p className="mb-1.5 px-3 text-[0.57rem] font-extrabold uppercase tracking-[0.17em] text-[var(--sidebar-muted)]">{group}</p>
-            <div className="space-y-1">
-              {items.filter((item) => item.group === group).map((item) => <SidebarLink key={item.to} item={item} />)}
-            </div>
-          </div>
-        ))}
+        <NavSections items={items} idPrefix="desktop-nav" />
       </nav>
 
       <div className="border-t border-[var(--sidebar-border)] px-4 py-4">
@@ -158,6 +153,45 @@ function DesktopSidebar({ items, user, onLogout }: { items: NavItem[]; user: Ret
       </div>
     </aside>
   )
+}
+
+/** Mantém o grupo da página atual aberto e permite recolher os demais. */
+function NavSections({ items, idPrefix, onNavigate }: { items: NavItem[]; idPrefix: string; onNavigate?: () => void }) {
+  const { pathname } = useLocation()
+  const activeGroup = items.find((item) => item.group && (pathname === item.to || pathname.startsWith(`${item.to}/`)))?.group ?? null
+  const [selection, setSelection] = useState({ pathname, activeGroup, group: activeGroup })
+  const openGroup = selection.pathname === pathname && selection.activeGroup === activeGroup ? selection.group : activeGroup
+
+  const groups = Array.from(new Set(items.map((item) => item.group).filter((group): group is NavGroup => !!group)))
+
+  return <>
+    <div className="mb-4 space-y-1">
+      {items.filter((item) => !item.group).map((item) => <SidebarLink key={item.to} item={item} onNavigate={onNavigate} />)}
+    </div>
+    {groups.map((group) => {
+      const groupItems = items.filter((item) => item.group === group)
+      if (groupItems.length === 1) {
+        return <div key={group} className="mb-3"><SidebarLink item={groupItems[0]} onNavigate={onNavigate} /></div>
+      }
+      const isOpen = openGroup === group
+      const panelId = `${idPrefix}-${group.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')}`
+      return <div key={group} className="mb-2">
+        <button
+          type="button"
+          className={`flex min-h-10 w-full items-center justify-between rounded-[0.72rem] px-3 text-left text-xs font-bold uppercase tracking-[0.13em] hover:bg-white/10 hover:text-white ${activeGroup === group ? 'text-white' : 'text-[var(--sidebar-muted)]'}`}
+          aria-expanded={isOpen}
+          aria-controls={panelId}
+          onClick={() => setSelection({ pathname, activeGroup, group: isOpen ? null : group })}
+        >
+          {group}
+          <ChevronDown size={16} className={`shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
+        </button>
+        <div id={panelId} hidden={!isOpen} className="ml-3 space-y-1 border-l border-[var(--sidebar-border)] pl-2 pt-1">
+          {groupItems.map((item) => <SidebarLink key={item.to} item={item} onNavigate={onNavigate} />)}
+        </div>
+      </div>
+    })}
+  </>
 }
 
 /** Marca a rota ativa e padroniza os links da navegação lateral. */
@@ -206,6 +240,7 @@ function MobileDrawer({ items, user, onClose, onLogout }: { items: NavItem[]; us
       }
       if (event.key !== 'Tab' || !drawerRef.current) return
       const focusable = Array.from(drawerRef.current.querySelectorAll<HTMLElement>('a[href], button:not([disabled])'))
+        .filter((element) => element.getClientRects().length > 0)
       const first = focusable[0]
       const last = focusable[focusable.length - 1]
       if (event.shiftKey && document.activeElement === first) {
@@ -233,7 +268,9 @@ function MobileDrawer({ items, user, onClose, onLogout }: { items: NavItem[]; us
           <Brand inverse />
           <button ref={closeButtonRef} onClick={onClose} className="grid size-10 place-items-center rounded-[0.7rem] text-[var(--sidebar-muted)] hover:bg-white/10 hover:text-white" aria-label="Fechar menu" title="Fechar menu de navegação"><X size={20} /></button>
         </div>
-        <div className="mt-8 flex-1 space-y-1 overflow-y-auto">{items.map((item) => <SidebarLink key={item.to} item={item} onNavigate={onClose} />)}</div>
+        <nav className="mt-8 flex-1 overflow-y-auto" aria-label="Menu principal">
+          <NavSections items={items} idPrefix="mobile-nav" onNavigate={onClose} />
+        </nav>
         <div className="border-t border-[var(--sidebar-border)] pt-4">
           <div className="flex items-center gap-3"><Avatar name={user?.name} /><div className="min-w-0 flex-1"><p className="truncate text-sm font-bold text-white">{user?.name}</p><p className="truncate text-xs text-[var(--sidebar-muted)]">{user?.establishmentName ?? roleLabel(user?.role)}</p></div></div>
           <button type="button" onClick={onLogout} className="mt-4 flex w-full items-center justify-center gap-2 rounded-[0.72rem] border border-[var(--sidebar-border)] py-2.5 text-sm font-bold text-white hover:bg-white/10"><LogOut size={16} /> Sair</button>

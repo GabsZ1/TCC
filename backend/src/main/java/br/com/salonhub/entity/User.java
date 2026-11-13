@@ -140,6 +140,11 @@ public class User {
         this.name = name;
     }
 
+    /** Ocupação do funcionário: definida e alterada pelo administrador. */
+    public void updateEmployeeOccupation(String occupation) {
+        this.occupation = occupation;
+    }
+
     /** CPF e data de admissão: só podem ser gravados enquanto estiverem vazios. */
     public void fillEmployeeDocuments(String cpf, java.time.LocalDate hireDate) {
         if (cpf != null) {
@@ -152,9 +157,8 @@ public class User {
 
     /** Dados que o próprio funcionário administra no perfil dele. */
     public void updateOwnEmployeeProfile(
-            String email, String occupation, String phone, String instagram, String address) {
+            String email, String phone, String instagram, String address) {
         this.email = email;
-        this.occupation = occupation;
         this.phone = phone;
         this.instagram = instagram;
         this.address = address;

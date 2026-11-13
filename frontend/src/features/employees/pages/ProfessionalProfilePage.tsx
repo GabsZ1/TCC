@@ -7,7 +7,6 @@ import { CheckCircle2, ImagePlus, KeyRound, Lock, Pencil, Trash2 } from 'lucide-
 import { Modal } from '@/components/ui/Modal'
 import { PasswordField } from '@/features/auth/components/PasswordFields'
 import { EmployeeAvatar } from '@/features/employees/components/EmployeeAvatar'
-import { OCCUPATION_SUGGESTIONS } from '@/features/employees/occupations'
 import {
   deleteMyPhoto,
   fetchMyEmployeeProfile,
@@ -26,12 +25,12 @@ const PROFILE_KEY = ['my-employee-profile']
 const MAX_PHOTO_BYTES = 2 * 1024 * 1024
 const ACCEPTED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
-type FormState = { email: string; occupation: string; phone: string; instagram: string; address: string }
+type FormState = { email: string; phone: string; instagram: string; address: string }
 
 /**
  * Perfil do funcionário: ele mesmo atualiza e-mail de acesso (com a senha atual),
- * ocupação, telefone, Instagram, endereço e foto. Nome, CPF e data de admissão são
- * somente leitura (o nome é alterado pelo administrador; CPF e admissão são fixos).
+ * telefone, Instagram, endereço e foto. Nome e ocupação são alterados pelo
+ * administrador; CPF e data de admissão são fixos.
  */
 export function ProfessionalProfilePage() {
   const queryClient = useQueryClient()
@@ -59,7 +58,6 @@ export function ProfessionalProfilePage() {
     save.reset()
     setForm({
       email: current.email,
-      occupation: current.occupation ?? '',
       phone: current.phone ? formatPhone(current.phone) : '',
       instagram: current.instagram ? `@${current.instagram}` : '',
       address: current.address ?? '',
@@ -69,7 +67,7 @@ export function ProfessionalProfilePage() {
   function requestSave(event: FormEvent) {
     event.preventDefault()
     if (!form) return
-    if (!form.email.trim() || !form.occupation.trim()) return setFormError('Preencha todos os campos obrigatórios!')
+    if (!form.email.trim()) return setFormError('Preencha todos os campos obrigatórios!')
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) return setFormError('Email inválido')
     if (form.phone.trim() && !isValidPhone(form.phone)) return setFormError('Informe um telefone válido!')
     if (form.instagram.trim() && !/^@?[A-Za-z0-9._]{1,30}$/.test(form.instagram.trim())) return setFormError('Instagram inválido. Use até 30 letras, números, ponto ou sublinhado.')
@@ -86,7 +84,7 @@ export function ProfessionalProfilePage() {
       <header className="border-b border-background-300 pb-7">
         <p className="eyebrow">Minha conta</p>
         <h1 className="page-title mt-2">Meu perfil</h1>
-        <p className="page-subtitle">Mantenha seus dados de contato, sua ocupação e sua foto atualizados.</p>
+        <p className="page-subtitle">Mantenha seus dados de contato e sua foto atualizados.</p>
       </header>
 
       {notice && <p role="status" className="mt-6 flex max-w-2xl items-center gap-2 rounded-xl bg-success-50 px-4 py-3 text-sm font-medium text-success-600"><CheckCircle2 size={17} /> {notice}</p>}
@@ -100,10 +98,11 @@ export function ProfessionalProfilePage() {
           <section className="surface-card overflow-hidden">
             <div className="border-b border-background-300 bg-background-100/60 p-5">
               <h2 className="text-lg font-semibold text-text-900">Dados cadastrais</h2>
-              <p className="text-sm text-text-600">Definidos pelo estabelecimento. Para corrigir o nome, fale com o administrador.</p>
+              <p className="text-sm text-text-600">Nome e ocupação são definidos pelo estabelecimento. Para corrigi-los, fale com o administrador.</p>
             </div>
             <dl className="divide-y divide-background-300">
               <ReadOnlyRow label="Nome" value={current.name} />
+              <ReadOnlyRow label="Ocupação" value={current.occupation ?? 'Não informada'} />
               <ReadOnlyRow label="CPF" value={current.cpf ? formatCpf(current.cpf) : 'Não informado'} />
               <ReadOnlyRow label="Data de admissão" value={current.hireDate ? formatDate(current.hireDate) : 'Não informada'} />
               <ReadOnlyRow label="Estabelecimento" value={current.establishmentName ?? '—'} />
@@ -113,7 +112,7 @@ export function ProfessionalProfilePage() {
           <section className="surface-card overflow-hidden">
             <div className="flex flex-col gap-3 border-b border-background-300 bg-background-100/60 p-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-text-900">Contato e atuação</h2>
+                <h2 className="text-lg font-semibold text-text-900">Contato</h2>
                 <p className="text-sm text-text-600">Você mesmo pode atualizar estes dados.</p>
               </div>
               {!form && <button type="button" className="secondary-button w-full sm:w-auto" onClick={() => startEditing(current)}><Pencil size={15} /> Editar</button>}
@@ -122,7 +121,6 @@ export function ProfessionalProfilePage() {
             {!form ? (
               <dl className="divide-y divide-background-300">
                 <InfoRow label="E-mail de acesso" value={current.email} />
-                <InfoRow label="Ocupação" value={current.occupation ?? 'Não informada'} />
                 <InfoRow label="Telefone" value={current.phone ? formatPhone(current.phone) : 'Não informado'} />
                 <InfoRow label="Instagram" value={current.instagram ? `@${current.instagram}` : 'Não informado'} />
                 <InfoRow label="Endereço" value={current.address ?? 'Não informado'} />
@@ -132,10 +130,6 @@ export function ProfessionalProfilePage() {
                 <p className="text-xs text-text-500">Campos com <span className="font-bold text-danger-600">*</span> são obrigatórios.</p>
                 <Field label="E-mail de acesso" required hint="É o e-mail usado para entrar no sistema. Alterá-lo exige sua senha atual.">
                   <input type="email" value={form.email} maxLength={150} onChange={(event) => setForm({ ...form, email: event.target.value })} className="field-control" />
-                </Field>
-                <Field label="Ocupação" required hint="Pode listar mais de uma, ex.: Barbeiro(a) e designer de cílios.">
-                  <input list="my-occupations" value={form.occupation} maxLength={80} onChange={(event) => setForm({ ...form, occupation: event.target.value })} className="field-control" />
-                  <datalist id="my-occupations">{OCCUPATION_SUGGESTIONS.map((occupation) => <option key={occupation} value={occupation} />)}</datalist>
                 </Field>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field label="Telefone">
@@ -182,7 +176,6 @@ export function ProfessionalProfilePage() {
           onConfirm={(currentPassword) => {
             const input: EmployeeSelfProfileInput = {
               email: form.email.trim(),
-              occupation: form.occupation.trim(),
               phone: form.phone.trim() || undefined,
               instagram: form.instagram.trim() || undefined,
               address: form.address.trim() || undefined,
@@ -211,7 +204,6 @@ function ConfirmSaveDialog({ form, emailChanged, isSaving, errorMessage, onCance
       <p className="text-sm text-text-700">Deseja salvar estas informações no seu perfil?</p>
       <ul className="mt-3 space-y-1 rounded-xl bg-background-100 p-4 text-sm text-text-700">
         <li><strong>E-mail:</strong> {form.email.trim()}</li>
-        <li><strong>Ocupação:</strong> {form.occupation.trim()}</li>
         <li><strong>Telefone:</strong> {form.phone.trim() || 'Não informado'}</li>
         <li><strong>Instagram:</strong> {form.instagram.trim() || 'Não informado'}</li>
         <li><strong>Endereço:</strong> {form.address.trim() || 'Não informado'}</li>

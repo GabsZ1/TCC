@@ -74,6 +74,10 @@ function EstablishmentContent({ establishment }: { establishment: Awaited<Return
     setFeedbackPlacement('form')
     setMessage(null)
     setErrorMessage(null)
+    if (form.minimumAdvanceHours < 0 || form.minimumAdvanceHours > 168 || form.maximumAdvanceDays < 1 || form.maximumAdvanceDays > 365) {
+      setErrorMessage('Confira os limites de antecedência informados.')
+      return
+    }
     updateMutation.mutate(form)
   }
 
@@ -112,8 +116,8 @@ function EstablishmentContent({ establishment }: { establishment: Awaited<Return
             <section className="surface-card p-5 sm:p-6">
               <EstablishmentSectionHeader icon={<CalendarClock size={20} />} title="Política de agendamento" description="Defina com quanta antecedência os clientes podem reservar um horário." />
               <div className="mt-6 grid gap-5 sm:grid-cols-2">
-                <label className="block"><span className="text-sm font-medium text-text-800">Antecedência mínima</span><div className="relative mt-2"><input type="number" min={0} max={168} required value={form.minimumAdvanceHours} onChange={(event) => setForm((current) => ({ ...current, minimumAdvanceHours: Number(event.target.value) }))} className="w-full rounded-xl border border-background-300 py-3 pl-3.5 pr-16 text-text-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" /><span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-text-600">horas</span></div><span className="mt-2 block text-xs text-text-600">Evita reservas muito próximas do horário atual.</span></label>
-                <label className="block"><span className="text-sm font-medium text-text-800">Antecedência máxima</span><div className="relative mt-2"><input type="number" min={1} max={365} required value={form.maximumAdvanceDays} onChange={(event) => setForm((current) => ({ ...current, maximumAdvanceDays: Number(event.target.value) }))} className="w-full rounded-xl border border-background-300 py-3 pl-3.5 pr-14 text-text-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" /><span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-text-600">dias</span></div><span className="mt-2 block text-xs text-text-600">Limita até quando a agenda fica aberta para reservas.</span></label>
+                <label className="block"><span className="text-sm font-medium text-text-800">Antecedência mínima</span><div className="relative mt-2"><input type="text" inputMode="numeric" pattern="[0-9]+" maxLength={3} required value={form.minimumAdvanceHours} onChange={(event) => setForm((current) => ({ ...current, minimumAdvanceHours: Number(event.target.value.replace(/\D/g, '')) }))} className="w-full rounded-xl border border-background-300 py-3 pl-3.5 pr-16 text-text-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" /><span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-text-600">horas</span></div><span className="mt-2 block text-xs text-text-600">Evita reservas muito próximas do horário atual.</span></label>
+                <label className="block"><span className="text-sm font-medium text-text-800">Antecedência máxima</span><div className="relative mt-2"><input type="text" inputMode="numeric" pattern="[0-9]+" maxLength={3} required value={form.maximumAdvanceDays} onChange={(event) => setForm((current) => ({ ...current, maximumAdvanceDays: Number(event.target.value.replace(/\D/g, '')) }))} className="w-full rounded-xl border border-background-300 py-3 pl-3.5 pr-14 text-text-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" /><span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-text-600">dias</span></div><span className="mt-2 block text-xs text-text-600">Limita até quando a agenda fica aberta para reservas.</span></label>
               </div>
               <div className="mt-5 rounded-xl bg-secondary-50 px-4 py-3 text-sm text-text-700">Com a configuração atual, clientes podem agendar entre <strong>{form.minimumAdvanceHours} horas</strong> e <strong>{form.maximumAdvanceDays} dias</strong> de antecedência.</div>
             </section>

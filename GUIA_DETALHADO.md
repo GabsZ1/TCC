@@ -477,7 +477,7 @@ Quem administra cada dado:
 | Nome | cadastra e altera | só vê |
 | CPF e data de admissão | cadastra (obrigatórios); se estiverem vazios em cadastros antigos, preenche **uma única vez** | só vê |
 | E-mail de acesso | cadastra | altera, confirmando com a senha atual |
-| Ocupação | cadastra | altera |
+| Ocupação | cadastra e altera | só vê |
 | Telefone, Instagram, endereço, foto | — | altera |
 | Ativo/inativo, serviços, remoção | altera | — |
 
@@ -485,9 +485,9 @@ Depois de gravados, CPF e data de admissão não podem ser alterados por ningué
 
 ```http
 POST /api/funcionarios                 {"name","email","occupation","cpf","hireDate"}   (admin)
-PUT  /api/funcionarios/{id}            {"name","cpf?","hireDate?"}                      (admin)
+PUT  /api/funcionarios/{id}            {"name","occupation?","cpf?","hireDate?"}        (admin)
 GET  /api/funcionarios/me/perfil                                                         (profissional)
-PUT  /api/funcionarios/me/perfil       {"email","occupation","phone?","instagram?","address?","currentPassword?"}
+PUT  /api/funcionarios/me/perfil       {"email","phone?","instagram?","address?","currentPassword?"}
 PUT  /api/funcionarios/me/foto         multipart, campo "file" (JPG/PNG/WEBP até 2 MB)   (profissional)
 DELETE /api/funcionarios/me/foto                                                         (profissional)
 GET  /api/funcionarios/{id}/foto       admin do estabelecimento ou o próprio profissional

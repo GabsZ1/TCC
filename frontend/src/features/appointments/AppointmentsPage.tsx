@@ -142,6 +142,7 @@ export function AppointmentsPage() {
                   <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#c3cde0]" />
                   <input
                     type="search"
+                    maxLength={150}
                     value={establishmentSearch}
                     onChange={(event) => { setEstablishmentSearch(event.target.value); setEstablishmentPage(0) }}
                     placeholder="Buscar pelo nome"

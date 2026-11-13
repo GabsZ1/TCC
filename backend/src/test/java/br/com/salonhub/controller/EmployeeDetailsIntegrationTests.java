@@ -44,9 +44,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * US 2.1 / 2.2 / 2.6 e perfil do funcionário.
  * Regras: o administrador cadastra (nome, e-mail, ocupação, CPF e data de admissão) e
- * depois só altera o nome; CPF e data de admissão travam depois de gravados (podem ser
- * preenchidos uma única vez se estiverem vazios). E-mail, ocupação, contatos e foto
- * passam a ser do próprio funcionário.
+ * depois altera nome e ocupação; CPF e data de admissão travam depois de gravados
+ * (podem ser preenchidos uma única vez se estiverem vazios). E-mail, contatos e foto
+ * são alterados pelo próprio funcionário.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -130,19 +130,24 @@ class EmployeeDetailsIntegrationTests {
     // ---------- edição pelo administrador ----------
 
     @Test
-    void shouldLetAdministratorOnlyRenameAndKeepCpfAndHireDateLocked() throws Exception {
+    void shouldLetAdministratorChangeOccupationAndKeepCpfAndHireDateLocked() throws Exception {
         User admin = administrator(establishment());
         String cpf = TestDocuments.cpf();
         String email = uniqueEmail();
         Long id = idOf(create(admin, body("Carla", email, "Manicure", cpf, "2024-01-10")));
 
         perform(admin, put("/api/funcionarios/{id}", id).contentType(MediaType.APPLICATION_JSON).content("""
-                {"name":"Carla Mendes","cpf":"%s","hireDate":"2024-01-10","email":"ignorado@x.test","occupation":"Ignorada"}
+                {"name":"Carla Mendes","cpf":"%s","hireDate":"2024-01-10","email":"ignorado@x.test","occupation":"Barbeira"}
                 """.formatted(cpf)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Carla Mendes"))
                 .andExpect(jsonPath("$.email").value(email))
-                .andExpect(jsonPath("$.occupation").value("Manicure"));
+                .andExpect(jsonPath("$.occupation").value("Barbeira"));
+
+        perform(admin, put("/api/funcionarios/{id}", id).contentType(MediaType.APPLICATION_JSON).content("""
+                {"name":"Carla Mendes","occupation":" "}
+                """))
+                .andExpect(status().isBadRequest());
 
         perform(admin, put("/api/funcionarios/{id}", id).contentType(MediaType.APPLICATION_JSON).content("""
                 {"name":"Carla Mendes","cpf":"%s"}
@@ -200,7 +205,7 @@ class EmployeeDetailsIntegrationTests {
     }
 
     @Test
-    void shouldLetTheProfessionalUpdateOccupationAndContactsButNotAdministrativeData() throws Exception {
+    void shouldLetTheProfessionalUpdateContactsButNotOccupationOrAdministrativeData() throws Exception {
         Establishment establishment = establishment();
         User professional = professional(establishment, TestDocuments.cpf(), LocalDate.of(2023, 6, 1));
         String originalCpf = professional.getCpf();
@@ -210,7 +215,7 @@ class EmployeeDetailsIntegrationTests {
                  "instagram":"@barba.cilios","address":"Rua A, 10","name":"Outro Nome","cpf":"00000000000"}
                 """.formatted(professional.getEmail())))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.occupation").value("Barbeiro(a) e designer de cílios"))
+                .andExpect(jsonPath("$.occupation").value("Cabeleireiro(a)"))
                 .andExpect(jsonPath("$.phone").value("44998887766"))
                 .andExpect(jsonPath("$.instagram").value("barba.cilios"))
                 .andExpect(jsonPath("$.address").value("Rua A, 10"))

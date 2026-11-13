@@ -2,9 +2,11 @@
 import { useState, type FormEvent, type InputHTMLAttributes } from 'react'
 import { ArrowRight, Building2, UserRound } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
+import { IMaskInput } from 'react-imask'
 import { AuthShell } from '@/features/auth/components/AuthShell'
 import { registerInitial } from '@/features/auth/services/authApi'
 import { getApiErrorMessage } from '@/lib/apiError'
+import { PHONE_MASK } from '@/lib/phone'
 
 /** Agrupa os dados do responsável e da unidade no cadastro inicial. */
 export function InitialRegistrationPage() {
@@ -60,7 +62,7 @@ export function InitialRegistrationPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <Field name="establishmentName" label="Nome do estabelecimento" maxLength={150} placeholder="Ex.: Studio Aurora" className="sm:col-span-2" />
             <CnpjField />
-            <Field name="establishmentPhone" label="Telefone (opcional)" required={false} maxLength={20} placeholder="(44) 99999-9999" />
+            <label className="block text-sm font-semibold text-text-800">Telefone (opcional)<IMaskInput name="establishmentPhone" mask={PHONE_MASK} inputMode="tel" maxLength={20} placeholder="(44) 99999-9999" className="auth-input" /></label>
             <Field name="establishmentEmail" label="E-mail do estabelecimento (opcional)" type="email" required={false} maxLength={150} placeholder="contato@negocio.com" className="sm:col-span-2" />
           </div>
         </FormSection>
