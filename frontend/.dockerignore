@@ -1,0 +1,6 @@
+node_modules
+dist
+.vitest-tmp
+.idea
+*.log
+.env*

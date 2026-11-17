@@ -32,35 +32,28 @@ O fluxo inclui autenticação por JWT, recuperação de senha por e-mail, fotos 
 ### Pré-requisitos
 
 - Docker com Compose
-- Java 21
-- Node.js 22 e npm
 
-Abra três terminais a partir da raiz do repositório:
-
-**1. Infraestrutura** — PostgreSQL, Mailpit e armazenamento de imagens:
+Na raiz do repositório, execute:
 
 ```bash
-docker compose up -d
+docker compose up --build -d
 ```
 
-**2. API** — em `backend`:
+O comando cria as imagens da API e da interface e sobe também PostgreSQL, Mailpit e SeaweedFS. Acesse **[http://localhost:5173](http://localhost:5173)**. O frontend encaminha `/api/*` para o backend na rede Docker. As migrations são aplicadas na inicialização da API. Os dados do banco e as imagens persistem em volumes Docker.
+
+Para acompanhar a inicialização:
 
 ```bash
-cd backend
-./mvnw spring-boot:run
+docker compose logs -f backend
 ```
 
-No PowerShell, use `.\mvnw.cmd spring-boot:run`.
-
-**3. Interface** — em `frontend`:
+Para parar sem apagar os dados:
 
 ```bash
-cd frontend
-npm ci
-npm run dev
+docker compose down
 ```
 
-Abra **[http://localhost:5173](http://localhost:5173)**. Em desenvolvimento, o Vite encaminha `/api/*` para a API em `http://localhost:8080`.
+Se quiser desenvolver a API e a interface fora dos contêineres, instale também Java 21 e Node.js 22. Suba só as dependências com `docker compose up -d postgres mailpit storage`, rode `./mvnw spring-boot:run` em `backend` e `npm ci && npm run dev` em `frontend`.
 
 | Serviço | Endereço local |
 | --- | --- |
@@ -69,17 +62,17 @@ Abra **[http://localhost:5173](http://localhost:5173)**. Em desenvolvimento, o V
 | Caixa de e-mails de desenvolvimento | [localhost:8025](http://localhost:8025) |
 | Navegador de arquivos | [localhost:8888](http://localhost:8888) |
 
-> **Ambiente local:** os dados do PostgreSQL e as imagens ficam em volumes Docker. Os valores padrão de acesso são apenas para desenvolvimento. Consulte [Configuração](#-configuração) antes de usar outro ambiente.
+> **Ambiente local:** os valores padrão de banco, armazenamento e JWT são apenas para desenvolvimento. Consulte [Configuração](#-configuração) antes de usar outro ambiente.
 
 ### Dados de demonstração
 
-Para explorar as telas com estabelecimentos, profissionais, clientes e agendamentos fictícios, execute uma vez em `backend`:
+Para explorar as telas com estabelecimentos, profissionais, clientes e agendamentos fictícios, execute uma vez após subir o Compose:
 
 ```bash
-./mvnw spring-boot:run "-Dspring-boot.run.profiles=local,seed"
+docker compose run --rm backend --spring.profiles.active=local,seed
 ```
 
-O processo cria os dados e encerra sozinho. Depois, inicie a API normalmente. Exemplo de acesso: `admin@studiobella.demo` com senha `Demo@123`. O seed é opcional e foi feito para uso local; a lista de contas e as instruções de recriação estão no [guia detalhado](GUIA_DETALHADO.md#dados-de-demonstração-seed).
+O processo cria os dados e encerra sozinho. Exemplo de acesso: `admin@studiobella.demo` com senha `Demo@123`. O seed é opcional e foi feito para uso local; a lista de contas e as instruções de recriação estão no [guia detalhado](GUIA_DETALHADO.md#dados-de-demonstração-seed).
 
 ## 🧱 Arquitetura
 
@@ -100,7 +93,7 @@ O backend valida o schema do banco e usa migrations Flyway para evoluí-lo. Os a
 
 ## ⚙️ Configuração
 
-Os padrões locais permitem iniciar o projeto sem criar um `.env`. Para alterar conexões ou integrar serviços externos, configure as variáveis de ambiente antes de subir a API:
+Os padrões locais permitem iniciar o projeto sem criar um `.env`. O Compose configura as conexões internas entre os serviços. Para alterar conexões ou integrar serviços externos na execução fora do Docker, configure as variáveis de ambiente antes de subir a API:
 
 | Variável | Uso | Padrão local |
 | --- | --- | --- |
@@ -151,7 +144,7 @@ backend/          API Spring Boot, migrations e testes
 frontend/         aplicação React e testes
 GUIA_DETALHADO.md referência completa dos fluxos e endpoints
 .github/workflows/ automação de testes e build
-docker-compose.yml serviços locais
+docker-compose.yml aplicação completa e serviços locais
 ```
 
 ---

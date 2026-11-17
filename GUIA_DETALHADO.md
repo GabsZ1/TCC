@@ -101,11 +101,13 @@ O CNPJ é salvo sem pontuação, com letras maiúsculas quando presentes. O form
 
 ## Como executar
 
-Na raiz do projeto, inicie o PostgreSQL e o Mailpit (servidor de e-mail de desenvolvimento):
+Na raiz do projeto, construa e inicie a aplicação completa:
 
 ```bash
-docker compose up -d
+docker compose up --build -d
 ```
+
+Abra <http://localhost:5173>. A API, o PostgreSQL, o Mailpit e o armazenamento de imagens sobem com o mesmo comando. Para desenvolver com Java e Node.js fora do Docker, suba só as dependências com `docker compose up -d postgres mailpit storage`.
 
 Todos os e-mails enviados pelo backend (primeiro acesso de funcionário, recuperação de senha e avisos de agendamento) ficam visíveis na caixa de entrada do Mailpit em <http://localhost:8025>. Nenhum e-mail sai para a internet.
 
@@ -186,17 +188,15 @@ O banco pode ser populado com dados fictícios para ver todas as telas funcionan
 
 Passo a passo:
 
-1. Suba os containers na raiz do projeto: `docker compose up -d`.
+1. Suba os containers na raiz do projeto: `docker compose up --build -d`.
 2. Rode o seed:
 
    ```bash
-   cd backend
-   ./mvnw spring-boot:run "-Dspring-boot.run.profiles=local,seed"
+   docker compose run --rm backend --spring.profiles.active=local,seed
    ```
 
-   No Windows (PowerShell) o comando é o mesmo; as aspas em volta do `-D...` são obrigatórias.
 3. Espere a mensagem `Dados de demonstração criados: ...` no terminal. O processo encerra sozinho.
-4. Suba o backend normalmente (`./mvnw spring-boot:run`) e o frontend (`npm run dev`) e entre com uma das contas abaixo.
+4. Acesse a aplicação em <http://localhost:5173> e entre com uma das contas abaixo.
 
 Como funciona:
 
@@ -208,12 +208,12 @@ Como funciona:
 Para **recriar só os dados de demonstração** (por exemplo, depois de uma mudança no seed), sem apagar o resto do banco:
 
 ```bash
-./mvnw spring-boot:run "-Dspring-boot.run.profiles=local,seed" "-Dspring-boot.run.arguments=--reset"
+docker compose run --rm backend --spring.profiles.active=local,seed --reset
 ```
 
 O `--reset` apaga os estabelecimentos com e-mail `.demo`, os usuários com e-mail `.demo` (e quem estiver vinculado a esses estabelecimentos), com seus agendamentos, serviços, horários, clientes e fotos, e cria tudo de novo. Os seus dados são preservados. Se um cliente de demonstração tiver agendado em um estabelecimento seu, o agendamento continua lá e o cadastro do cliente só perde o vínculo com a conta. Apagar e recriar acontecem numa transação só: se algo falhar, nada muda.
 
-Para zerar **todo** o banco local: `docker compose down -v`, `docker compose up -d` e o comando do seed de novo.
+Para zerar **todo** o banco local: `docker compose down -v`, `docker compose up --build -d` e o comando do seed de novo.
 - O seed se recusa a rodar com o profile `prod`.
 
 Sobre as senhas: as contas abaixo são fictícias, existem só no banco local de quem roda o seed e usam o domínio `.demo`, que não recebe e-mails. Por isso a senha pode ficar documentada aqui. Nunca use essas contas nem essa senha em um ambiente publicado.
@@ -249,14 +249,7 @@ Os outros estabelecimentos seguem o padrão `admin@<nome>.demo` (ex.: `admin@esp
 
 Os três estados são reversíveis, mas reativar o site não restaura agendamentos cancelados. Quando o administrador do sistema aplica o bloqueio de agendamentos ou a pausa, somente ele pode remover essa restrição.
 
-Por fim, dentro de `frontend`, instale as dependências e execute a aplicação:
-
-```bash
-npm install
-npm run dev
-```
-
-A aplicação sobe em `http://localhost:5173`. Em desenvolvimento, chamadas para `/api/*` são encaminhadas automaticamente para `http://localhost:8080` pelo proxy configurado no Vite, então não é necessário configurar CORS nem variáveis de ambiente para rodar localmente.
+No Compose, a interface em `http://localhost:5173` encaminha `/api/*` para o backend pela rede Docker. No desenvolvimento fora dos contêineres, o Vite faz esse encaminhamento para `http://localhost:8080`.
 
 ## Swagger e OpenAPI
 

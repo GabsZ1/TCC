@@ -52,6 +52,7 @@ export function ClientRegistrationPage() {
       title="Crie sua conta"
       subtitle="Use um único acesso para marcar horários e acompanhar seus agendamentos."
       maxWidth="sm"
+      scrollFormOnDesktop
     >
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
         <p className="text-xs text-text-500">Campos marcados com <span className="font-bold text-danger-600">*</span> são obrigatórios.</p>

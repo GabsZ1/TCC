@@ -1,8 +1,6 @@
-# Sobe banco, captura de e-mails e armazenamento de imagens para o ambiente local.
 services:
   postgres:
     image: postgres:16
-    container_name: salonhub-postgres
     environment:
       POSTGRES_DB: salonhub_db
       POSTGRES_USER: salonhub_user
@@ -11,23 +9,22 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U salonhub_user -d salonhub_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
 
-  # Servidor SMTP de desenvolvimento: captura todos os e-mails enviados pelo backend.
-  # Caixa de entrada visível em http://localhost:8025
   mailpit:
     image: axllent/mailpit:latest
-    container_name: salonhub-mailpit
     ports:
       - "1025:1025"
       - "8025:8025"
+    restart: unless-stopped
 
-  # Armazenamento de imagens (SeaweedFS, compatível com S3). Os arquivos ficam aqui; o
-  # PostgreSQL guarda só os metadados e a chave (storage_key) de cada arquivo.
-  # API S3: http://localhost:8333 | Navegador de arquivos: http://localhost:8888
-  # O bucket (S3_BUCKET) é criado automaticamente na subida.
   storage:
     image: chrislusf/seaweedfs:latest
-    container_name: salonhub-storage
     command: ["mini", "-dir=/data"]
     environment:
       AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY:-salonhub_s3}
@@ -38,6 +35,47 @@ services:
       - "8888:8888"
     volumes:
       - storage_data:/data
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    image: salonhub-backend:local
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      DB_URL: jdbc:postgresql://postgres:5432/salonhub_db
+      DB_USERNAME: salonhub_user
+      DB_PASSWORD: salonhub_pass
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      FRONTEND_URL: http://localhost:5173
+      S3_ENDPOINT: http://storage:8333
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-salonhub_s3}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-salonhub_s3_pass}
+      S3_BUCKET: ${S3_BUCKET:-salonhub-media}
+      SYSTEM_ADMIN_NAME: ${SYSTEM_ADMIN_NAME:-}
+      SYSTEM_ADMIN_EMAIL: ${SYSTEM_ADMIN_EMAIL:-}
+      SYSTEM_ADMIN_PASSWORD: ${SYSTEM_ADMIN_PASSWORD:-}
+      GEOAPIFY_API_KEY: ${GEOAPIFY_API_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+      storage:
+        condition: service_started
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    image: salonhub-frontend:local
+    ports:
+      - "5173:80"
+    depends_on:
+      backend:
+        condition: service_started
+    restart: unless-stopped
 
 volumes:
   postgres_data:
