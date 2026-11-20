@@ -1,8 +1,9 @@
 /** Apresenta os agendamentos filtrados e seus indicadores no período escolhido. */
 import { useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { CalendarCheck, CalendarRange, CalendarX2, UserCheck, UserX, UsersRound } from 'lucide-react'
+import { CalendarCheck, CalendarRange, CalendarX2, RotateCcw, UserCheck, UserX, UsersRound } from 'lucide-react'
 import { ExportReportButtons } from '@/components/ui/ExportReportButtons'
+import { ActiveFilters, FilterTag } from '@/components/ui/ReportFilters'
 import { fetchEmployees } from '@/features/employees/services/employeesApi'
 import { fetchAppointmentsReport, type AppointmentsReportFilters } from '@/features/reports/appointmentsReportApi'
 import { getApiErrorMessage } from '@/lib/apiError'
@@ -22,6 +23,8 @@ export function AppointmentsReportPage({ embedded = false }: { embedded?: boolea
     queryKey: [REPORT_KEY, filters.startDate, filters.endDate, filters.professionalId],
     queryFn: () => fetchAppointmentsReport(filters),
   })
+  const professionalName = employees.data?.find((employee) => employee.id === filters.professionalId)?.name
+  const hasActiveFilters = Boolean(filters.startDate || filters.professionalId)
 
   /** Só aplica um período completo e cronologicamente válido à consulta do relatório. */
   function applyFilters(event: FormEvent) {
@@ -50,6 +53,17 @@ export function AppointmentsReportPage({ embedded = false }: { embedded?: boolea
     setFilters({})
   }
 
+  function removePeriod() {
+    setStartDate('')
+    setEndDate('')
+    setFilters({ ...filters, startDate: undefined, endDate: undefined })
+  }
+
+  function removeProfessional() {
+    setProfessionalId('')
+    setFilters({ ...filters, professionalId: undefined })
+  }
+
   return (
     <div className={embedded ? '' : 'page-shell'}>
       {!embedded && (
@@ -75,12 +89,21 @@ export function AppointmentsReportPage({ embedded = false }: { embedded?: boolea
         </Filter>
         {employees.isError && <p role="alert" className="text-sm text-danger-600 sm:col-span-2 lg:col-span-3">{getApiErrorMessage(employees.error, 'Não foi possível carregar os profissionais.')}</p>}
         {filterError && <p role="alert" className="text-sm text-danger-600 sm:col-span-2 lg:col-span-3">{filterError}</p>}
-        <div className="flex flex-wrap items-center gap-3 sm:col-span-2 lg:col-span-3">
+        <div className="flex flex-wrap gap-3 sm:col-span-2 lg:col-span-3">
           <button type="submit" className="primary-button">Aplicar filtros</button>
-          <button type="button" onClick={clearFilters} className="secondary-button">Limpar filtros</button>
+          <button type="button" onClick={clearFilters} className="secondary-button"><RotateCcw size={15} /> Limpar filtros</button>
           <ExportReportButtons path="/estabelecimentos/me/relatorio-atendimentos" params={filters} filename="relatorio-comparecimento" />
         </div>
       </form>
+
+      {hasActiveFilters && (
+        <ActiveFilters>
+          {filters.startDate && filters.endDate && (
+            <FilterTag onRemove={removePeriod}>{formatDate(filters.startDate)} a {formatDate(filters.endDate)}</FilterTag>
+          )}
+          {filters.professionalId && <FilterTag onRemove={removeProfessional}>{professionalName ?? 'Profissional'}</FilterTag>}
+        </ActiveFilters>
+      )}
 
       {report.isLoading && <StateCard>Carregando relatório...</StateCard>}
       {report.isError && <StateCard error>{getApiErrorMessage(report.error, 'Não foi possível carregar o relatório de atendimentos.')}</StateCard>}

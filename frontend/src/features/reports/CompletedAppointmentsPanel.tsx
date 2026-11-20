@@ -1,9 +1,10 @@
 /** Resume os atendimentos concluídos e dá acesso aos respectivos detalhes. */
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { BadgeDollarSign, ChevronLeft, ChevronRight, CircleDollarSign, ClipboardCheck, RotateCcw, X } from 'lucide-react'
+import { BadgeDollarSign, ChevronLeft, ChevronRight, CircleDollarSign, ClipboardCheck, RotateCcw } from 'lucide-react'
 import { fetchEmployees } from '@/features/employees/services/employeesApi'
 import { ExportReportButtons } from '@/components/ui/ExportReportButtons'
+import { ActiveFilters, FilterTag } from '@/components/ui/ReportFilters'
 import {
   fetchCompletedAppointments,
   type CompletedAppointmentEntry,
@@ -108,13 +109,12 @@ export function CompletedAppointmentsPanel() {
       </form>
 
       {hasActiveFilters && (
-        <div className="mt-4 flex flex-wrap items-center gap-2" aria-label="Filtros ativos">
-          <span className="text-xs font-bold uppercase tracking-[0.12em] text-text-500">Filtros ativos:</span>
+        <ActiveFilters>
           {filters.startDate && filters.endDate && (
             <FilterTag onRemove={removePeriod}>{formatDate(filters.startDate)} a {formatDate(filters.endDate)}</FilterTag>
           )}
           {filters.professionalId && <FilterTag onRemove={removeProfessional}>{professionalName ?? 'Funcionário'}</FilterTag>}
-        </div>
+        </ActiveFilters>
       )}
 
       {query.isLoading && <StateCard>Carregando atendimentos...</StateCard>}
@@ -217,15 +217,6 @@ function EntryCard({ entry }: { entry: CompletedAppointmentEntry }) {
 
 function Filter({ label, children }: { label: string; children: ReactNode }) {
   return <label className="text-sm font-medium text-text-800">{label}{children}</label>
-}
-
-function FilterTag({ children, onRemove }: { children: ReactNode; onRemove: () => void }) {
-  return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-primary-200 bg-primary-50 py-1 pl-3 pr-1.5 text-xs font-semibold text-primary-800">
-      {children}
-      <button type="button" onClick={onRemove} className="grid size-5 place-items-center rounded-full hover:bg-primary-100" aria-label="Remover filtro" title="Remover este filtro"><X size={12} /></button>
-    </span>
-  )
 }
 
 function StateCard({ children, error = false }: { children: ReactNode; error?: boolean }) {
