@@ -57,6 +57,11 @@ public class DemoSeedRunner implements ApplicationRunner {
             if (result == null) {
                 log.info("Os dados de demonstração já existem. Nada foi alterado.");
                 log.info("Para recriar só os dados de demonstração, rode de novo com \"-Dspring-boot.run.arguments=--reset\".");
+                if (seeder.isOutdated()) {
+                    log.warn("Os dados de demonstração estão desatualizados: não há atendimentos concluídos neste mês, "
+                            + "então os relatórios financeiro e de comissões vão abrir vazios. Rode com --reset para "
+                            + "gerar datas a partir de hoje.");
+                }
             } else {
                 log.info("Dados de demonstração criados: {} estabelecimentos, {} funcionários, {} clientes, {} agendamentos.",
                         result.establishments(), result.professionals(), result.clients(), result.appointments());

@@ -33,6 +33,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -44,8 +45,9 @@ import java.util.function.Predicate;
 /**
  * Dados de demonstração para ver o sistema funcionando: estabelecimentos (7 aceitando
  * agendamentos, para a paginação de 6 aparecer, e 1 pausado), perfis públicos, horários,
- * serviços, funcionários, clientes e agendamentos dos últimos 60 dias e dos próximos 14
- * (concluídos, cancelados, invalidados e confirmados).
+ * serviços, funcionários, clientes e agendamentos dos últimos 6 meses e dos próximos 14 dias
+ * (concluídos, cancelados, invalidados e confirmados). Seis meses de histórico deixam os
+ * relatórios financeiro e de comissões com dados em qualquer mês recente e permitem comparar meses.
  *
  * Idempotente: se o administrador do primeiro estabelecimento já existir, não faz nada.
  * Os dados são gerados com semente fixa, então rodar em bancos limpos gera sempre o mesmo resultado
@@ -61,7 +63,7 @@ public class DemoDataSeeder {
 
     private static final LocalTime[] SLOTS = {
             LocalTime.of(9, 0), LocalTime.of(10, 30), LocalTime.of(13, 30), LocalTime.of(15, 0), LocalTime.of(16, 30)};
-    private static final int PAST_DAYS = 60;
+    private static final int PAST_DAYS = 180;
     private static final int FUTURE_DAYS = 14;
 
     private final EstablishmentRepository establishmentRepository;
@@ -169,6 +171,20 @@ public class DemoDataSeeder {
         int professionals = establishments.stream().mapToInt(s -> s.professionals().size()).sum()
                 + aurora.professionals().size() + 1;
         return new Result(establishments.size() + 1, professionals, clients.size(), appointments);
+    }
+
+    /**
+     * Indica se os dados de demonstração existem, mas ficaram velhos: as datas são geradas a partir
+     * do dia em que o seed rodou, então, com o passar dos meses, o mês atual fica sem atendimentos
+     * concluídos e os relatórios (que abrem no mês corrente) aparecem vazios.
+     */
+    @Transactional(readOnly = true)
+    public boolean isOutdated() {
+        return userRepository.findByEmailIgnoreCase("admin@studiobella.demo")
+                .map(admin -> !appointmentRepository.existsByEstablishmentIdAndStatusAndCompletedAtGreaterThanEqual(
+                        admin.getEstablishment().getId(), AppointmentStatus.COMPLETED,
+                        YearMonth.now(clock).atDay(1).atStartOfDay()))
+                .orElse(false);
     }
 
     // ---------- estabelecimentos ----------

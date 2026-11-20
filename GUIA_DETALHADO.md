@@ -204,6 +204,7 @@ Como funciona:
 - O seed só **acrescenta** registros: não altera nem apaga dados que já existem no banco.
 - Tudo roda numa única transação. Se algo falhar, nada é gravado.
 - Se os dados de demonstração já existirem (conta `admin@studiobella.demo`), o comando não faz nada.
+- As datas são geradas a partir do dia em que o seed roda. Se o mês atual já não tiver atendimentos concluídos (os relatórios abrem vazios), o comando avisa no log para rodar de novo com `--reset`.
 
 Para **recriar só os dados de demonstração** (por exemplo, depois de uma mudança no seed), sem apagar o resto do banco:
 
@@ -224,7 +225,7 @@ O que é criado:
 - Serviços em cada estabelecimento (um deles inativo no Studio Bella).
 - Funcionários com CPF, admissão, ocupação e contatos; alguns atendem só parte dos serviços, e há um funcionário desativado.
 - 2 clientes de balcão no Studio Bella, sem conta: Carla Nunes (`carla@balcao.demo`), que recebe os e-mails de agendamento com o telefone do salão em vez do botão "Ver meus agendamentos", e Dora Pereira, sem e-mail, que não recebe nada. Cada uma tem agendamentos futuros e atendimentos concluídos marcados pelo administrador.
-- 10 clientes e agendamentos dos últimos 60 dias e dos próximos 14: concluídos, cancelados, invalidados, faltas (`NO_SHOW`), confirmados e alguns recentes pendentes de fechamento (alimentam relatórios, comissões, dashboard e agendas).
+- 10 clientes e agendamentos dos últimos 6 meses e dos próximos 14 dias: concluídos, cancelados, invalidados, faltas (`NO_SHOW`), confirmados e alguns recentes pendentes de fechamento (alimentam relatórios, comissões, dashboard e agendas).
 - Na agenda da Camila, horário próprio (quintas só à tarde) e um evento de dia inteiro ("Curso de coloração").
 - As fotos dos funcionários não são criadas; cada um pode enviar a sua em "Meu perfil".
 

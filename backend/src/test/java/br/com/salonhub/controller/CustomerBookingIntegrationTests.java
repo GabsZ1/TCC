@@ -487,7 +487,9 @@ class CustomerBookingIntegrationTests extends FirstAccessIntegrationSupport {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.professionalId").value(professionalId));
         customers.findById(customerId.longValue()).orElseThrow().getEstablishment()
-                .updateAppointmentAdvancePolicy(3 * 24 * 60, 60);
+                // 7 dias de antecedência mínima: "day" fica no máximo 4 dias à frente (qui + 2 cai no
+                // sábado e pula para segunda), então o agendamento online abaixo é sempre bloqueado.
+                .updateAppointmentAdvancePolicy(7 * 24 * 60, 60);
         mvc.perform(post("/api/agendamentos/estabelecimento/me/clientes/{id}", customerId.longValue())
                 .header("Authorization", auth).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"serviceId\":%d,\"professionalId\":%d,\"startsAt\":\"%sT11:07:00\"}"
@@ -511,7 +513,8 @@ class CustomerBookingIntegrationTests extends FirstAccessIntegrationSupport {
                 .header("Authorization", onlineAuth).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"serviceId\":%d,\"professionalId\":%d,\"startsAt\":\"%sT12:30:00\"}"
                         .formatted(serviceId.longValue(), professionalId.longValue(), day)))
-                .andExpect(status().isConflict()).andExpect(jsonPath("$.message").exists());
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("O agendamento exige pelo menos 168 horas de antecedência."));
         mvc.perform(post("/api/agendamentos/estabelecimento/me/clientes/{id}", customerId.longValue())
                 .header("Authorization", auth).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"serviceId\":%d,\"professionalId\":%d,\"startsAt\":\"%sT15:00:00\"}"
