@@ -2,11 +2,12 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowRight, CalendarPlus, ChevronLeft, ChevronRight, Clock3, Eye, MapPin, Scissors, Search, UserRound } from 'lucide-react'
+import { IMaskInput } from 'react-imask'
 import { useNavigate } from 'react-router-dom'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { AppointmentEditModal } from '@/features/appointments/components/AppointmentEditModal'
 import { EstablishmentDetailsModal } from '@/features/appointments/EstablishmentDetailsModal'
-import { cancelAppointment, fetchActiveEstablishments, fetchNearbyEstablishments, fetchMyAppointmentPage, type ActiveEstablishment, type Appointment } from '@/features/appointments/appointmentsApi'
+import { cancelAppointment, fetchActiveEstablishments, fetchNearbyEstablishmentsByPostalCode, fetchMyAppointmentPage, type ActiveEstablishment, type Appointment } from '@/features/appointments/appointmentsApi'
 import { getApiErrorMessage } from '@/lib/apiError'
 import { EstablishmentImage } from '@/features/establishment/EstablishmentImage'
 import { formatBusinessDate, formatBusinessDayNumber, formatBusinessMonthShort, formatBusinessWeekday, isBusinessLocalDateTimeFuture } from '@/lib/dateTime'
@@ -28,12 +29,20 @@ export function AppointmentsPage() {
   const [establishmentSearch, setEstablishmentSearch] = useState('')
   const [establishmentPage, setEstablishmentPage] = useState(0)
   const [proximityActive, setProximityActive] = useState(false)
-  const [locationLoading, setLocationLoading] = useState(false)
   const [locationMessage, setLocationMessage] = useState<string | null>(null)
+  const [postalCode, setPostalCode] = useState('')
   const appointments = useQuery({ queryKey: [...QUERY_KEY, section, appointmentPage], queryFn: () => fetchMyAppointmentPage(section === 'history', appointmentPage) })
   const upcoming = useQuery({ queryKey: [...QUERY_KEY, 'upcoming', 0], queryFn: () => fetchMyAppointmentPage(false, 0) })
   const establishments = useQuery({ queryKey: ['active-establishments'], queryFn: fetchActiveEstablishments })
-  const nearby = useMutation({ mutationFn: ({ latitude, longitude }: { latitude: number; longitude: number }) => fetchNearbyEstablishments(latitude, longitude), onSuccess: () => { setProximityActive(true); setLocationLoading(false); setEstablishmentPage(0) }, onError: () => { setLocationLoading(false); setLocationMessage('Não foi possível ordenar por proximidade. A lista continuará disponível normalmente.') } })
+  const nearby = useMutation({
+    mutationFn: fetchNearbyEstablishmentsByPostalCode,
+    onSuccess: () => { setProximityActive(true); setLocationMessage(null); setEstablishmentPage(0) },
+    onError: (error) => {
+      setProximityActive(false)
+      const reason = getApiErrorMessage(error, 'Não foi possível buscar por esse CEP. Tente novamente.')
+      setLocationMessage(`${reason} A lista de estabelecimentos continua disponível.`)
+    },
+  })
   const establishmentData = proximityActive && nearby.data ? nearby.data : establishments.data
   const displayedAppointments = appointments.data?.content ?? []
 
@@ -47,14 +56,12 @@ export function AppointmentsPage() {
     (currentEstablishmentPage + 1) * ESTABLISHMENTS_PER_PAGE,
   )
 
-  function activateProximity() {
-    if (!navigator.geolocation) { setLocationMessage('Seu navegador não oferece suporte à localização.'); return }
-    setLocationLoading(true); setLocationMessage(null)
-    navigator.geolocation.getCurrentPosition(
-      position => nearby.mutate({ latitude: position.coords.latitude, longitude: position.coords.longitude }),
-      error => { setLocationLoading(false); setLocationMessage(error.code === error.PERMISSION_DENIED ? 'Você não permitiu o acesso à localização. A lista continuará disponível normalmente.' : error.code === error.TIMEOUT ? 'A localização demorou mais que o esperado. Tente novamente.' : 'Não foi possível determinar sua localização neste dispositivo.') },
-      { enableHighAccuracy: false, timeout: 9000, maximumAge: 300000 },
-    )
+  function searchByPostalCode(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (postalCode.length !== 8) { setProximityActive(false); setLocationMessage('Informe um CEP com 8 números. A lista de estabelecimentos continua disponível.'); return }
+    setProximityActive(false)
+    setLocationMessage(null)
+    nearby.mutate(postalCode)
   }
   const cancelMutation = useMutation({
     mutationFn: cancelAppointment,
@@ -131,9 +138,26 @@ export function AppointmentsPage() {
             <h2 className="mt-5 text-2xl font-extrabold tracking-[-0.04em]">Marcar um horário</h2>
             <p className="mt-2 text-sm leading-6 text-[#c3cde0]">Conheça cada estabelecimento ou vá direto para o agendamento.</p>
             <div className="mt-6 space-y-3">
-              <button type="button" disabled={locationLoading} onClick={proximityActive ? () => { setProximityActive(false); nearby.reset(); setLocationMessage(null) } : activateProximity} className="secondary-button w-full"><MapPin size={15} /> {locationLoading ? 'Obtendo sua localização...' : proximityActive ? 'Desativar proximidade' : 'Perto de mim'}</button>
-              <p className="text-[0.68rem] leading-4 text-[#c3cde0]">Sua localização será usada somente para ordenar os estabelecimentos e não será salva.</p>
-              {locationMessage && <p role="alert" className="text-xs text-warning-100">{locationMessage}</p>}              {establishments.isLoading && <p className="rounded-xl bg-white/10 px-4 py-3 text-sm text-[#c3cde0]">Carregando estabelecimentos...</p>}
+              <p className="text-xs leading-5 text-[#c3cde0]">Informe seu CEP para ver os estabelecimentos mais próximos da sua região. A distância é aproximada.</p>
+              <form onSubmit={searchByPostalCode} className="flex gap-2">
+                <label className="min-w-0 flex-1">
+                  <span className="sr-only">Seu CEP</span>
+                  <IMaskInput
+                    mask="00000-000"
+                    unmask={true}
+                    inputMode="numeric"
+                    autoComplete="postal-code"
+                    value={postalCode}
+                    onAccept={(digits: string) => setPostalCode(digits)}
+                    placeholder="00000-000"
+                    className="w-full rounded-[0.65rem] border border-white/15 bg-white/[0.07] px-3 py-2.5 text-sm text-white outline-none placeholder:text-[#a9b4c9] focus:border-primary-300"
+                  />
+                </label>
+                <button type="submit" disabled={nearby.isPending} className="rounded-[0.65rem] border border-white/20 px-3 py-2 text-xs font-semibold text-white hover:bg-white/10 disabled:opacity-40">{nearby.isPending ? 'Buscando...' : 'Buscar pelo CEP'}</button>
+              </form>
+              {proximityActive && <button type="button" onClick={() => { setProximityActive(false); nearby.reset(); setLocationMessage(null) }} className="text-xs font-semibold text-primary-200 underline">Limpar busca por CEP</button>}
+              {locationMessage && <p role="alert" className="text-xs text-warning-100">{locationMessage}</p>}
+              {establishments.isLoading && <p className="rounded-xl bg-white/10 px-4 py-3 text-sm text-[#c3cde0]">Carregando estabelecimentos...</p>}
               {establishments.isError && <p className="mt-3 text-sm text-danger-700">{getApiErrorMessage(establishments.error, 'Não foi possível carregar os estabelecimentos.')}</p>}
               {!establishments.isLoading && !establishments.isError && establishmentData?.length === 0 && <p className="mt-3 text-sm text-[#c3cde0]">Nenhum estabelecimento está disponível no momento.</p>}
               {(establishmentData?.length ?? 0) > 0 && (
@@ -156,7 +180,8 @@ export function AppointmentsPage() {
               {visibleEstablishments.map((establishment) => (
                 <article key={establishment.id} className="rounded-[0.75rem] border border-white/12 bg-white/[0.055] p-3.5">
                   <div className="flex items-center gap-3"><EstablishmentImage establishmentId={establishment.id} kind="logo" hasImage={establishment.hasLogo} className="size-10 shrink-0 rounded-lg object-cover" /><p className="font-semibold text-white">{establishment.name}</p></div>
-                  {proximityActive && <p className="mt-1 text-xs text-primary-200">{establishment.distanceKm == null ? 'Distância indisponível' : establishment.distanceKm < 1 ? `${Math.round(establishment.distanceKm * 1000)} m de você` : `${establishment.distanceKm.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} km de você`}</p>}                  <div className="mt-3 grid grid-cols-2 gap-2">
+                  {proximityActive && <p className="mt-1 text-xs text-primary-200">{formatPostalCodeDistance(establishment.distanceKm)}</p>}
+                  <div className="mt-3 grid grid-cols-2 gap-2">
                     <button type="button" onClick={() => setDetails(establishment)} className="inline-flex items-center justify-center gap-1.5 rounded-[0.6rem] border border-white/20 px-3 py-2 text-xs font-semibold text-white hover:bg-white/10"><Eye size={14} /> Detalhes</button>
                     <button type="button" onClick={() => navigate(`/estabelecimentos/${establishment.id}/agendar`)} className="inline-flex items-center justify-center gap-1.5 rounded-[0.6rem] bg-white px-3 py-2 text-xs font-semibold text-primary-900 hover:bg-primary-50">Agendar <ArrowRight size={14} /></button>
                   </div>
@@ -214,6 +239,14 @@ function formatMoney(value: number) { return new Intl.NumberFormat('pt-BR', { st
 function weekday(value: string) { return formatBusinessWeekday(value) }
 function dayNumber(value: string) { return formatBusinessDayNumber(value) }
 function monthShort(value: string) { return formatBusinessMonthShort(value) }
+
+function formatPostalCodeDistance(distanceKm: number | null | undefined) {
+  if (distanceKm == null) return 'Distância indisponível'
+  const distance = distanceKm < 1
+    ? `${Math.round(distanceKm * 1000).toLocaleString('pt-BR')} m`
+    : `${distanceKm.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} km`
+  return `Aproximadamente ${distance} do CEP informado`
+}
 
 /** Compara nomes ignorando maiúsculas, acentos e espaços extras. */
 function normalizeText(value: string) {

@@ -58,6 +58,7 @@ services:
       SYSTEM_ADMIN_EMAIL: ${SYSTEM_ADMIN_EMAIL:-}
       SYSTEM_ADMIN_PASSWORD: ${SYSTEM_ADMIN_PASSWORD:-}
       GEOAPIFY_API_KEY: ${GEOAPIFY_API_KEY:-}
+      PHOTON_BASE_URL: ${PHOTON_BASE_URL:-https://photon.komoot.io}
     depends_on:
       postgres:
         condition: service_healthy

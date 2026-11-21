@@ -88,6 +88,13 @@ public class ApiExceptionHandler {
         );
     }
 
+    @ExceptionHandler(CepLookupUnavailableException.class)
+    public ResponseEntity<ApiError> handleCepLookupUnavailable(CepLookupUnavailableException exception) {
+        log.warn("Falha ao consultar coordenadas do CEP", exception);
+        return friendly(HttpStatus.SERVICE_UNAVAILABLE,
+                "A busca por CEP está indisponível no momento. Tente novamente mais tarde.");
+    }
+
     @ExceptionHandler(UnauthorizedException.class)
     public ResponseEntity<ApiError> handleUnauthorized(UnauthorizedException exception) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(

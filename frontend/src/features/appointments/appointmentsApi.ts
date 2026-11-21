@@ -83,8 +83,8 @@ export function fetchActiveEstablishments() {
   return api.get<ActiveEstablishment[]>('/estabelecimentos').then((response) => response.data)
 }
 
-export function fetchNearbyEstablishments(latitude: number, longitude: number) {
-  return api.post<ActiveEstablishment[]>('/estabelecimentos/proximos', { latitude, longitude }).then((response) => response.data)
+export function fetchNearbyEstablishmentsByPostalCode(postalCode: string) {
+  return api.post<ActiveEstablishment[]>('/estabelecimentos/proximos', { postalCode }).then((response) => response.data)
 }
 
 export function fetchEstablishmentProfile(establishmentId: number) {

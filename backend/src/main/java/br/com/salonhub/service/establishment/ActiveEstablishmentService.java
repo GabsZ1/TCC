@@ -1,5 +1,6 @@
 package br.com.salonhub.service.establishment;
 import br.com.salonhub.service.geocoding.GeographicDistanceCalculator;
+import br.com.salonhub.service.geocoding.BrasilApiCepGeocodingService;
 import br.com.salonhub.dto.establishment.*;
 import br.com.salonhub.entity.EstablishmentProfile;
 import br.com.salonhub.exception.InvalidRequestException;
@@ -16,6 +17,12 @@ public class ActiveEstablishmentService {
     private final EstablishmentRepository establishmentRepository;
     private final EstablishmentProfileRepository profileRepository;
     private final GeographicDistanceCalculator distanceCalculator;
+    private final BrasilApiCepGeocodingService brasilApiCepGeocodingService;
+    @Transactional(readOnly=true) public List<NearbyEstablishmentResponse> findNearbyPostalCode(String postalCode) {
+        var coordinates = brasilApiCepGeocodingService.geocodePostalCodeForSearch(postalCode)
+          .orElseThrow(() -> new InvalidRequestException("Não foi possível confirmar a localização da rua desse CEP. Confira o número ou tente outro CEP."));
+        return findNearby(coordinates.latitude().doubleValue(), coordinates.longitude().doubleValue());
+    }
     @Transactional(readOnly=true) public List<ActiveEstablishmentResponse> findAll() {
         var establishments=establishmentRepository.findAllByActiveTrueAndPausedFalseAndBookingsBlockedFalseOrderByNameAsc();
         Map<Long,EstablishmentProfile> profiles=profileRepository.findByEstablishmentIdIn(establishments.stream().map(e->e.getId()).toList())

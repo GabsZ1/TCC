@@ -13,6 +13,7 @@ import br.com.salonhub.service.auth.TokenService;
 import br.com.salonhub.service.geocoding.Coordinates;
 import br.com.salonhub.service.geocoding.GeocodingService;
 import br.com.salonhub.service.geocoding.BrasilApiCepGeocodingService;
+import br.com.salonhub.exception.CepLookupUnavailableException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,6 +65,7 @@ class EstablishmentProfileControllerIntegrationTests {
     void stubGeocoding() {
         when(geocodingService.geocode(anyString())).thenReturn(Optional.empty());
         when(brasilApiCepGeocodingService.geocodePostalCode(anyString())).thenReturn(Optional.empty());
+        when(brasilApiCepGeocodingService.geocodePostalCodeForSearch(anyString())).thenReturn(Optional.empty());
     }
 
     @Test
@@ -219,10 +221,12 @@ class EstablishmentProfileControllerIntegrationTests {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"street\":\"Avenida Brasil\",\"streetNumber\":\"100\",\"city\":\"Maringá\",\"state\":\"PR\"}"))
                 .andExpect(status().isOk());
+        when(brasilApiCepGeocodingService.geocodePostalCodeForSearch("87501130")).thenReturn(Optional.of(
+                new Coordinates(new BigDecimal("-9.876543"), new BigDecimal("-35.123456"))));
         String body = mockMvc.perform(post("/api/estabelecimentos/proximos")
                         .header("Authorization", bearer(client))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"latitude\":-9.876543,\"longitude\":-35.123456}"))
+                        .content("{\"postalCode\":\"87501130\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(close.getId()))
                 .andExpect(jsonPath("$[0].distanceKm").value(0.0))
@@ -257,6 +261,44 @@ class EstablishmentProfileControllerIntegrationTests {
         verify(brasilApiCepGeocodingService).geocodePostalCode("87000000");
         org.assertj.core.api.Assertions.assertThat(profileRepository.findByEstablishmentId(establishment.getId())
                 .orElseThrow().getLatitude()).isEqualByComparingTo("-23.420999");
+    }
+
+    @Test
+    void findsNearbyFromCustomerPostalCodeWhenDeviceLocationIsUnavailable() throws Exception {
+        User client = user("Cliente CEP", "client-postal-nearby@salonhub.test", UserRole.CLIENT, null);
+        when(brasilApiCepGeocodingService.geocodePostalCodeForSearch("87501130")).thenReturn(Optional.of(
+                new Coordinates(new BigDecimal("-23.766390"), new BigDecimal("-53.325000"))));
+
+        mockMvc.perform(post("/api/estabelecimentos/proximos")
+                        .header("Authorization", bearer(client))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"postalCode\":\"87501130\"}"))
+                .andExpect(status().isOk());
+        verify(brasilApiCepGeocodingService).geocodePostalCodeForSearch("87501130");
+
+        mockMvc.perform(post("/api/estabelecimentos/proximos")
+                        .header("Authorization", bearer(client))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"postalCode\":\"87501\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void keepsEstablishmentListAvailableWhenPostalCodeLookupFails() throws Exception {
+        User client = user("Cliente Falha CEP", "client-postal-failure@salonhub.test", UserRole.CLIENT, null);
+        when(brasilApiCepGeocodingService.geocodePostalCodeForSearch("87501130"))
+                .thenThrow(new CepLookupUnavailableException(new RuntimeException("upstream indisponível")));
+
+        mockMvc.perform(post("/api/estabelecimentos/proximos")
+                        .header("Authorization", bearer(client))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"postalCode\":\"87501130\"}"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.message").value("A busca por CEP está indisponível no momento. Tente novamente mais tarde."));
+
+        mockMvc.perform(get("/api/estabelecimentos")
+                        .header("Authorization", bearer(client)))
+                .andExpect(status().isOk());
     }
 
     @Test

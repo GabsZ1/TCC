@@ -14,7 +14,8 @@ import java.util.List;
 public class ActiveEstablishmentController {
     private final ActiveEstablishmentService activeEstablishmentService;
     @GetMapping public List<ActiveEstablishmentResponse> findAllActive() { return activeEstablishmentService.findAll(); }
-    @PostMapping("/proximos") public List<NearbyEstablishmentResponse> findNearby(@Valid @RequestBody NearbyEstablishmentsRequest r) {
-        return activeEstablishmentService.findNearby(r.latitude(), r.longitude());
+    @PostMapping("/proximos") public List<NearbyEstablishmentResponse> findNearbyPostalCode(
+            @Valid @RequestBody NearbyEstablishmentsPostalCodeRequest r) {
+        return activeEstablishmentService.findNearbyPostalCode(r.postalCode());
     }
 }
