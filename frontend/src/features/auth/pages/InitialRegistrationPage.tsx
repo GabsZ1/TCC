@@ -13,19 +13,27 @@ export function InitialRegistrationPage() {
   const navigate = useNavigate()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [passwordMismatch, setPasswordMismatch] = useState(false)
 
   /** Envia juntos os dados do responsável e do estabelecimento inicial. */
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError(null)
-    setIsSubmitting(true)
     const form = new FormData(event.currentTarget)
+    const password = String(form.get('password'))
+    const mismatch = password !== form.get('confirmPassword')
+    setPasswordMismatch(mismatch)
+    if (mismatch) {
+      event.currentTarget.querySelector<HTMLInputElement>('input[name="confirmPassword"]')?.focus()
+      return
+    }
 
+    setIsSubmitting(true)
     try {
       await registerInitial({
         ownerName: String(form.get('ownerName')),
         ownerEmail: String(form.get('ownerEmail')),
-        password: String(form.get('password')),
+        password,
         establishmentName: String(form.get('establishmentName')),
         cnpj: String(form.get('cnpj')),
         establishmentEmail: String(form.get('establishmentEmail') || ''),
@@ -52,7 +60,9 @@ export function InitialRegistrationPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <Field name="ownerName" label="Seu nome" maxLength={150} autoComplete="name" placeholder="Nome completo" />
             <Field name="ownerEmail" label="Seu e-mail" type="email" maxLength={150} autoComplete="email" placeholder="voce@exemplo.com" />
-            <Field name="password" label="Senha" type="password" minLength={8} maxLength={72} autoComplete="new-password" placeholder="Mínimo de 8 caracteres" className="sm:col-span-2" />
+            <Field name="password" label="Senha" type="password" minLength={8} maxLength={72} autoComplete="new-password" placeholder="Mínimo de 8 caracteres" onChange={() => setPasswordMismatch(false)} />
+            <Field name="confirmPassword" label="Confirmar senha" type="password" minLength={8} maxLength={72} autoComplete="new-password" aria-invalid={passwordMismatch} aria-describedby={passwordMismatch ? 'confirm-password-error' : undefined} onChange={() => setPasswordMismatch(false)} />
+            {passwordMismatch && <p id="confirm-password-error" role="alert" className="text-sm text-danger-600 sm:col-span-2">As senhas não coincidem.</p>}
           </div>
         </FormSection>
 

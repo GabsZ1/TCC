@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /** Verifica a estrutura e o conteúdo dos PDFs de relatório. */
 class ReportPdfExporterTests {
     private final ReportPdfExporter exporter = new ReportPdfExporter();
+    private static final ReportHeader HEADER = new ReportHeader("Salão Primavera", "Ana Souza");
     private static final LocalDate START = LocalDate.of(2026, 9, 1);
     private static final LocalDate END = LocalDate.of(2026, 9, 30);
 
@@ -46,13 +47,21 @@ class ReportPdfExporterTests {
         var entry = new CompletedAppointmentEntry(1L, LocalDateTime.of(2026, 9, 10, 14, 30), 1L,
                 "Ana Souza", 1L, "Corte feminino", "Maria Silva", decimal("100"), decimal("20"), decimal("20"));
 
-        assertPdfContains(exporter.commission(commission), "Ana Souza", "Comissão total");
-        byte[] financialPdf = exporter.financial(financial);
-        assertPdfContains(financialPdf, "Corte feminino", "Valor após comissões", "01/09/2026");
-        assertPdfContains(exporter.appointments(attendance), "Ana Souza", "Comparecimento", "Invalidados");
-        assertPdfContains(exporter.completed(completed, List.of(entry)), "Maria Silva", "Corte feminino", "14:30");
+        byte[] commissionPdf = exporter.commission(commission, HEADER);
+        assertPdfContains(commissionPdf, "Salão Primavera", "Emitido por: Ana Souza", "Comissão total");
+        byte[] financialPdf = exporter.financial(financial, HEADER);
+        assertPdfContains(financialPdf, "Salão Primavera", "Emitido por: Ana Souza", "Corte feminino", "Valor após comissões", "01/09/2026");
+        byte[] attendancePdf = exporter.appointments(attendance, HEADER);
+        assertPdfContains(attendancePdf, "Salão Primavera", "Emitido por: Ana Souza", "Comparecimento", "Invalidados");
+        byte[] completedPdf = exporter.completed(completed, List.of(entry), HEADER);
+        assertPdfContains(completedPdf, "Salão Primavera", "Emitido por: Ana Souza", "Maria Silva", "Corte feminino", "14:30");
 
-        if (Boolean.getBoolean("pdf.preview")) Files.write(Path.of("target", "report-preview.pdf"), financialPdf);
+        if (Boolean.getBoolean("pdf.preview")) {
+            Files.write(Path.of("target", "financial-report-preview.pdf"), financialPdf);
+            Files.write(Path.of("target", "commission-report-preview.pdf"), commissionPdf);
+            Files.write(Path.of("target", "attendance-report-preview.pdf"), attendancePdf);
+            Files.write(Path.of("target", "completed-report-preview.pdf"), completedPdf);
+        }
     }
 
     @Test
@@ -62,12 +71,19 @@ class ReportPdfExporterTests {
             entries.add(new CommissionReportEntry((long) index, "Profissional " + index + " com nome muito longo para a coluna",
                     2, decimal("100"), decimal("20"), decimal("20")));
         }
-        byte[] bytes = exporter.commission(new CommissionReportResponse(START, END, entries, decimal("1600")));
+        byte[] bytes = exporter.commission(new CommissionReportResponse(START, END, entries, decimal("1600")), HEADER);
         try (PDDocument document = Loader.loadPDF(bytes)) {
-            assertThat(document.getNumberOfPages()).isGreaterThan(1);
+            assertThat(document.getNumberOfPages()).isBetween(2, 5);
+            for (int page = 1; page <= document.getNumberOfPages(); page++) {
+                PDFTextStripper stripper = new PDFTextStripper();
+                stripper.setStartPage(page);
+                stripper.setEndPage(page);
+                assertThat(stripper.getText(document)).contains("Salão Primavera", "Emitido por: Ana Souza");
+            }
             String text = new PDFTextStripper().getText(document);
             assertThat(text).contains("Profissional 0", "Profissional 79", "1 / ");
         }
+        if (Boolean.getBoolean("pdf.preview")) Files.write(Path.of("target", "long-commission-report-preview.pdf"), bytes);
     }
 
     private static void assertPdfContains(byte[] bytes, String... expected) throws Exception {

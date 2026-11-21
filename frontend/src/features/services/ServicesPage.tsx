@@ -94,7 +94,7 @@ export function ServicesPage() {
         <label htmlFor="service-search" className="text-sm font-semibold text-text-800">Buscar serviço</label>
         <div className="relative mt-1">
           <Search size={17} aria-hidden="true" className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-text-400" />
-          <input id="service-search" type="search" maxLength={100} value={searchInput} onChange={(event) => { setSearchInput(event.target.value); setPage(0) }} placeholder="Digite o nome do serviço" className="field-control mt-0 pl-10 pr-10" />
+          <input id="service-search" type="search" maxLength={100} value={searchInput} onChange={(event) => { setSearchInput(event.target.value); setPage(0) }} placeholder="Digite o nome do serviço" className="field-control mt-0 pl-10 pr-10 [&::-webkit-search-cancel-button]:hidden" />
           {searchInput && <button type="button" onClick={() => { setSearchInput(''); setSearch(''); setPage(0) }} aria-label="Limpar busca" title="Limpar busca de serviços" className="icon-button absolute right-1.5 top-1/2 -translate-y-1/2"><X size={16} /></button>}
         </div>
       </div>

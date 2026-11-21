@@ -20,6 +20,7 @@ import br.com.salonhub.service.establishment.EstablishmentOperationService;
 import br.com.salonhub.service.report.FinancialReportService;
 import br.com.salonhub.service.report.ReportCsvExporter;
 import br.com.salonhub.service.report.ReportPdfExporter;
+import br.com.salonhub.service.report.ReportHeaderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -52,6 +53,7 @@ public class EstablishmentController {
     private final FinancialReportService financialReportService;
     private final ReportCsvExporter csvExporter;
     private final ReportPdfExporter pdfExporter;
+    private final ReportHeaderService reportHeaderService;
 
     /** Consulta os dados operacionais da unidade do administrador autenticado. */
     @GetMapping
@@ -96,7 +98,8 @@ public class EstablishmentController {
             @RequestParam(required = false) Long professionalId) {
         CommissionReportResponse report = commissionReportService.getReport(
                 Long.valueOf(jwt.getSubject()), startDate, endDate, professionalId);
-        return pdf("relatorio-comissoes", report.periodStart(), report.periodEnd(), pdfExporter.commission(report));
+        return pdf("relatorio-comissoes", report.periodStart(), report.periodEnd(),
+                pdfExporter.commission(report, reportHeaderService.forAdministrator(Long.valueOf(jwt.getSubject()))));
     }
 
     /** Relatório financeiro/produção: faturamento, comissões, valor após comissões e ticket médio. */
@@ -133,7 +136,8 @@ public class EstablishmentController {
             @RequestParam(required = false) Long serviceId) {
         FinancialReportResponse report = financialReportService.getReport(
                 Long.valueOf(jwt.getSubject()), startDate, endDate, professionalId, serviceId);
-        return pdf("relatorio-financeiro", report.periodStart(), report.periodEnd(), pdfExporter.financial(report));
+        return pdf("relatorio-financeiro", report.periodStart(), report.periodEnd(),
+                pdfExporter.financial(report, reportHeaderService.forAdministrator(Long.valueOf(jwt.getSubject()))));
     }
 
     /** Consulta atendimentos concluídos e seus totais. */
@@ -164,7 +168,8 @@ public class EstablishmentController {
             entries.addAll(completedAppointmentsService.find(
                     userId, startDate, endDate, professionalId, page, 100).entries());
         }
-        return pdf("atendimentos-realizados", startDate, endDate, pdfExporter.completed(first, entries));
+        return pdf("atendimentos-realizados", startDate, endDate,
+                pdfExporter.completed(first, entries, reportHeaderService.forAdministrator(userId)));
     }
 
     /** Consulta agendamentos e indicadores do período. */
@@ -198,7 +203,8 @@ public class EstablishmentController {
             @RequestParam(required = false) Long professionalId) {
         AppointmentsReportResponse report = appointmentsReportService.getReport(
                 Long.valueOf(jwt.getSubject()), startDate, endDate, professionalId);
-        return pdf("relatorio-comparecimento", report.periodStart(), report.periodEnd(), pdfExporter.appointments(report));
+        return pdf("relatorio-comparecimento", report.periodStart(), report.periodEnd(),
+                pdfExporter.appointments(report, reportHeaderService.forAdministrator(Long.valueOf(jwt.getSubject()))));
     }
 
     private static ResponseEntity<byte[]> csv(String name, LocalDate start, LocalDate end, byte[] content) {

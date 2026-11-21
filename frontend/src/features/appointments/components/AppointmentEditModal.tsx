@@ -1,6 +1,6 @@
 /** Permite ao cliente alterar uma reserva futura com as opções ainda disponíveis. */
 import { useMemo, useState } from 'react'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { skipToken, useMutation, useQuery } from '@tanstack/react-query'
 import { Clock3 } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
 import { getApiErrorMessage } from '@/lib/apiError'
@@ -16,25 +16,34 @@ interface AppointmentEditModalProps {
 /** Reconsulta opções ao mudar serviço ou profissional antes de salvar uma reserva. */
 export function AppointmentEditModal({ appointment, onUpdated, onClose }: AppointmentEditModalProps) {
   const [serviceId, setServiceId] = useState(appointment.serviceId)
-  const [professionalId, setProfessionalId] = useState(appointment.professionalId)
+  const [professionalId, setProfessionalId] = useState<number | null>(appointment.professionalId)
   const [date, setDate] = useState(appointment.startsAt.slice(0, 10))
   const [time, setTime] = useState(appointment.startsAt.slice(11, 16))
   const services = useQuery({ queryKey: ['catalog-services', appointment.establishmentId], queryFn: () => fetchCatalogServices(appointment.establishmentId) })
-  const professionals = useQuery({ queryKey: ['catalog-professionals', appointment.establishmentId], queryFn: () => fetchCatalogProfessionals(appointment.establishmentId) })
+  const professionals = useQuery({
+    queryKey: ['catalog-professionals', appointment.establishmentId, serviceId],
+    queryFn: () => fetchCatalogProfessionals(appointment.establishmentId, serviceId),
+  })
+  const selectedProfessional = professionals.data?.find((professional) => professional.id === professionalId)
   const availability = useQuery({
     queryKey: ['availability', appointment.establishmentId, serviceId, professionalId, date, appointment.id],
-    queryFn: () => fetchAvailability(appointment.establishmentId, serviceId, professionalId, date, appointment.id),
-    enabled: !!serviceId && !!professionalId && !!date,
+    queryFn: selectedProfessional && date
+      ? () => fetchAvailability(appointment.establishmentId, serviceId, selectedProfessional.id, date, appointment.id)
+      : skipToken,
     retry: false,
   })
   const selectedService = useMemo(() => services.data?.find((service) => service.id === serviceId), [services.data, serviceId])
-  const selectedProfessional = useMemo(() => professionals.data?.find((professional) => professional.id === professionalId), [professionals.data, professionalId])
   const updateMutation = useMutation({
-    mutationFn: () => updateAppointment(appointment.id, serviceId, professionalId, `${date}T${normalizeTime(time)}`),
+    mutationFn: (id: number) => updateAppointment(appointment.id, serviceId, id, `${date}T${normalizeTime(time)}`),
     onSuccess: onUpdated,
   })
 
-  function chooseService(id: number) { setServiceId(id); setTime('') }
+  function chooseService(id: number) {
+    if (id === serviceId) return
+    setServiceId(id)
+    setProfessionalId(null)
+    setTime('')
+  }
   function chooseProfessional(id: number) { setProfessionalId(id); setTime('') }
 
   return (
@@ -44,6 +53,9 @@ export function AppointmentEditModal({ appointment, onUpdated, onClose }: Appoin
           <div className="grid gap-2">{services.data?.map((service) => <ChoiceButton key={service.id} selected={service.id === serviceId} onClick={() => chooseService(service.id)} title={service.name} detail={`${formatMoney(service.price)} · ${service.durationMinutes} min`} />)}</div>
         </Step>
         <Step number="2" title="Profissional">
+          {professionals.isPending && <p className="text-sm text-text-600">Carregando profissionais...</p>}
+          {professionals.isError && <p role="alert" className="text-sm text-danger-600">{getApiErrorMessage(professionals.error, 'Não foi possível consultar os profissionais.')}</p>}
+          {professionals.data?.length === 0 && <p className="text-sm text-text-600">Nenhum profissional disponível para este serviço.</p>}
           <div className="grid gap-2">{professionals.data?.map((professional) => <ChoiceButton key={professional.id} selected={professional.id === professionalId} onClick={() => chooseProfessional(professional.id)} title={professional.name} detail="Profissional disponível" />)}</div>
         </Step>
         <Step number="3" title="Data e horário">
@@ -54,7 +66,7 @@ export function AppointmentEditModal({ appointment, onUpdated, onClose }: Appoin
         <div className="rounded-xl bg-background-200 p-4 text-sm text-text-700"><p><strong>Serviço:</strong> {selectedService?.name}</p><p className="mt-1"><strong>Profissional:</strong> {selectedProfessional?.name}</p><p className="mt-1"><strong>Horário:</strong> {date} às {time || 'não selecionado'}</p>{selectedService && <p className="mt-2 flex items-center gap-2"><Clock3 size={15} /> Duração de {selectedService.durationMinutes} minutos</p>}</div>
         {updateMutation.isError && <p role="alert" className="text-sm text-danger-600">{getApiErrorMessage(updateMutation.error, 'Não foi possível atualizar o agendamento.')}</p>}
       </div>
-      <div className="mt-6 flex justify-end gap-3"><button type="button" onClick={onClose} className="rounded-lg border border-background-300 px-4 py-2 text-sm font-medium text-text-700 hover:bg-background-100">Cancelar</button><button type="button" disabled={!serviceId || !professionalId || !date || !time || updateMutation.isPending} onClick={() => updateMutation.mutate()} className="primary-button disabled:cursor-not-allowed disabled:opacity-60">{updateMutation.isPending ? 'Salvando...' : 'Salvar alterações'}</button></div>
+      <div className="mt-6 flex justify-end gap-3"><button type="button" onClick={onClose} className="rounded-lg border border-background-300 px-4 py-2 text-sm font-medium text-text-700 hover:bg-background-100">Cancelar</button><button type="button" disabled={!selectedProfessional || !date || !time || updateMutation.isPending} onClick={() => selectedProfessional && updateMutation.mutate(selectedProfessional.id)} className="primary-button disabled:cursor-not-allowed disabled:opacity-60">{updateMutation.isPending ? 'Salvando...' : 'Salvar alterações'}</button></div>
     </Modal>
   )
 }

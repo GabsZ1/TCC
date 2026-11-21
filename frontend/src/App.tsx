@@ -3,12 +3,13 @@ import { lazy, Suspense } from 'react'
 import { Link, Routes, Route } from 'react-router-dom'
 import { ProtectedRoute } from '@/routes/ProtectedRoute'
 import { AppLayout } from '@/components/layout/AppLayout'
+import { InitialRegistrationPage } from '@/features/auth/pages/InitialRegistrationPage'
+import { RouteErrorBoundary } from '@/routes/RouteErrorBoundary'
 
 const LoginPage = lazy(() => import('@/features/auth/pages/LoginPage').then((module) => ({ default: module.LoginPage })))
 const ForbiddenPage = lazy(() => import('@/features/auth/pages/ForbiddenPage').then((module) => ({ default: module.ForbiddenPage })))
 const DashboardPage = lazy(() => import('@/features/dashboard/pages/DashboardPage').then((module) => ({ default: module.DashboardPage })))
 const EmployeesListPage = lazy(() => import('@/features/employees/pages/EmployeesListPage').then((module) => ({ default: module.EmployeesListPage })))
-const InitialRegistrationPage = lazy(() => import('@/features/auth/pages/InitialRegistrationPage').then((module) => ({ default: module.InitialRegistrationPage })))
 const ClientRegistrationPage = lazy(() => import('@/features/auth/pages/ClientRegistrationPage').then((module) => ({ default: module.ClientRegistrationPage })))
 const FirstAccessPage = lazy(() => import('@/features/auth/pages/FirstAccessPage').then((module) => ({ default: module.FirstAccessPage })))
 const ServicesPage = lazy(() => import('@/features/services/ServicesPage').then((module) => ({ default: module.ServicesPage })))
@@ -34,7 +35,8 @@ const CustomersPage = lazy(() => import('@/features/customers/CustomersPage').th
 /** Monta as rotas sob carregamento gradual e aplica a proteção exigida por cada área. */
 function App() {
   return (
-    <Suspense fallback={<RouteLoading />}>
+    <RouteErrorBoundary>
+      <Suspense fallback={<RouteLoading />}>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/cadastro" element={<InitialRegistrationPage />} />
@@ -90,7 +92,8 @@ function App() {
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
-    </Suspense>
+      </Suspense>
+    </RouteErrorBoundary>
   )
 }
 

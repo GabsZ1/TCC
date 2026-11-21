@@ -36,8 +36,8 @@ public class ReportPdfExporter {
     private static final Locale PT_BR = Locale.forLanguageTag("pt-BR");
 
     /** Monta o PDF de comissões com resumo e linhas do período. */
-    public byte[] commission(CommissionReportResponse report) {
-        return render("Relatório de comissões", report.periodStart(), report.periodEnd(), pdf -> {
+    public byte[] commission(CommissionReportResponse report, ReportHeader header) {
+        return render("Relatório de comissões", report.periodStart(), report.periodEnd(), header, pdf -> {
             pdf.metric("Comissão total", money(report.totalCommission()));
             pdf.section("Comissões por profissional");
             if (report.entries().isEmpty()) pdf.empty();
@@ -50,8 +50,8 @@ public class ReportPdfExporter {
     }
 
     /** Monta o PDF financeiro com totais e detalhamento disponíveis. */
-    public byte[] financial(FinancialReportResponse report) {
-        return render("Relatório financeiro", report.periodStart(), report.periodEnd(), pdf -> {
+    public byte[] financial(FinancialReportResponse report, ReportHeader header) {
+        return render("Relatório financeiro", report.periodStart(), report.periodEnd(), header, pdf -> {
             pdf.metric("Faturamento bruto", money(report.grossRevenue()));
             pdf.metric("Comissões", money(report.totalCommission()));
             pdf.metric("Valor após comissões", money(report.revenueAfterCommission()));
@@ -68,8 +68,8 @@ public class ReportPdfExporter {
     }
 
     /** Monta o PDF de agendamentos a partir dos filtros aplicados. */
-    public byte[] appointments(AppointmentsReportResponse report) {
-        return render("Agenda e comparecimento", report.periodStart(), report.periodEnd(), pdf -> {
+    public byte[] appointments(AppointmentsReportResponse report, ReportHeader header) {
+        return render("Agenda e comparecimento", report.periodStart(), report.periodEnd(), header, pdf -> {
             pdf.metric("Confirmados", String.valueOf(report.totalConfirmed()));
             pdf.metric("Concluídos", String.valueOf(report.totalCompleted()));
             pdf.metric("Cancelados", String.valueOf(report.totalCancelled()));
@@ -93,8 +93,9 @@ public class ReportPdfExporter {
     }
 
     /** Monta o PDF dos atendimentos concluídos do estabelecimento. */
-    public byte[] completed(CompletedAppointmentsResponse report, List<CompletedAppointmentEntry> entries) {
-        return render("Atendimentos realizados", report.startDate(), report.endDate(), pdf -> {
+    public byte[] completed(CompletedAppointmentsResponse report, List<CompletedAppointmentEntry> entries,
+                            ReportHeader header) {
+        return render("Atendimentos realizados", report.startDate(), report.endDate(), header, pdf -> {
             pdf.metric("Atendimentos finalizados", String.valueOf(report.totalElements()));
             pdf.metric("Valor total", money(report.totalServiceValue()));
             pdf.metric("Total de comissões", money(report.totalCommission()));
@@ -115,8 +116,8 @@ public class ReportPdfExporter {
                 + money(line.commission()) + "  |  Ticket médio: " + money(line.averageTicket()), money(line.revenue()));
     }
 
-    private byte[] render(String title, LocalDate start, LocalDate end, PdfContent content) {
-        try (ReportDocument pdf = new ReportDocument(title, start, end)) {
+    private byte[] render(String title, LocalDate start, LocalDate end, ReportHeader header, PdfContent content) {
+        try (ReportDocument pdf = new ReportDocument(title, start, end, header)) {
             content.write(pdf);
             return pdf.bytes();
         } catch (IOException error) {
@@ -143,24 +144,29 @@ public class ReportPdfExporter {
     private interface PdfContent { void write(ReportDocument pdf) throws IOException; }
 
     private static final class ReportDocument implements AutoCloseable {
-        private static final float MARGIN = 42;
+        private static final float MARGIN = 32;
         private static final float WIDTH = PDRectangle.A4.getWidth() - 2 * MARGIN;
-        private static final float BOTTOM = 55;
-        private static final Color NAVY = new Color(25, 43, 75);
-        private static final Color MUTED = new Color(86, 99, 118);
-        private static final Color LIGHT = new Color(230, 235, 242);
+        private static final float BOTTOM = 40;
+        private static final Color INK = new Color(35, 42, 51);
+        private static final Color MUTED = new Color(91, 99, 109);
+        private static final Color LIGHT = new Color(215, 219, 224);
         private final PDDocument document = new PDDocument();
         private final PDFont regular = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
         private final PDFont bold = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
         private final String title;
         private final String period;
+        private final ReportHeader header;
+        private final List<Metric> metrics = new ArrayList<>();
         private PDPageContentStream stream;
         private float y;
 
-        ReportDocument(String title, LocalDate start, LocalDate end) throws IOException {
+        private record Metric(String label, String value) {}
+
+        ReportDocument(String title, LocalDate start, LocalDate end, ReportHeader header) throws IOException {
             this.title = title;
             this.period = start == null || end == null ? "Período: todo o histórico"
                     : "Período: " + DATE.format(start) + " a " + DATE.format(end);
+            this.header = header;
             newPage();
         }
 
@@ -169,12 +175,19 @@ public class ReportPdfExporter {
             PDPage page = new PDPage(PDRectangle.A4);
             document.addPage(page);
             stream = new PDPageContentStream(document, page);
-            stream.setNonStrokingColor(NAVY);
-            stream.addRect(0, PDRectangle.A4.getHeight() - 104, PDRectangle.A4.getWidth(), 104);
-            stream.fill();
-            text(title, MARGIN, PDRectangle.A4.getHeight() - 55, bold, 18, Color.WHITE);
-            text(period, MARGIN, PDRectangle.A4.getHeight() - 77, regular, 10, Color.WHITE);
-            y = PDRectangle.A4.getHeight() - 132;
+            text(title, MARGIN, PDRectangle.A4.getHeight() - 34, bold, 14, INK);
+            text(period, MARGIN, PDRectangle.A4.getHeight() - 50, regular, 9, MUTED);
+            float headerY = PDRectangle.A4.getHeight() - 65;
+            for (String line : wrap("Estabelecimento: " + header.establishmentName(), regular, 9, WIDTH)) {
+                text(line, MARGIN, headerY, regular, 9, INK);
+                headerY -= 11;
+            }
+            for (String line : wrap("Emitido por: " + header.issuedBy(), regular, 9, WIDTH)) {
+                text(line, MARGIN, headerY, regular, 9, INK);
+                headerY -= 11;
+            }
+            rule(headerY + 1);
+            y = headerY - 13;
         }
 
         private void ensure(float height) throws IOException {
@@ -182,41 +195,57 @@ public class ReportPdfExporter {
         }
 
         void metric(String label, String value) throws IOException {
-            ensure(31);
-            text(label, MARGIN, y, regular, 10, MUTED);
-            text(value, MARGIN + WIDTH - width(value, bold, 11), y, bold, 11, NAVY);
-            rule(y - 10);
-            y -= 31;
+            metrics.add(new Metric(label, value));
+        }
+
+        private void flushMetrics() throws IOException {
+            for (int index = 0; index < metrics.size(); index += 2) {
+                ensure(29);
+                for (int column = 0; column < 2 && index + column < metrics.size(); column++) {
+                    Metric metric = metrics.get(index + column);
+                    float x = MARGIN + column * (WIDTH / 2 + 5);
+                    text(metric.label(), x, y, regular, 8, MUTED);
+                    text(metric.value(), x, y - 13, bold, 10, INK);
+                }
+                y -= 29;
+            }
+            if (!metrics.isEmpty()) {
+                rule(y + 6);
+                metrics.clear();
+            }
         }
 
         void section(String heading) throws IOException {
-            ensure(44);
-            y -= 15;
-            text(heading, MARGIN, y, bold, 13, NAVY);
-            y -= 23;
+            flushMetrics();
+            ensure(31);
+            y -= 11;
+            text(heading, MARGIN, y, bold, 10, INK);
+            y -= 19;
         }
 
         void row(String name, String detail, String amount) throws IOException {
-            float amountWidth = Math.min(130, width(amount, bold, 10) + 8);
-            List<String> nameLines = wrap(name, bold, 10, WIDTH - amountWidth - 18);
-            List<String> detailLines = wrap(detail, regular, 9, WIDTH);
-            float height = 13 + 13 * nameLines.size() + 12 * detailLines.size() + 9;
+            flushMetrics();
+            float amountWidth = Math.min(130, width(amount, bold, 9) + 8);
+            List<String> nameLines = wrap(name, bold, 9, WIDTH - amountWidth - 12);
+            List<String> detailLines = wrap(detail, regular, 8, WIDTH - 8);
+            float height = 9 + 11 * nameLines.size() + 10 * detailLines.size() + 3;
             ensure(height);
-            float lineY = y - 13;
-            for (String line : nameLines) { text(line, MARGIN + 8, lineY, bold, 10, NAVY); lineY -= 13; }
-            text(amount, MARGIN + WIDTH - width(amount, bold, 10), y - 13, bold, 10, NAVY);
-            for (String line : detailLines) { text(line, MARGIN + 8, lineY, regular, 9, MUTED); lineY -= 12; }
-            rule(y - height + 5);
+            float lineY = y - 9;
+            for (String line : nameLines) { text(line, MARGIN + 4, lineY, bold, 9, INK); lineY -= 11; }
+            text(amount, MARGIN + WIDTH - width(amount, bold, 9), y - 9, bold, 9, INK);
+            for (String line : detailLines) { text(line, MARGIN + 4, lineY, regular, 8, MUTED); lineY -= 10; }
+            rule(y - height + 2);
             y -= height;
         }
 
         void empty() throws IOException { note("Nenhum dado encontrado para os filtros selecionados."); }
 
         void note(String value) throws IOException {
-            List<String> lines = wrap(value, regular, 9, WIDTH);
-            ensure(lines.size() * 12 + 16);
-            y -= 8;
-            for (String line : lines) { text(line, MARGIN, y, regular, 9, MUTED); y -= 12; }
+            flushMetrics();
+            List<String> lines = wrap(value, regular, 8, WIDTH);
+            ensure(lines.size() * 10 + 8);
+            y -= 5;
+            for (String line : lines) { text(line, MARGIN, y, regular, 8, MUTED); y -= 10; }
         }
 
         private List<String> wrap(String value, PDFont font, float size, float maxWidth) throws IOException {
@@ -273,6 +302,7 @@ public class ReportPdfExporter {
         }
 
         byte[] bytes() throws IOException {
+            flushMetrics();
             stream.close();
             stream = null;
             int total = document.getNumberOfPages();
@@ -280,9 +310,9 @@ public class ReportPdfExporter {
                 try (PDPageContentStream footer = new PDPageContentStream(document, document.getPage(index),
                         PDPageContentStream.AppendMode.APPEND, true, true)) {
                     footer.beginText();
-                    footer.setFont(regular, 9);
+                    footer.setFont(regular, 8);
                     footer.setNonStrokingColor(MUTED);
-                    footer.newLineAtOffset(MARGIN, 30);
+                    footer.newLineAtOffset(MARGIN, 23);
                     footer.showText("Meu Espaço  |  " + (index + 1) + " / " + total);
                     footer.endText();
                 }

@@ -3,6 +3,8 @@ package br.com.salonhub.controller;
 import br.com.salonhub.dto.commission.CommissionReportResponse;
 import br.com.salonhub.service.report.CommissionReportService;
 import br.com.salonhub.service.report.ReportPdfExporter;
+import br.com.salonhub.service.report.ReportHeader;
+import br.com.salonhub.service.report.ReportHeaderService;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -22,19 +24,23 @@ class EstablishmentPdfControllerTests {
     void downloadsPdfWithSameFiltersAsReport() {
         CommissionReportService service = mock(CommissionReportService.class);
         ReportPdfExporter exporter = mock(ReportPdfExporter.class);
+        ReportHeaderService headerService = mock(ReportHeaderService.class);
+        ReportHeader header = new ReportHeader("Salão Primavera", "Ana Souza");
         LocalDate start = LocalDate.of(2026, 9, 1);
         LocalDate end = LocalDate.of(2026, 9, 30);
         CommissionReportResponse report = new CommissionReportResponse(start, end, List.of(), BigDecimal.ZERO);
         when(service.getReport(7L, start, end, 11L)).thenReturn(report);
-        when(exporter.commission(report)).thenReturn("%PDF-test".getBytes());
+        when(headerService.forAdministrator(7L)).thenReturn(header);
+        when(exporter.commission(report, header)).thenReturn("%PDF-test".getBytes());
         Jwt jwt = mock(Jwt.class);
         when(jwt.getSubject()).thenReturn("7");
         EstablishmentController controller = new EstablishmentController(
-                null, null, null, service, null, null, null, null, exporter);
+                null, null, null, service, null, null, null, null, exporter, headerService);
 
         var response = controller.commissionReportPdf(jwt, start, end, 11L);
 
         verify(service).getReport(7L, start, end, 11L);
+        verify(headerService).forAdministrator(7L);
         assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_PDF);
         assertThat(response.getHeaders().getContentDisposition().getFilename())
                 .isEqualTo("relatorio-comissoes_2026-09-01_2026-09-30.pdf");
