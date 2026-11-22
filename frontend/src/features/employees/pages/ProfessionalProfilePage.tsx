@@ -113,7 +113,6 @@ export function ProfessionalProfilePage() {
             <div className="flex flex-col gap-3 border-b border-background-300 bg-background-100/60 p-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-text-900">Contato</h2>
-                <p className="text-sm text-text-600">Você mesmo pode atualizar estes dados.</p>
               </div>
               {!form && <button type="button" className="secondary-button w-full sm:w-auto" onClick={() => startEditing(current)}><Pencil size={15} /> Editar</button>}
             </div>
@@ -158,7 +157,6 @@ export function ProfessionalProfilePage() {
               <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary-50 text-primary-700"><KeyRound size={18} /></span>
               <div>
                 <h2 className="font-semibold text-text-900">Senha</h2>
-                <p className="text-sm text-text-600">Para trocar a senha, informe a senha atual e a nova.</p>
               </div>
             </div>
             <Link to="/alterar-senha" className="secondary-button shrink-0">Alterar senha</Link>

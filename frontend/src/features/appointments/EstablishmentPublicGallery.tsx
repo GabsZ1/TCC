@@ -46,7 +46,6 @@ export function EstablishmentPublicGallery({ establishmentId, establishmentName 
           <GalleryPhotoImage establishmentId={establishmentId} photoId={photo.id} lazy alt="" className="aspect-[4/3] w-full object-cover" />
         </button>)}
       </div>}
-      {photos.length > 1 && <p className="mt-1 text-xs text-text-500 sm:hidden">Deslize a foto ou toque nas miniaturas para navegar.</p>}
     </section>
   )
 }

@@ -147,7 +147,6 @@ export function ClientProfilePage() {
               <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary-50 text-primary-700"><KeyRound size={18} /></span>
               <div>
                 <h2 className="font-semibold text-text-900">Senha</h2>
-                <p className="text-sm text-text-600">Para trocar a senha, informe a senha atual e a nova.</p>
               </div>
             </div>
             <Link to="/alterar-senha" className="secondary-button shrink-0">Alterar senha</Link>

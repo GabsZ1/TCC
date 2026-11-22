@@ -58,7 +58,6 @@ export function EstablishmentDetailsModal({ establishmentId, establishmentName, 
               <p className="mt-3 text-sm leading-6 text-text-600">{address || 'Endereço ainda não informado.'}</p>
               {profile.postalCode && <p className="mt-1 text-xs text-text-500">CEP {formatPostalCode(profile.postalCode)}</p>}
               {mapsUrl && <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="secondary-button mt-4 min-h-11 w-full justify-center"><MapPin size={16} /> Abrir no Google Maps</a>}
-              {!mapsUrl && <p className="mt-4 rounded-xl bg-background-100 px-4 py-3 text-xs leading-5 text-text-500">O link do mapa estará disponível quando o endereço for informado.</p>}
             </section>
 
             <section className="rounded-2xl border border-background-300 p-4 sm:p-5">

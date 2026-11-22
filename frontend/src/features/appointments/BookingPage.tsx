@@ -102,7 +102,7 @@ export function BookingPage() {
           </BookingStep>
 
           <BookingStep number="03" title="Data e horário" subtitle="Escolha uma data e depois um dos horários livres.">
-            <input type="date" min={businessToday()} max={establishment ? addBusinessDays(businessToday(), establishment.maximumAdvanceDays) : undefined} value={date} onChange={(event) => { setDate(event.target.value); setTime(null) }} className="field-control mt-0 max-w-xs" />
+            <input type="date" aria-label="Data do atendimento" min={businessToday()} max={establishment ? addBusinessDays(businessToday(), establishment.maximumAdvanceDays) : undefined} value={date} onChange={(event) => { setDate(event.target.value); setTime(null) }} className="field-control mt-0 max-w-xs" />
             {establishment && <p className="mt-2 text-xs leading-5 text-text-500">Reservas permitidas entre {establishment.minimumAdvanceHours}h e {establishment.maximumAdvanceDays} dias de antecedência.</p>}
             <div className="mt-5 flex flex-wrap gap-2">
               {availability.isFetching && <Hint>Buscando horários...</Hint>}

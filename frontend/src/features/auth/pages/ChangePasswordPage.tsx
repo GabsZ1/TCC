@@ -74,7 +74,6 @@ export function ChangePasswordPage() {
           <span className="grid size-10 place-items-center rounded-xl bg-primary-50 text-primary-700"><KeyRound size={19} /></span>
           <div>
             <h2 className="text-lg font-semibold text-text-900">Credenciais de acesso</h2>
-            <p className="text-sm text-text-600">Depois de salvar, a senha antiga deixa de funcionar.</p>
           </div>
         </div>
 

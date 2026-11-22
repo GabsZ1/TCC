@@ -15,8 +15,8 @@ const currentMonth = () => {
   const start = `${today.slice(0, 7)}-01`
   const year = Number(today.slice(0, 4))
   const month = Number(today.slice(5, 7))
-  const endYear = month >= 11 ? year + 1 : year
-  const endMonth = ((month + 1) % 12) + 1
+  const endYear = month === 12 ? year + 1 : year
+  const endMonth = (month % 12) + 1
   return { start, end: `${endYear}-${String(endMonth).padStart(2, '0')}-01` }
 }
 

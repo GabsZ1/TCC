@@ -72,7 +72,7 @@ Para explorar as telas com estabelecimentos, profissionais, clientes e agendamen
 docker compose run --rm backend --spring.profiles.active=local,seed
 ```
 
-O processo cria os dados e encerra sozinho. Exemplo de acesso: `admin@studiobella.demo` com senha `Demo@123`. O seed é opcional e foi feito para uso local; a lista de contas e as instruções de recriação estão no [guia detalhado](../instrucoes/GUIA_DETALHADO.md#dados-de-demonstração-seed).
+O processo cria os dados e encerra sozinho. Exemplo de acesso: `admin@studiobella.demo` com senha `Demo@123`. O seed é opcional e foi feito para uso local; a lista de contas e as instruções de recriação estão no [guia detalhado](../instrucoes/guia-detalhado-do-salonhub.md#dados-de-demonstração-seed).
 
 ## 🧱 Arquitetura
 
@@ -101,16 +101,16 @@ Os padrões locais permitem iniciar o projeto sem criar um `.env`. O Compose con
 | `JWT_SECRET` | Assinatura dos tokens | Consulte a configuração do perfil local |
 | `MAIL_HOST`, `MAIL_PORT`, `MAIL_FROM` | Envio de e-mail | Mailpit em `localhost:1025` |
 | `MAIL_BRAND_NAME` | Nome do produto nos e-mails | `Meu Espaço` |
-| `REMINDERS_ENABLED`, `REMINDERS_INTERVAL_MS` | Lembrete por e-mail 24 h antes do agendamento ([detalhes](../instrucoes/GUIA_DETALHADO.md#notificações-por-e-mail)) | Ligado, verificado a cada 10 min |
+| `REMINDERS_ENABLED`, `REMINDERS_INTERVAL_MS` | Lembrete por e-mail 24 h antes do agendamento ([detalhes](../instrucoes/guia-detalhado-do-salonhub.md#notificações-por-e-mail)) | Ligado, verificado a cada 10 min |
 | `FRONTEND_URL` | Links enviados por e-mail | `http://localhost:5173` |
 | `STORAGE_TYPE`, `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET` | Armazenamento de imagens | SeaweedFS em `localhost:8333` |
 | `SYSTEM_ADMIN_NAME`, `SYSTEM_ADMIN_EMAIL`, `SYSTEM_ADMIN_PASSWORD` | Criação inicial do administrador da plataforma | Não definido |
 | `CORS_ALLOWED_ORIGINS` | Origens permitidas pelo backend; no perfil local, `localhost:5173` e `127.0.0.1:5173` já são aceitos | Padrão local |
-| `RATE_LIMIT_ENABLED`, `LOGIN_MAX_FAILURES_PER_EMAIL`, `LOGIN_MAX_FAILURES_PER_IP`, `LOGIN_BLOCK_MINUTES`, `PUBLIC_FORMS_MAX_REQUESTS_PER_IP` | Proteção contra tentativas repetidas no login e nos formulários públicos ([detalhes](../instrucoes/GUIA_DETALHADO.md#proteção-contra-tentativas-repetidas)) | Ligada: 5 erros por e-mail, 20 por IP, bloqueio de 15 min, 10 cadastros/hora por IP |
+| `RATE_LIMIT_ENABLED`, `LOGIN_MAX_FAILURES_PER_EMAIL`, `LOGIN_MAX_FAILURES_PER_IP`, `LOGIN_BLOCK_MINUTES`, `PUBLIC_FORMS_MAX_REQUESTS_PER_IP` | Proteção contra tentativas repetidas no login e nos formulários públicos ([detalhes](../instrucoes/guia-detalhado-do-salonhub.md#proteção-contra-tentativas-repetidas)) | Ligada: 5 erros por e-mail, 20 por IP, bloqueio de 15 min, 10 cadastros/hora por IP |
 | `GEOAPIFY_API_KEY` | Opcional: tenta localizar o estabelecimento pelo endereço completo | Não definido |
 | `PHOTON_BASE_URL` | Servidor Photon para localizar o logradouro do CEP | `https://photon.komoot.io` |
 
-As opções completas estão em [`application.properties`](backend/src/main/resources/application.properties), nos arquivos de perfil em `backend/src/main/resources` e no [guia detalhado](../instrucoes/GUIA_DETALHADO.md#como-executar). O frontend inclui um [exemplo de ambiente](frontend/.env.example); ele é opcional para o fluxo local com proxy do Vite.
+As opções completas estão em [`application.properties`](backend/src/main/resources/application.properties), nos arquivos de perfil em `backend/src/main/resources` e no [guia detalhado](../instrucoes/guia-detalhado-do-salonhub.md#como-executar). O frontend inclui um [exemplo de ambiente](frontend/.env.example); ele é opcional para o fluxo local com proxy do Vite.
 
 Para calcular latitude e longitude automaticamente, preencha CEP, rua, número, cidade e UF e salve o perfil. Com `GEOAPIFY_API_KEY`, o backend tenta localizar pelo endereço completo primeiro. Como alternativa, identifica a rua pela BrasilAPI e procura um ponto dessa rua no Photon, com dados do [OpenStreetMap](https://www.openstreetmap.org/copyright). A correspondência exige rua, cidade e UF e dá preferência ao mesmo CEP quando disponível. O ponto pode representar outro trecho da mesma rua. As coordenadas ficam em `establishment_profiles.latitude` e `establishment_profiles.longitude` (migration V28). Uma alteração no endereço recalcula o ponto, e salvar novamente um perfil sem coordenadas tenta preenchê-las.
 
@@ -136,8 +136,8 @@ No Windows, substitua `./mvnw` por `.\mvnw.cmd`. A [CI](.github/workflows/ci.yml
 
 ## 📚 Documentação
 
-- [Guia detalhado](../instrucoes/GUIA_DETALHADO.md) — fluxos, endpoints, autenticação, seed e regras de negócio.
-- [Notas de design](../instrucoes/DESIGN_NOTES.md) — decisões visuais da interface.
+- [Guia detalhado](../instrucoes/guia-detalhado-do-salonhub.md) — fluxos, endpoints, autenticação, seed e regras de negócio.
+- [Notas de design](../instrucoes/notas-de-design.md) — decisões visuais da interface.
 - [Swagger UI](http://localhost:8080/swagger-ui.html) — referência interativa da API com o backend em execução.
 
 ## 📂 Estrutura do repositório

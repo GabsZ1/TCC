@@ -118,7 +118,6 @@ export function CustomersPage() {
           </section>
           {user?.role === 'ADMIN' && (duplicates.data?.length || duplicates.isError) && <section className="surface-card p-5">
             <h2 className="font-semibold">Possíveis cadastros duplicados</h2>
-            <p className="mt-1 text-sm text-text-600">Compare os dados e históricos antes de decidir.</p>
             {duplicates.isError && <p role="alert" className="mt-3 text-sm text-danger-600">{getApiErrorMessage(duplicates.error, 'Não foi possível consultar possíveis duplicidades.')}</p>}
             {duplicates.data?.map((candidate) => <div key={candidate.id} className="mt-3 border-t border-background-300 pt-3 text-sm">
               <strong>{candidate.name}</strong><p className="text-text-600">{candidate.phone ? formatPhone(candidate.phone) : 'Sem telefone'}{candidate.email ? ` · ${candidate.email}` : ''}</p>

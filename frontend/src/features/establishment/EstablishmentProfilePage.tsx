@@ -171,8 +171,6 @@ export function EstablishmentProfilePage() {
 
           <section className="surface-card p-5 sm:p-6">
             <EstablishmentSectionHeader icon={<MapPin size={20} />} title="Endereço" description="Informe o endereço exibido no perfil público e usado na busca por proximidade." />
-            <p className="mt-2 text-sm text-text-600">Ao salvar, o sistema tenta localizar o endereço. Sem um serviço de geocodificação configurado, usa as coordenadas aproximadas do CEP quando disponíveis.</p>
-            {profile?.locationAvailable && <p className="mt-2 text-xs font-medium text-success-700">Localização salva no banco de dados.</p>}
             <div className="mt-4 grid gap-5 sm:grid-cols-6">
               <ProfileField label="CEP" value={formatCep(currentForm.postalCode)} onChange={changePostalCode} maxLength={9} placeholder="00000-000" inputMode="numeric" className="sm:col-span-2" hint={cepStatus?.text ?? 'Digite o CEP para preencher o endereço.'} hintTone={cepStatus?.tone} />
               <ProfileField label="Logradouro" value={currentForm.street} onChange={(value) => updateField('street', value)} maxLength={150} placeholder="Rua, avenida..." className="sm:col-span-4" />

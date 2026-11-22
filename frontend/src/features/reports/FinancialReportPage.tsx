@@ -132,7 +132,6 @@ export function FinancialReportPage() {
             <SummaryCard icon={CalendarCheck} label="Atendimentos concluídos" value={String(data.completedCount)} bordered />
             <SummaryCard icon={Receipt} label="Ticket médio" value={formatMoney(data.averageTicket)} bordered />
           </section>
-          <p className="mt-2 text-xs text-text-500">"Valor após comissões" não é lucro: despesas como aluguel, produtos e impostos não entram no sistema.</p>
 
           {data.completedCount === 0
             ? <StateCard>Nenhum atendimento concluído encontrado para os filtros selecionados.</StateCard>
