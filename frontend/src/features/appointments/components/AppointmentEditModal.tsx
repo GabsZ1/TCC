@@ -4,7 +4,7 @@ import { skipToken, useMutation, useQuery } from '@tanstack/react-query'
 import { Clock3 } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
 import { getApiErrorMessage } from '@/lib/apiError'
-import { fetchAvailability, fetchCatalogProfessionals, fetchCatalogServices, updateAppointment, type Appointment } from '@/features/appointments/appointmentsApi'
+import { fetchAvailability, fetchCatalogProfessionals, fetchCatalogServices, updateAppointment, type Appointment } from '@/features/appointments/api/appointmentsApi'
 import { businessToday } from '@/lib/dateTime'
 
 interface AppointmentEditModalProps {

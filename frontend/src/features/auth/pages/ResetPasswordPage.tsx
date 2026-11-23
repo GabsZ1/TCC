@@ -5,8 +5,8 @@ import { ArrowRight, KeyRound, TriangleAlert } from 'lucide-react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { AuthShell } from '@/features/auth/components/AuthShell'
 import { CriterionItem, PasswordField } from '@/features/auth/components/PasswordFields'
-import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, recommendedCriteria } from '@/features/auth/passwordPolicy'
-import { resetPassword, validatePasswordResetToken } from '@/features/auth/services/authApi'
+import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, recommendedCriteria } from '@/features/auth/domain/passwordPolicy'
+import { resetPassword, validatePasswordResetToken } from '@/features/auth/api/authApi'
 import { getApiErrorMessage } from '@/lib/apiError'
 
 /**

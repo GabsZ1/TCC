@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { Modal } from '@/components/ui/Modal'
 import { getApiErrorMessage } from '@/lib/apiError'
-import { cancelAppointmentAsAdministrator, type Appointment } from '@/features/appointments/appointmentsApi'
+import { cancelAppointmentAsAdministrator, type Appointment } from '@/features/appointments/api/appointmentsApi'
 
 interface AdminCancelAppointmentModalProps {
   appointment: Appointment

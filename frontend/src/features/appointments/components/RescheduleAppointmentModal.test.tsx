@@ -4,7 +4,7 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { RescheduleAppointmentModal } from './RescheduleAppointmentModal'
-import type { Appointment } from '../appointmentsApi'
+import type { Appointment } from '../api/appointmentsApi'
 
 const appointment: Appointment = {
   id: 1, establishmentId: 1, establishmentName: 'Salão', serviceId: 5, serviceName: 'Corte',

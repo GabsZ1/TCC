@@ -1,7 +1,7 @@
 /** Restringe rotas conforme a autenticação e o papel exigido pela página. */
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
-import { useAuth } from '@/hooks/useAuth'
-import type { UserRole } from '@/types/auth'
+import { useAuth } from '@/features/auth/session/useAuth'
+import type { UserRole } from '@/features/auth/session/types'
 
 interface ProtectedRouteProps {
   /** Se informado, restringe o acesso a esses perfis. */

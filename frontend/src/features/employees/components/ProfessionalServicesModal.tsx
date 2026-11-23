@@ -3,8 +3,8 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, Layers3 } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
-import { fetchServices, type SalonService } from '@/features/services/servicesApi'
-import { fetchEmployeeServices, updateEmployeeServices, type Employee, type ProfessionalServices } from '@/features/employees/services/employeesApi'
+import { fetchServices, type SalonService } from '@/features/catalog/api/servicesApi'
+import { fetchEmployeeServices, updateEmployeeServices, type Employee, type ProfessionalServices } from '@/features/employees/api/employeesApi'
 import { getApiErrorMessage } from '@/lib/apiError'
 
 /** Consulta os serviços disponíveis antes de abrir a seleção para o profissional. */

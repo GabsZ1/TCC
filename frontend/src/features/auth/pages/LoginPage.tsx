@@ -4,9 +4,9 @@ import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from 'lucide-react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import axios from 'axios'
 import { AuthShell } from '@/features/auth/components/AuthShell'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth } from '@/features/auth/session/useAuth'
 import { getApiErrorMessage } from '@/lib/apiError'
-import { postLoginPath } from '@/features/auth/postLoginPath'
+import { postLoginPath } from '@/features/auth/domain/postLoginPath'
 import { REDIRECT_PARAM, SESSION_ENDED_PARAM, SESSION_ENDED_VALUE } from '@/lib/session'
 
 /** Exibe o formulário e informa quando a sessão anterior expirou ou foi encerrada. */

@@ -16,7 +16,7 @@ import {
   type Employee,
   type EmployeeCreateInput,
   type EmployeeUpdateInput,
-} from '@/features/employees/services/employeesApi'
+} from '@/features/employees/api/employeesApi'
 import { EmployeeFormModal } from '@/features/employees/components/EmployeeFormModal'
 import { EmployeeAvatar } from '@/features/employees/components/EmployeeAvatar'
 import { EmployeeDetailsModal } from '@/features/employees/components/EmployeeDetailsModal'

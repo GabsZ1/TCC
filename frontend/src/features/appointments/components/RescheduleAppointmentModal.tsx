@@ -3,8 +3,8 @@ import { useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Modal } from '@/components/ui/Modal'
 import { getApiErrorMessage } from '@/lib/apiError'
-import { fetchBookingOptions, fetchInternalAvailability } from '@/features/customers/customersApi'
-import { rescheduleAppointment, type Appointment } from '@/features/appointments/appointmentsApi'
+import { fetchBookingOptions, fetchInternalAvailability } from '@/features/customers/api/customersApi'
+import { rescheduleAppointment, type Appointment } from '@/features/appointments/api/appointmentsApi'
 import { businessToday } from '@/lib/dateTime'
 
 interface Props { appointment: Appointment; onRescheduled: () => void; onClose: () => void }

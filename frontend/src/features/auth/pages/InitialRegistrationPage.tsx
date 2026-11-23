@@ -4,7 +4,7 @@ import { ArrowRight, Building2, UserRound } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { IMaskInput } from 'react-imask'
 import { AuthShell } from '@/features/auth/components/AuthShell'
-import { registerInitial } from '@/features/auth/services/authApi'
+import { registerInitial } from '@/features/auth/api/authApi'
 import { getApiErrorMessage } from '@/lib/apiError'
 import { PHONE_MASK } from '@/lib/phone'
 

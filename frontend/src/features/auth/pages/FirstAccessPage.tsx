@@ -3,7 +3,7 @@ import { useState, type FormEvent } from 'react'
 import { ArrowRight, CheckCircle2, KeyRound } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { AuthShell } from '@/features/auth/components/AuthShell'
-import { completeFirstAccess } from '@/features/auth/services/authApi'
+import { completeFirstAccess } from '@/features/auth/api/authApi'
 import { getApiErrorMessage } from '@/lib/apiError'
 
 /** Usa o convite recebido para definir a primeira senha do funcionário. */

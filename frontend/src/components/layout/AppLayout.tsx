@@ -21,7 +21,7 @@ import {
   X,
 } from 'lucide-react'
 import { Brand } from '@/components/brand/Brand'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth } from '@/features/auth/session/useAuth'
 
 type NavGroup = 'Agenda' | 'Cadastros' | 'Relatórios' | 'Estabelecimento' | 'Conta'
 

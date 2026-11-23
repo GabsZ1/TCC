@@ -4,7 +4,7 @@ import { useMutation } from '@tanstack/react-query'
 import { ArrowLeft, MailCheck, Mail } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import { AuthShell } from '@/features/auth/components/AuthShell'
-import { requestPasswordReset } from '@/features/auth/services/authApi'
+import { requestPasswordReset } from '@/features/auth/api/authApi'
 import { getApiErrorMessage } from '@/lib/apiError'
 
 /**

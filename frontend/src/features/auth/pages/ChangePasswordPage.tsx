@@ -2,7 +2,7 @@
 import { useState, type FormEvent } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { CheckCircle2, KeyRound, ShieldCheck } from 'lucide-react'
-import { changePassword } from '@/features/auth/services/authApi'
+import { changePassword } from '@/features/auth/api/authApi'
 import { getApiErrorMessage } from '@/lib/apiError'
 import { setStoredToken } from '@/lib/api'
 import { CriterionItem, PasswordField } from '@/features/auth/components/PasswordFields'
@@ -10,7 +10,7 @@ import {
   PASSWORD_MAX_LENGTH as MAX_LENGTH,
   PASSWORD_MIN_LENGTH as MIN_LENGTH,
   recommendedCriteria,
-} from '@/features/auth/passwordPolicy'
+} from '@/features/auth/domain/passwordPolicy'
 
 /**
  * US 2.19 — Alterar senha. Disponível para todos os perfis autenticados.

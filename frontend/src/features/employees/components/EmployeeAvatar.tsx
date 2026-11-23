@@ -1,7 +1,7 @@
 /** Exibe a foto do funcionário com uma alternativa visual quando ela não existe. */
 import { useQuery } from '@tanstack/react-query'
-import { fetchEmployeePhoto } from '@/features/employees/services/employeesApi'
-import { fetchCatalogProfessionalPhoto } from '@/features/appointments/appointmentsApi'
+import { fetchEmployeePhoto } from '@/features/employees/api/employeesApi'
+import { fetchCatalogProfessionalPhoto } from '@/features/appointments/api/appointmentsApi'
 
 interface Props {
   id: number

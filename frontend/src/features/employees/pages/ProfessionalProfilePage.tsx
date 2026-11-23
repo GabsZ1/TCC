@@ -14,8 +14,8 @@ import {
   uploadMyPhoto,
   type Employee,
   type EmployeeSelfProfileInput,
-} from '@/features/employees/services/employeesApi'
-import { useAuth } from '@/hooks/useAuth'
+} from '@/features/employees/api/employeesApi'
+import { useAuth } from '@/features/auth/session/useAuth'
 import { getApiErrorMessage } from '@/lib/apiError'
 import { formatCpf } from '@/lib/cpf'
 import { formatDate } from '@/lib/format'

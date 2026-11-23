@@ -11,10 +11,10 @@ import {
   Scissors,
   Wallet,
 } from 'lucide-react'
-import { useAuth } from '@/hooks/useAuth'
-import { fetchDashboardSummary } from '@/features/dashboard/dashboardApi'
+import { useAuth } from '@/features/auth/session/useAuth'
+import { fetchDashboardSummary } from '@/features/dashboard/api/dashboardApi'
 import { getApiErrorMessage } from '@/lib/apiError'
-import { fetchNextClientAppointment, fetchProfessionalToday, type Appointment } from '@/features/appointments/appointmentsApi'
+import { fetchNextClientAppointment, fetchProfessionalToday, type Appointment } from '@/features/appointments/api/appointmentsApi'
 import { businessToday, formatBusinessDateWithWeekday } from '@/lib/dateTime'
 
 /** Consulta somente os dados do papel autenticado e escolhe a página inicial correspondente. */

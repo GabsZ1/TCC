@@ -6,10 +6,10 @@ import { IMaskInput } from 'react-imask'
 import { z } from 'zod'
 import { Lock, TriangleAlert } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
-import type { Employee, EmployeeCreateInput, EmployeeUpdateInput } from '@/features/employees/services/employeesApi'
+import type { Employee, EmployeeCreateInput, EmployeeUpdateInput } from '@/features/employees/api/employeesApi'
 import { cpfDigits, formatCpf, isValidCpf } from '@/lib/cpf'
 import { formatDate, todayIso } from '@/lib/format'
-import { OCCUPATION_SUGGESTIONS } from '@/features/employees/occupations'
+import { OCCUPATION_SUGGESTIONS } from '@/features/employees/domain/occupations'
 
 const cpfField = z.string().trim().refine((value) => value === '' || isValidCpf(value), 'CPF inválido')
 const hireDateField = z.string().refine((value) => value === '' || value <= todayIso(), 'A data de admissão não pode ser futura')

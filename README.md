@@ -1,155 +1,68 @@
-# SalonHub
+# Meu Espaço
 
-<p align="center">
-  <strong>Gestão de salões, barbearias e espaços de estética em um só lugar.</strong><br>
-  Agendamentos, equipe, clientes e indicadores para quem atende e para quem administra.
-</p>
+Meu Espaço é um sistema de agendamento e gestão para salões, barbearias e espaços de estética, desenvolvido como trabalho de conclusão de curso.
 
-<p align="center">
-  <a href="#-comece-em-poucos-minutos">Começar</a> ·
-  <a href="#-o-que-o-sistema-faz">Funcionalidades</a> ·
-  <a href="#-arquitetura">Arquitetura</a> ·
-  <a href="#-documentação">Documentação</a>
-</p>
+O cliente pode consultar os serviços e horários disponíveis, escolher um profissional e marcar um atendimento. Também pode informar o CEP para ordenar os estabelecimentos por proximidade e consultar o endereço e as fotos de cada local.
 
----
+A equipe acompanha a agenda e registra atendimentos concluídos e faltas. Quem administra o estabelecimento pode cadastrar serviços, organizar os horários da equipe, bloquear períodos da agenda e consultar relatórios de atendimentos, financeiro e comissões. A administração da plataforma tem acesso a um painel para acompanhar a situação dos estabelecimentos cadastrados.
 
-## ✨ O que o sistema faz
+## Como rodar
 
-O **SalonHub** é uma aplicação web para estabelecimentos de beleza e seus clientes. Cada estabelecimento administra seus próprios dados, enquanto clientes podem descobrir serviços e marcar horários em diferentes locais.
-
-| Para quem | Recursos principais |
-| --- | --- |
-| **Clientes** | Cadastro, busca de estabelecimentos, consulta de serviços e profissionais, agendamento e gestão do próprio perfil. |
-| **Administradores** | Gestão de equipe, serviços e horários; agenda; acompanhamento de atendimentos, relatórios e comissões. |
-| **Profissionais** | Agenda própria, perfil, atendimentos realizados e registro de conclusão ou falta. |
-| **Administração da plataforma** | Acompanhamento dos estabelecimentos e controle dos seus estados operacionais. |
-
-O fluxo inclui autenticação por JWT, recuperação de senha por e-mail, fotos de profissionais, controle de disponibilidade e isolamento de dados entre estabelecimentos.
-
-## 🚀 Comece em poucos minutos
-
-### Pré-requisitos
-
-- Docker com Compose
-
-Na raiz do repositório, execute:
+Com Docker e Compose instalados, execute na raiz do repositório:
 
 ```bash
 docker compose up --build -d
 ```
 
-O comando cria as imagens da API e da interface e sobe também PostgreSQL, Mailpit e SeaweedFS. Acesse **[http://localhost:5173](http://localhost:5173)**. O frontend encaminha `/api/*` para o backend na rede Docker. As migrations são aplicadas na inicialização da API. Os dados do banco e as imagens persistem em volumes Docker.
+O Compose sobe a interface, a API, o PostgreSQL, o Mailpit e o SeaweedFS. O Flyway aplica as migrações do banco na inicialização da API.
 
-Para acompanhar a inicialização:
-
-```bash
-docker compose logs -f backend
-```
-
-Para parar sem apagar os dados:
-
-```bash
-docker compose down
-```
-
-Se quiser desenvolver a API e a interface fora dos contêineres, instale também Java 21 e Node.js 22. Suba só as dependências com `docker compose up -d postgres mailpit storage`, rode `./mvnw spring-boot:run` em `backend` e `npm ci && npm run dev` em `frontend`.
-
-| Serviço | Endereço local |
+| Serviço | Endereço |
 | --- | --- |
-| Aplicação | [localhost:5173](http://localhost:5173) |
-| API e Swagger UI | [localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html) |
-| Caixa de e-mails de desenvolvimento | [localhost:8025](http://localhost:8025) |
-| Navegador de arquivos | [localhost:8888](http://localhost:8888) |
+| Meu Espaço | [localhost:5173](http://localhost:5173) |
+| Swagger UI | [localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html) |
+| Mailpit (e-mails de desenvolvimento) | [localhost:8025](http://localhost:8025) |
+| SeaweedFS (navegador de arquivos) | [localhost:8888](http://localhost:8888) |
 
-> **Ambiente local:** os valores padrão de banco, armazenamento e JWT são apenas para desenvolvimento. Consulte [Configuração](#-configuração) antes de usar outro ambiente.
+Use `docker compose logs -f backend` para acompanhar a inicialização. Para parar os serviços e manter os dados do banco e as imagens nos volumes, execute `docker compose down`.
 
 ### Dados de demonstração
 
-Para explorar as telas com estabelecimentos, profissionais, clientes e agendamentos fictícios, execute uma vez após subir o Compose:
+Com o ambiente rodando, execute o comando abaixo para adicionar estabelecimentos, profissionais, clientes e agendamentos fictícios:
 
 ```bash
 docker compose run --rm backend --spring.profiles.active=local,seed
 ```
 
-O processo cria os dados e encerra sozinho. Exemplo de acesso: `admin@studiobella.demo` com senha `Demo@123`. O seed é opcional e foi feito para uso local; a lista de contas e as instruções de recriação estão no [guia detalhado](../instrucoes/guia-detalhado-do-salonhub.md#dados-de-demonstração-seed).
+As contas abaixo usam a senha `Demo@123`.
 
-## 🧱 Arquitetura
+| Perfil | E-mail |
+| --- | --- |
+| Administrador do estabelecimento | `admin@studiobella.demo` |
+| Profissional | `camila@studiobella.demo` |
+| Cliente | `maria@cliente.demo` |
 
-```text
-frontend/  React + TypeScript + Vite
-    │      interface, rotas e consumo da API
-    ▼
-backend/   Spring Boot + Spring Security + JPA
-    │      regras de negócio, JWT e OpenAPI
-    ├── PostgreSQL 16   dados e migrations Flyway
-    ├── Mailpit         e-mails no ambiente local
-    └── SeaweedFS       imagens via API compatível com S3
-```
+### Desenvolvimento local
 
-**Stack:** Java 21, Spring Boot 4.1, PostgreSQL 16, React 19, TypeScript, Vite, Tailwind CSS 4, React Router, TanStack Query, React Hook Form e Zod.
-
-O backend valida o schema do banco e usa migrations Flyway para evoluí-lo. Os arquivos de imagem ficam no armazenamento S3; o PostgreSQL guarda seus metadados. A autenticação usa JWT e as operações administrativas usam o estabelecimento associado ao usuário autenticado.
-
-## ⚙️ Configuração
-
-Os padrões locais permitem iniciar o projeto sem criar um `.env`. O Compose configura as conexões internas entre os serviços. Para alterar conexões ou integrar serviços externos na execução fora do Docker, configure as variáveis de ambiente antes de subir a API:
-
-| Variável | Uso | Padrão local |
-| --- | --- | --- |
-| `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` | Conexão PostgreSQL | `localhost:5433`, `salonhub_user`, `salonhub_pass` |
-| `JWT_SECRET` | Assinatura dos tokens | Consulte a configuração do perfil local |
-| `MAIL_HOST`, `MAIL_PORT`, `MAIL_FROM` | Envio de e-mail | Mailpit em `localhost:1025` |
-| `MAIL_BRAND_NAME` | Nome do produto nos e-mails | `Meu Espaço` |
-| `REMINDERS_ENABLED`, `REMINDERS_INTERVAL_MS` | Lembrete por e-mail 24 h antes do agendamento ([detalhes](../instrucoes/guia-detalhado-do-salonhub.md#notificações-por-e-mail)) | Ligado, verificado a cada 10 min |
-| `FRONTEND_URL` | Links enviados por e-mail | `http://localhost:5173` |
-| `STORAGE_TYPE`, `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET` | Armazenamento de imagens | SeaweedFS em `localhost:8333` |
-| `SYSTEM_ADMIN_NAME`, `SYSTEM_ADMIN_EMAIL`, `SYSTEM_ADMIN_PASSWORD` | Criação inicial do administrador da plataforma | Não definido |
-| `CORS_ALLOWED_ORIGINS` | Origens permitidas pelo backend; no perfil local, `localhost:5173` e `127.0.0.1:5173` já são aceitos | Padrão local |
-| `RATE_LIMIT_ENABLED`, `LOGIN_MAX_FAILURES_PER_EMAIL`, `LOGIN_MAX_FAILURES_PER_IP`, `LOGIN_BLOCK_MINUTES`, `PUBLIC_FORMS_MAX_REQUESTS_PER_IP` | Proteção contra tentativas repetidas no login e nos formulários públicos ([detalhes](../instrucoes/guia-detalhado-do-salonhub.md#proteção-contra-tentativas-repetidas)) | Ligada: 5 erros por e-mail, 20 por IP, bloqueio de 15 min, 10 cadastros/hora por IP |
-| `GEOAPIFY_API_KEY` | Opcional: tenta localizar o estabelecimento pelo endereço completo | Não definido |
-| `PHOTON_BASE_URL` | Servidor Photon para localizar o logradouro do CEP | `https://photon.komoot.io` |
-
-As opções completas estão em [`application.properties`](backend/src/main/resources/application.properties), nos arquivos de perfil em `backend/src/main/resources` e no [guia detalhado](../instrucoes/guia-detalhado-do-salonhub.md#como-executar). O frontend inclui um [exemplo de ambiente](frontend/.env.example); ele é opcional para o fluxo local com proxy do Vite.
-
-Para calcular latitude e longitude automaticamente, preencha CEP, rua, número, cidade e UF e salve o perfil. Com `GEOAPIFY_API_KEY`, o backend tenta localizar pelo endereço completo primeiro. Como alternativa, identifica a rua pela BrasilAPI e procura um ponto dessa rua no Photon, com dados do [OpenStreetMap](https://www.openstreetmap.org/copyright). A correspondência exige rua, cidade e UF e dá preferência ao mesmo CEP quando disponível. O ponto pode representar outro trecho da mesma rua. As coordenadas ficam em `establishment_profiles.latitude` e `establishment_profiles.longitude` (migration V28). Uma alteração no endereço recalcula o ponto, e salvar novamente um perfil sem coordenadas tenta preenchê-las.
-
-Na tela de agendamentos, informe seu CEP para ordenar os estabelecimentos por proximidade. O backend consulta as coordenadas aproximadas desse CEP e calcula a distância em linha reta até os pontos salvos dos estabelecimentos. O navegador não é usado para determinar sua localização. Como os pontos podem ser aproximados, a distância exibida é uma estimativa da região, não um trajeto até o endereço. Se a consulta do CEP falhar, a tela avisa o cliente e mantém a lista normal de estabelecimentos.
-
-Nos detalhes do perfil público, **Abrir no Google Maps** pesquisa o endereço completo cadastrado em outra aba, sem chave de API. O link usa rua, número, bairro, cidade, UF e CEP, em vez das coordenadas aproximadas do CEP. Confira o endereço cadastrado caso o serviço de mapas sugira outro local.
-
-O administrador pode incluir até 15 fotos JPG, PNG ou WEBP (2 MB por foto) na **Galeria de mídia** do perfil, alterar sua ordem por arrastar ou pelas setas e remover imagens. A galeria aparece nos detalhes públicos do estabelecimento com foto principal, navegação e miniaturas. Os arquivos usam o mesmo armazenamento S3 da logo e da capa; o banco guarda apenas referências e a ordem.
-
-## 🧪 Qualidade e testes
+Para rodar a API e a interface fora dos contêineres, instale Java 21 e Node.js 22. Na raiz do repositório, suba os serviços de apoio:
 
 ```bash
-# Em backend/
-./mvnw test
-
-# Em frontend/
-npm run lint
-npm test
-npm run build
+docker compose up -d postgres mailpit storage
 ```
 
-No Windows, substitua `./mvnw` por `.\mvnw.cmd`. A [CI](.github/workflows/ci.yml) executa os testes do backend com PostgreSQL e valida lint, testes e build do frontend.
+Na pasta `backend`, rode `./mvnw spring-boot:run`. No Windows, use `.\mvnw.cmd spring-boot:run`.
 
-## 📚 Documentação
+Em outro terminal, na pasta `frontend`, rode:
 
-- [Guia detalhado](../instrucoes/guia-detalhado-do-salonhub.md) — fluxos, endpoints, autenticação, seed e regras de negócio.
-- [Notas de design](../instrucoes/notas-de-design.md) — decisões visuais da interface.
-- [Swagger UI](http://localhost:8080/swagger-ui.html) — referência interativa da API com o backend em execução.
-
-## 📂 Estrutura do repositório
-
-```text
-backend/          API Spring Boot, migrations e testes
-frontend/         aplicação React e testes
-../instrucoes/    guias de estudo e documentação detalhada (pasta local)
-.github/workflows/ automação de testes e build
-docker-compose.yml aplicação completa e serviços locais
+```bash
+npm ci
+npm run dev
 ```
 
----
+O Vite encaminha as requisições de `/api` para a porta 8080. Os padrões do backend permitem rodar o projeto localmente sem criar um `.env`. As variáveis de banco, JWT, e-mail, armazenamento, geocodificação e administração da plataforma estão em [application.properties](backend/src/main/resources/application.properties). Se precisar apontar o frontend para outra API, consulte o [exemplo de ambiente](frontend/.env.example).
 
-<p align="center">SalonHub · Projeto acadêmico de conclusão de curso</p>
+## Código e testes
+
+- [backend/](backend/) contém a API em Java 21 com Spring Boot, Spring Security e JPA. O PostgreSQL guarda os dados da aplicação, e as imagens ficam no SeaweedFS por meio de uma API compatível com S3.
+- [frontend/](frontend/) contém a interface em React e TypeScript, com Vite e Tailwind CSS.
+
+Na pasta `backend`, com o PostgreSQL rodando, execute `./mvnw test` ou, no Windows, `.\mvnw.cmd test`. Na pasta `frontend`, execute `npm run lint`, `npm test` e `npm run build`. Essas verificações também rodam no [GitHub Actions](.github/workflows/ci.yml).
